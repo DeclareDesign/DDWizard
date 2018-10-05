@@ -1,0 +1,38 @@
+---
+title: "Notes on DeclareDesign"
+author: "Markus Konrad"
+date: "October 5, 2018"
+output: html_document
+---
+
+Maybe this will turn into a developer's documentation for DeclareDesign some day.
+
+```{r}
+library(DesignLibrary)
+```
+
+
+## A Design object
+
+A design object is a function.
+
+```{r}
+class(simple_two_arm_designer)
+```
+
+It has some attributes that provide meta-data:
+
+```{r}
+attributes(simple_two_arm_designer)
+```
+
+```{r}
+attr(simple_two_arm_designer, 'description')
+```
+
+Get a design's arguments as list with `formals()`:
+
+```{r}
+formals(simple_two_arm_designer)
+```
+
