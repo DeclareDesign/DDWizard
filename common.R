@@ -22,7 +22,7 @@ input_elem_for_design_arg <- function(argname, argdefault, argtype) {
     inp_id <- paste0('design_arg_', argname)
     
     if (argtype == 'numeric') {
-        return(numericInput(inp_id, argname, value = argdefault))
+        return(numericInput(inp_id, argname, value = argdefault, step = 0.1))
     } else if (argtype == 'integer') {
         return(numericInput(inp_id, argname, value = argdefault, step = 1))
     }

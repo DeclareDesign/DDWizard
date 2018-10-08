@@ -29,7 +29,7 @@ ui <- material_page(
         ),
         material_column(
             width = 6,
-            material_card("Output", p("Code..."), p("Download..."))
+            material_card("Output", verbatimTextOutput("designCode"), p("Download..."))
         ),
         material_column(
             width = 3,
@@ -41,16 +41,53 @@ ui <- material_page(
 
 server <- function(input, output) {
     # reactive values for server
-    react <- reactiveValues(design = NULL)        # design object (a closure)
+    react <- reactiveValues(
+        design = NULL            # parametric design / designer object (a closure)
+#        design_instance = NULL,   # *reactive* specific design instance generated from above `design` with specific parameter values
+#        design_args = NULL        # *reactive* arguments/parameters and their values taken from the inputs
+    )
     
-    designLoaded <- function(d) {
-        react$design <- d
-    }
+    design_args <- reactive({
+        output_args <- list()
+        
+        if (!is.null(react$design)) {
+            args <- formals(react$design)
+            for (argname in names(args)) {
+                argdefault <- args[[argname]]
+                argtype <- class(argdefault)
+                
+                if (argtype %in% c('numeric', 'integer')) {
+                    inp_value <- as.numeric(input[[paste0('design_arg_', argname)]])
+                    output_args[[argname]] <- ifelse(length(inp_value) > 0, inp_value, argdefault)
+                }
+            }
+
+            print('design args changed')
+        }
+
+        output_args
+    })
+    
+    
+    design_instance <- reactive({
+        d_inst <- NULL
+
+        if (!is.null(react$design) && length(design_args()) > 0) {
+            e <- environment()
+            d_inst <- do.call(react$design, design_args(), envir = parent.env(e))
+
+            print('design instance changed')
+        }
+
+        d_inst
+    })
+    
     
     observeEvent(input$import_from_design_lib, {
-        d <- DesignLibrary::simple_two_arm_designer
-        designLoaded(d)
+        react$design <- DesignLibrary::simple_two_arm_designer
+        print('parametric design loaded')
     })
+    
     
     output$designParameters <- renderUI({
         boxes <- list()
@@ -59,10 +96,10 @@ server <- function(input, output) {
             boxes <- list_append(boxes, p('Load a design first'))
         } else {
             boxes <- list_append(boxes, HTML(attr(react$design, 'description')))
-            design_args <- formals(react$design)
+            args <- formals(react$design)
             
-            for (argname in names(design_args)) {
-                argdefault <- design_args[[argname]]
+            for (argname in names(args)) {
+                argdefault <- args[[argname]]
                 argtype <- class(argdefault)
                 
                 boxes <- list_append(boxes, input_elem_for_design_arg(argname, argdefault, argtype))
@@ -70,6 +107,16 @@ server <- function(input, output) {
         }
         
         return(do.call(material_card, c('Design parameters', boxes)))
+    })
+    
+    output$designCode <- renderText({
+        if(!is.null(design_instance()) && !is.null(attr(design_instance(), 'code'))){
+            code_text <- paste(attr(design_instance(), 'code'), collapse = "\n")
+        } else {
+            code_text <- ''
+        }
+        
+        code_text
     })
 }
 
