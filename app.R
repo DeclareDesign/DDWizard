@@ -40,13 +40,15 @@ ui <- material_page(
 
 
 server <- function(input, output) {
-    # reactive values for server
+    ### reactive values  ###
+    
     react <- reactiveValues(
         design = NULL            # parametric design / designer object (a closure)
-#        design_instance = NULL,   # *reactive* specific design instance generated from above `design` with specific parameter values
-#        design_args = NULL        # *reactive* arguments/parameters and their values taken from the inputs
     )
     
+    ### reactive expressions ###
+    
+    # arguments/parameters for react$design and their values taken from the inputs
     design_args <- reactive({
         output_args <- list()
         
@@ -68,7 +70,7 @@ server <- function(input, output) {
         output_args
     })
     
-    
+    # specific design instance generated from above react$design with specific parameter values `design_args()`
     design_instance <- reactive({
         d_inst <- NULL
 
@@ -82,12 +84,15 @@ server <- function(input, output) {
         d_inst
     })
     
+    ### input observers ###
     
     observeEvent(input$import_from_design_lib, {
         react$design <- DesignLibrary::simple_two_arm_designer
         print('parametric design loaded')
     })
     
+    
+    ### output elements ###
     
     output$designParameters <- renderUI({
         boxes <- list()

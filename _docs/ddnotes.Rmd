@@ -5,20 +5,23 @@ date: "October 5, 2018"
 output: html_document
 ---
 
-Maybe this will turn into a developer's documentation for DeclareDesign some day.
-
 ```{r}
 library(DesignLibrary)
 ```
 
 
-## A Design object
+## A parametric design/designer object
 
-A design object is a function.
+A design object is a closure function. Sometimes it's also called "design*er*" instead of design, since it's a parametric template for a specific design.
 
 ```{r}
 class(simple_two_arm_designer)
 ```
+
+```{r}
+typeof(simple_two_arm_designer)
+```
+
 
 It has some attributes that provide meta-data:
 
@@ -30,9 +33,73 @@ attributes(simple_two_arm_designer)
 attr(simple_two_arm_designer, 'description')
 ```
 
-Get a design's arguments as list with `formals()`:
+### Designer parameters
+
+Get a designer's arguments as list with `formals()`:
 
 ```{r}
 formals(simple_two_arm_designer)
+```
+
+Parameters can be:
+
+- numeric
+- integer
+- "language": a parameter dependend on some other parameter(s) (like `treatment_mean`)
+- more?
+
+## A specific design instance
+
+Calling a designer object with some specific parameters generates a specific design instance:
+
+```{r}
+two_arm_N10 <- simple_two_arm_designer(N=10)
+two_arm_N10
+```
+
+This instance contains all the steps of the designer, but with specific parameters set. It's a special list of classes "design" and "dd":
+
+```{r}
+class(two_arm_N10)
+```
+
+```{r}
+typeof(two_arm_N10)
+```
+
+All steps can be accessed by name:
+
+```{r}
+names(two_arm_N10)
+```
+
+```{r}
+two_arm_N10$population
+```
+
+Generate a random population with the parameters specified by the designer:
+
+```{r}
+two_arm_N10$population()
+```
+
+
+Parameters cannot be changed here any more:
+
+```{r, eval=FALSE}
+two_arm_N10$population(N = 20)
+## Error in two_arm_N10$population(N = 20) : unused argument (N = 20)
+```
+
+There are more attributes to the design instance:
+
+```{r}
+attributes(two_arm_N10)
+```
+
+Attribute "code" reproduces the design instance:
+
+```{r}
+attr(two_arm_N10, 'code')
 ```
 
