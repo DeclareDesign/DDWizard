@@ -12,7 +12,7 @@ library(DesignLibrary)
 
 ## A parametric design/designer object
 
-A design object is a closure function. Sometimes it's also called "design*er*" instead of design, since it's a parametric template for a specific design.
+A design object is a closure function. It comes from the Design Library. Sometimes it's also called "design*er*" instead of design, since it's a parametric template for a specific design.
 
 ```{r}
 class(simple_two_arm_designer)
@@ -21,7 +21,6 @@ class(simple_two_arm_designer)
 ```{r}
 typeof(simple_two_arm_designer)
 ```
-
 
 It has some attributes that provide meta-data:
 
@@ -47,6 +46,8 @@ Parameters can be:
 - integer
 - "language": a parameter dependend on some other parameter(s) (like `treatment_mean`)
 - more?
+
+**The range of acceptable values for a parameter is not specified. Parameters that should be integers (e.g. N) are often declared as numeric (reals).**
 
 ## A specific design instance
 

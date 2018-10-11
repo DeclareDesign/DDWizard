@@ -14,18 +14,33 @@ list_append <- function(l, v) {
 }
 
 #' Create an input element for a design argument with name `argname`,
-#' default value `argdefault` and type `argtype`.
+#' default value `argdefault`, class `argclass` and type `argtype` (from `typeof()`)
 #' Returns NULL if argument type is not supported.
 #' @export
 #'
-input_elem_for_design_arg <- function(argname, argdefault, argtype) {
+input_elem_for_design_arg <- function(argname, argdefault, argclass, argtype) {
     inp_id <- paste0('design_arg_', argname)
     
-    if (argtype == 'numeric') {
+    if (argclass == 'numeric') {
         return(numericInput(inp_id, argname, value = argdefault, step = 0.1))
-    } else if (argtype == 'integer') {
+    } else if (argclass == 'integer') {
         return(numericInput(inp_id, argname, value = argdefault, step = 1))
+    } else if (argclass == 'call' && argtype == 'language') {
+        return(textInput(inp_id, argname, value = deparse(argdefault)))
     }
     
     NULL
+}
+
+design_arg_value_from_input <- function(inp_value, argdefault, argclass, argtype) {
+    if (argclass %in% c('numeric', 'integer')) {
+        arg_value <- as.numeric(inp_value)
+    } else if (argclass == 'call' && argtype == 'language') {
+        #arg_value <- parse(text = inp_value)    # TODO: what here?
+        return(NULL)
+    } else {
+        return(NULL)
+    }
+    
+    return(ifelse(length(inp_value) > 0, arg_value, argdefault))
 }
