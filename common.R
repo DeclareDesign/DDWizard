@@ -14,19 +14,28 @@ list_append <- function(l, v) {
 }
 
 #' Create an input element for a design argument with name `argname`,
-#' default value `argdefault`, class `argclass` and type `argtype` (from `typeof()`)
 #' Returns NULL if argument type is not supported.
 #' @export
 #'
-input_elem_for_design_arg <- function(argname, argdefault, argclass, argtype) {
+input_elem_for_design_arg <- function(argname, argdefault, argdefinition) {
     inp_id <- paste0('design_arg_', argname)
     
-    if (argclass == 'numeric') {
-        return(numericInput(inp_id, argname, value = argdefault, step = 0.1))
-    } else if (argclass == 'integer') {
-        return(numericInput(inp_id, argname, value = argdefault, step = 1))
-    } else if (argclass == 'call' && argtype == 'language') {
+    argclass <- class(argdefault)
+    argtype <- typeof(argdefault)
+    
+    if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')) {
         return(textInput(inp_id, argname, value = deparse(argdefault)))
+    } else {
+        argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
+        argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
+        
+        if (argdefinition$class == 'numeric') {
+            return(numericInput(inp_id, argname, value = argdefault, step = 0.1, min = argmin, max = argmax))
+        } else if (argdefinition$class == 'integer') {
+            return(numericInput(inp_id, argname, value = argdefault, step = 1, min = argmin, max = argmax))
+        } else if (argdefinition$class == 'character') {
+            return(textInput(inp_id, argname, value = argdefault))
+        }
     }
     
     NULL

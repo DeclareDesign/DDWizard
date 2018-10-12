@@ -18,27 +18,56 @@ ui <- material_page(
     bootstrapLib(),
     withMathJax(),
     shinyjs::useShinyjs(),
-    material_row(
-        material_column(
-            width = 3,
-            material_card("Input",
-                          div(style="text-align: center;",
-                              actionButton("import_from_design_lib",
-                                           label = HTML("Import")
-                              ))
+    material_tabs(
+        tabs = c(
+            "Design" = "tab_design",
+            "Inspect" = "tab_inspect"
+        )
+    ),
+    material_tab_content(
+        tab_id = 'tab_design',
+        material_row(
+            material_column(
+                width = 3,
+                material_card("Input",
+                              div(style="text-align: center;",
+                                  actionButton("import_from_design_lib",
+                                               label = HTML("Import")
+                                  ))
+                ),
+                uiOutput("design_parameters")    # display *all* arguments of an imported design
             ),
-            uiOutput("design_parameters")    # display *all* arguments of an imported design
-        ),
-        material_column(
-            width = 9,
-            material_card("Download",
-                          downloadButton('download_r_script', label = 'R code', disabled = 'disabled'),
-                          downloadButton('download_rds_obj', label = 'Design as RDS file', disabled = 'disabled')),
-            bsCollapse(id='sections_container',
-                       bsCollapsePanel('Messages', verbatimTextOutput("section_messages")),
-#                       bsCollapsePanel('Warnings', verbatimTextOutput("section_warnings")),
-                       bsCollapsePanel('Summary', verbatimTextOutput("section_summary")),
-                       bsCollapsePanel('Code output', verbatimTextOutput("section_design_code"))
+            material_column(
+                width = 9,
+                material_card("Download",
+                              downloadButton('download_r_script', label = 'R code', disabled = 'disabled'),
+                              downloadButton('download_rds_obj', label = 'Design as RDS file', disabled = 'disabled')),
+                bsCollapse(id='sections_container',
+                           bsCollapsePanel('Messages', verbatimTextOutput("section_messages")),
+#                           bsCollapsePanel('Warnings', verbatimTextOutput("section_warnings")),
+                           bsCollapsePanel('Summary', verbatimTextOutput("section_summary")),
+                           bsCollapsePanel('Code output', verbatimTextOutput("section_design_code"))
+                )
+            )
+        )
+    ),
+    material_tab_content(
+        tab_id = 'tab_inspect',
+        material_row(
+            material_column(
+                width = 3,
+                material_card("Compare designs",
+                              p('Design parameters with comparisons...'))
+            ),
+            material_column(
+                width = 6,
+                material_card("Diagnostic plots",
+                              p('Plots...'))
+            ),
+            material_column(
+                width = 3,
+                material_card("Plot configuration",
+                              p('...'))
             )
         )
     )
@@ -52,8 +81,9 @@ server <- function(input, output) {
     ### reactive values  ###
     
     react <- reactiveValues(
-        design = NULL,            # parametric design / designer object (a closure)
-        design_id = NULL,         # identifier for current design instance *after* being instantiated
+        design = NULL,                  # parametric design / designer object (a closure)
+        design_id = NULL,               # identifier for current design instance *after* being instantiated
+        design_argdefinitions = NULL,   # argument definitions for current design instance
         captured_stdout = NULL,
         captured_msgs = NULL
 #        captured_warnings = NULL
@@ -72,7 +102,7 @@ server <- function(input, output) {
                 
                 argdefault <- args[[argname]]
                 inp_value <- input[[paste0('design_arg_', argname)]]
-                print(paste(argname, inp_value, class(argdefault), typeof(argdefault)))
+                #print(paste(argname, inp_value, class(argdefault), typeof(argdefault)))
                 output_args[[argname]] <- design_arg_value_from_input(inp_value, argdefault, class(argdefault), typeof(argdefault))
             }
             
@@ -86,13 +116,18 @@ server <- function(input, output) {
     design_instance <- reactive({
         d_inst <- NULL
         
-        if (!is.null(react$design) && length(design_args()) > 0) {
+        if (!is.null(react$design)) {
+            d_args <- design_args()
+            
+            if (length(d_args) == 0) {
+                print('using default arg values')
+            }
             
             react$captured_msgs <- capture.output({
                 react$captured_stdout <- capture.output({
                     e <- environment()
                     message('fake message')
-                    d_inst <- do.call(react$design, design_args(), envir = parent.env(e))
+                    d_inst <- do.call(react$design, d_args, envir = parent.env(e))
                     warning('fake warning')
                     message('fake message 2')
                     warning('fake warning 2')
@@ -113,6 +148,7 @@ server <- function(input, output) {
             # }
             
             react$design_id <- load_design   # TODO: use args$design_name here, should be a character string
+            react$design_argdefinitions <- attr(d_inst, 'definitions')
             
             print('design instance changed')
         }
@@ -143,13 +179,17 @@ server <- function(input, output) {
             
             args <- formals(react$design)
             
+            if (is.null(react$design_argdefinitions)) design_instance()    # create instance with default args in order to get arg. definitions
+            arg_defs <- react$design_argdefinitions
+            
             boxes <- list_append(boxes, textInput('design_arg_design_name', 'Design name', value = react$design_id))
             
             for (argname in names(args)) {
                 if (argname %in% args_control_skip_design_args) next()
                 argdefault <- args[[argname]]
-                
-                boxes <- list_append(boxes, input_elem_for_design_arg(argname, argdefault, class(argdefault), typeof(argdefault)))
+                argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
+                inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition)
+                boxes <- list_append(boxes, inp_elem)
             }
         }
         
