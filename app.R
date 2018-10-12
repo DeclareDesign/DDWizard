@@ -36,7 +36,7 @@ ui <- material_page(
                           downloadButton('download_rds_obj', label = 'Design as RDS file', disabled = 'disabled')),
             bsCollapse(id='sections_container',
                        bsCollapsePanel('Messages', verbatimTextOutput("section_messages")),
-                       bsCollapsePanel('Warnings', verbatimTextOutput("section_warnings")),
+#                       bsCollapsePanel('Warnings', verbatimTextOutput("section_warnings")),
                        bsCollapsePanel('Summary', verbatimTextOutput("section_summary")),
                        bsCollapsePanel('Code output', verbatimTextOutput("section_design_code"))
             )
@@ -46,7 +46,7 @@ ui <- material_page(
 
 
 server <- function(input, output) {
-    options(warn = 1)
+    options(warn = 1)    # always directly print warnings
     load_design <- 'simple_two_arm_designer'     # TODO: so far, design cannot be chosen from lib
     
     ### reactive values  ###
@@ -55,8 +55,8 @@ server <- function(input, output) {
         design = NULL,            # parametric design / designer object (a closure)
         design_id = NULL,         # identifier for current design instance *after* being instantiated
         captured_stdout = NULL,
-        captured_msgs = NULL,
-        captured_warnings = NULL
+        captured_msgs = NULL
+#        captured_warnings = NULL
     )
     
     ### reactive expressions ###
@@ -87,8 +87,6 @@ server <- function(input, output) {
         d_inst <- NULL
         
         if (!is.null(react$design) && length(design_args()) > 0) {
-            #clear_warnings()
-            #options(warn = 0)
             
             react$captured_msgs <- capture.output({
                 react$captured_stdout <- capture.output({
@@ -102,21 +100,19 @@ server <- function(input, output) {
                 }, type = 'output')
             }, type = 'message')
             
-            react$captured_warnings <- NULL
-            if (!is.null(last.warning) && length(last.warning) > 0) {
-                warning_msgs <- names(last.warning)
-                warning_loc <- as.character(unlist(last.warning, use.names = FALSE))
-                warning_msgs <- warning_msgs[!is.na(warning_loc)]
-                warning_loc <- warning_loc[!is.na(warning_loc)]
-                if (length(warning_msgs) > 0) {
-                    react$captured_warnings <- paste(warning_msgs, 'at', warning_loc)
-                }
-            }
+            # somehow, this doesn't (always) work (we capture warnings together with messages instead)
+            # react$captured_warnings <- NULL
+            # if (!is.null(last.warning) && length(last.warning) > 0) {
+            #     warning_msgs <- names(last.warning)
+            #     warning_loc <- as.character(unlist(last.warning, use.names = FALSE))
+            #     warning_msgs <- warning_msgs[!is.na(warning_loc)]
+            #     warning_loc <- warning_loc[!is.na(warning_loc)]
+            #     if (length(warning_msgs) > 0) {
+            #         react$captured_warnings <- paste(warning_msgs, 'at', warning_loc)
+            #     }
+            # }
             
             react$design_id <- load_design   # TODO: use args$design_name here, should be a character string
-            
-            #options(warn = 1)
-            #clear_warnings()
             
             print('design instance changed')
         }
@@ -190,15 +186,15 @@ server <- function(input, output) {
         txt
     })
     
-    output$section_warnings <- renderText({
-        if(!is.null(design_instance()) && !is.null(react$captured_warnings)) {   # call design_instance() will also create design
-            txt <- paste(react$captured_warnings, collapse = "\n")
-        } else {
-            txt <- 'No warnings.'
-        }
-        
-        txt
-    })
+    # output$section_warnings <- renderText({
+    #     if(!is.null(design_instance()) && !is.null(react$captured_warnings)) {   # call design_instance() will also create design
+    #         txt <- paste(react$captured_warnings, collapse = "\n")
+    #     } else {
+    #         txt <- 'No warnings.'
+    #     }
+    #     
+    #     txt
+    # })
     
     output$download_r_script <- downloadHandler(
         filename = function() {

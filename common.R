@@ -45,8 +45,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argclass, argtype
     return(ifelse(length(inp_value) > 0, arg_value, argdefault))
 }
 
-#' Clear the internal list of warnings as produced by calls to `warning()`.
-#' Solution from https://stackoverflow.com/q/5725106
-clear_warnings <- function() {
-    assign("last.warning", NULL, envir = baseenv())
-}
+#' #' Clear the internal list of warnings as produced by calls to `warning()`.
+#' #' Solution from https://stackoverflow.com/q/5725106
+#' clear_warnings <- function() {
+#'     assign("last.warning", NULL, envir = baseenv())
+#' }
