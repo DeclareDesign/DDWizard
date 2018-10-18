@@ -17,6 +17,9 @@ ui <- material_page(
     shiny::tags$title(app_title),
     bootstrapLib(),
     withMathJax(),
+    tags$head(
+        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+    ),
     shinyjs::useShinyjs(),
     material_tabs(
         tabs = c(
@@ -31,9 +34,8 @@ ui <- material_page(
                 width = 3,
                 material_card("Input",
                               div(style="text-align: center;",
-                                  actionButton("import_from_design_lib",
-                                               label = HTML("Import")
-                                  ))
+                                  actionButton("import_from_design_lib", label = "Import")
+                              )
                 ),
                 uiOutput("design_parameters")    # display *all* arguments of an imported design
             ),
@@ -99,6 +101,8 @@ server <- function(input, output) {
             args <- formals(react$design)
             arg_defs <- react$design_argdefinitions   # is NULL on first run
             
+            fixed_args <- c('design_name')
+            
             for (argname in names(args)) {
                 if (argname %in% args_control_skip_design_args) next()
                 
@@ -111,10 +115,16 @@ server <- function(input, output) {
                 if (!is.null(argvalue)) {
                     output_args[[argname]] <- argvalue
                 }
+                
+                arg_is_fixed_value <- input[[paste0('design_arg_', argname, '_fixed')]]
+                if (isTruthy(arg_is_fixed_value)) {
+                    fixed_args <- c(fixed_args, argname)
+                }
             }
             
             #output_args$design_name <- c(input$design_arg_design_name)  # super strange, doesn't work
             output_args$design_name <- load_design
+            output_args$fixed <- fixed_args
             
             print('design args changed:')
             print(output_args)
@@ -188,7 +198,10 @@ server <- function(input, output) {
                 argdefault <- args[[argname]]
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition)
-                boxes <- list_append(boxes, inp_elem)
+                inp_and_fixed <- tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                                   checkboxInput(paste0('design_arg_', argname, '_fixed'), label = 'fixed', width = '50%')),
+                                          inp_elem)
+                boxes <- list_append(boxes, inp_and_fixed)
             }
         }
         

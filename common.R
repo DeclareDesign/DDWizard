@@ -26,7 +26,8 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition) {
     inp_elem_constructor <- NULL
     inp_elem_args <- list(
         inp_id,
-        argname
+        argname,
+        width = '50%'
     )
     
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
