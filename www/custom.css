@@ -1,0 +1,6 @@
+/** fixes bug with checkboxes not being displayed when using bootstrap */
+input[type="checkbox"]:not(:checked), input[type="checkbox"]:checked {
+    position: absolute !important;
+    left: auto !important;
+    opacity: 1 !important;
+}
