@@ -97,16 +97,27 @@ server <- function(input, output) {
         
         if (!is.null(react$design)) {
             args <- formals(react$design)
+            arg_defs <- react$design_argdefinitions   # is NULL on first run
+            
             for (argname in names(args)) {
                 if (argname %in% args_control_skip_design_args) next()
                 
                 argdefault <- args[[argname]]
+                argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 #print(paste(argname, inp_value, class(argdefault), typeof(argdefault)))
-                output_args[[argname]] <- design_arg_value_from_input(inp_value, argdefault, class(argdefault), typeof(argdefault))
+                argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
+                
+                if (!is.null(argvalue)) {
+                    output_args[[argname]] <- argvalue
+                }
             }
             
-            print('design args changed')
+            #output_args$design_name <- c(input$design_arg_design_name)  # super strange, doesn't work
+            output_args$design_name <- load_design
+            
+            print('design args changed:')
+            print(output_args)
         }
         
         output_args
@@ -135,19 +146,7 @@ server <- function(input, output) {
                 }, type = 'output')
             }, type = 'message')
             
-            # somehow, this doesn't (always) work (we capture warnings together with messages instead)
-            # react$captured_warnings <- NULL
-            # if (!is.null(last.warning) && length(last.warning) > 0) {
-            #     warning_msgs <- names(last.warning)
-            #     warning_loc <- as.character(unlist(last.warning, use.names = FALSE))
-            #     warning_msgs <- warning_msgs[!is.na(warning_loc)]
-            #     warning_loc <- warning_loc[!is.na(warning_loc)]
-            #     if (length(warning_msgs) > 0) {
-            #         react$captured_warnings <- paste(warning_msgs, 'at', warning_loc)
-            #     }
-            # }
-            
-            react$design_id <- load_design   # TODO: use args$design_name here, should be a character string
+            react$design_id <- load_design
             react$design_argdefinitions <- attr(d_inst, 'definitions')
             
             print('design instance changed')
