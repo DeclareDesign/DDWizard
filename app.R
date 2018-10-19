@@ -199,7 +199,7 @@ server <- function(input, output) {
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition)
                 inp_and_fixed <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                   checkboxInput(paste0('design_arg_', argname, '_fixed'), label = 'fixed', width = '50%')),
+                                                   checkboxInput(paste0('design_arg_', argname, '_fixed'), label = 'fixed', width = '30%')),
                                           inp_elem)
                 boxes <- list_append(boxes, inp_and_fixed)
             }

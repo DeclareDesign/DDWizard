@@ -4,3 +4,8 @@ input[type="checkbox"]:not(:checked), input[type="checkbox"]:checked {
     left: auto !important;
     opacity: 1 !important;
 }
+
+/** fixes bug with overflow scroll bar in tabs when switching to second tab */
+.tabs {
+    overflow-x: hidden;
+}

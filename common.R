@@ -17,7 +17,7 @@ list_append <- function(l, v) {
 #' Returns NULL if argument type is not supported.
 #' @export
 #'
-input_elem_for_design_arg <- function(argname, argdefault, argdefinition) {
+input_elem_for_design_arg <- function(argname, argdefault, argdefinition, elem_width = '70%') {
     inp_id <- paste0('design_arg_', argname)
     
     argclass <- class(argdefault)
@@ -27,7 +27,7 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition) {
     inp_elem_args <- list(
         inp_id,
         argname,
-        width = '50%'
+        width = elem_width
     )
     
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
