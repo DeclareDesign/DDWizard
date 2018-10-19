@@ -17,7 +17,7 @@ list_append <- function(l, v) {
 #' Returns NULL if argument type is not supported.
 #' @export
 #'
-input_elem_for_design_arg <- function(argname, argdefault, argdefinition, elem_width = '70%') {
+input_elem_for_design_arg <- function(argname, argdefault, argdefinition, width = '70%') {
     inp_id <- paste0('design_arg_', argname)
     
     argclass <- class(argdefault)
@@ -27,7 +27,7 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, elem_w
     inp_elem_args <- list(
         inp_id,
         argname,
-        width = elem_width
+        width = width
     )
     
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
@@ -82,8 +82,56 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
     return(ifelse(length(inp_value) > 0, arg_value, argdefault))
 }
 
-#' #' Clear the internal list of warnings as produced by calls to `warning()`.
-#' #' Solution from https://stackoverflow.com/q/5725106
-#' clear_warnings <- function() {
-#'     assign("last.warning", NULL, envir = baseenv())
-#' }
+create_design_parameter_ui <- function(type, react, design_instance_fn, input = NULL, defaults = NULL) {
+    boxes <- list()
+    
+    if (is.null(react$design)) {
+        boxes <- list_append(boxes, p('Load a design first'))
+    } else {
+        if (type == 'design') {
+            boxes <- list_append(boxes, HTML(attr(react$design, 'description')))
+            boxes <- list_append(boxes, textInput('design_arg_design_name', 'Design name', value = react$design_id))
+        }
+        
+        args <- formals(react$design)
+        
+        if (is.null(react$design_argdefinitions)) design_instance_fn()    # create instance with default args in order to get arg. definitions
+        arg_defs <- react$design_argdefinitions
+        
+        for (argname in names(args)) {
+            if (argname %in% args_control_skip_design_args) next()
+            argdefault <- args[[argname]]
+            argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
+            
+            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
+            
+            if (type != 'design' && isTruthy(input[[inp_elem_name_fixed]])) {
+                next()
+            }
+            
+            if (type == 'design') {
+                inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%')
+                inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                                       checkboxInput(inp_elem_name_fixed, label = 'fixed', width = '30%')),
+                                              inp_elem)
+                
+            } else {   # type == 'inspect'
+                if (!is.null(defaults) && argname %in% names(defaults)) {
+                    argvalue <- as.character(defaults[[argname]])
+                } else {
+                    if (typeof(argdefault) %in% c('language', 'symbol')) {
+                        argvalue <- ''
+                    } else {
+                        argvalue <- as.character(argdefault)
+                    }
+                }
+                
+                inp_elem_complete <- textInput(paste0('design_arg_', argname), argname, value = argvalue)
+            }
+            
+            boxes <- list_append(boxes, inp_elem_complete)
+        }
+    }
+    
+    return(do.call(material_card, c('Compare design parameters', boxes)))
+}

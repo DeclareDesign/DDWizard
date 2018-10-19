@@ -58,18 +58,19 @@ ui <- material_page(
         material_row(
             material_column(
                 width = 3,
-                material_card("Compare designs",
-                              p('Design parameters with comparisons...'))
+                uiOutput("compare_design_parameters")    # display not-fixed parameters of a design / allow to define sequences for comparison in plots
             ),
             material_column(
                 width = 6,
                 material_card("Diagnostic plots",
-                              p('Plots...'))
+                              p('Plots...')
+                )
             ),
             material_column(
                 width = 3,
                 material_card("Plot configuration",
-                              p('...'))
+                              uiOutput("plot_conf")
+                )
             )
         )
     )
@@ -147,11 +148,7 @@ server <- function(input, output) {
             react$captured_msgs <- capture.output({
                 react$captured_stdout <- capture.output({
                     e <- environment()
-                    message('fake message')
                     d_inst <- do.call(react$design, d_args, envir = parent.env(e))
-                    warning('fake warning')
-                    message('fake message 2')
-                    warning('fake warning 2')
                     print(d_inst)   # to create summary output
                 }, type = 'output')
             }, type = 'message')
@@ -176,36 +173,10 @@ server <- function(input, output) {
     })
     
     
-    ### output elements ###
+    ### DESIGN TAB: output elements ###
     
     output$design_parameters <- renderUI({
-        boxes <- list()
-        
-        if (is.null(react$design)) {
-            boxes <- list_append(boxes, p('Load a design first'))
-        } else {
-            boxes <- list_append(boxes, HTML(attr(react$design, 'description')))
-            
-            args <- formals(react$design)
-            
-            if (is.null(react$design_argdefinitions)) design_instance()    # create instance with default args in order to get arg. definitions
-            arg_defs <- react$design_argdefinitions
-            
-            boxes <- list_append(boxes, textInput('design_arg_design_name', 'Design name', value = react$design_id))
-            
-            for (argname in names(args)) {
-                if (argname %in% args_control_skip_design_args) next()
-                argdefault <- args[[argname]]
-                argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
-                inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition)
-                inp_and_fixed <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                   checkboxInput(paste0('design_arg_', argname, '_fixed'), label = 'fixed', width = '30%')),
-                                          inp_elem)
-                boxes <- list_append(boxes, inp_and_fixed)
-            }
-        }
-        
-        return(do.call(material_card, c('Design parameters', boxes)))
+        create_design_parameter_ui('design', react, design_instance)
     })
     
     output$section_design_code <- renderText({
@@ -237,17 +208,7 @@ server <- function(input, output) {
         
         txt
     })
-    
-    # output$section_warnings <- renderText({
-    #     if(!is.null(design_instance()) && !is.null(react$captured_warnings)) {   # call design_instance() will also create design
-    #         txt <- paste(react$captured_warnings, collapse = "\n")
-    #     } else {
-    #         txt <- 'No warnings.'
-    #     }
-    #     
-    #     txt
-    # })
-    
+
     output$download_r_script <- downloadHandler(
         filename = function() {
             design_name <- input$design_arg_design_name
@@ -282,6 +243,18 @@ server <- function(input, output) {
             }
         }
     )
+    
+    ### INSPECT TAB: output elements ###
+    
+    output$compare_design_parameters <- renderUI({
+        tags$div(create_design_parameter_ui('inspect', react, design_instance,
+                                            input = input,
+                                            defaults = design_args()))
+    })
+    
+    output$plot_conf <- renderUI({
+        
+    })
 }
 
 # Run the application 
