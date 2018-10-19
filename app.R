@@ -63,7 +63,7 @@ ui <- material_page(
             material_column(
                 width = 6,
                 material_card("Diagnostic plots",
-                              p('Plots...')
+                              plotOutput('plot_output')
                 )
             ),
             material_column(
@@ -250,6 +250,37 @@ server <- function(input, output) {
         tags$div(create_design_parameter_ui('inspect', react, design_instance,
                                             input = input,
                                             defaults = design_args()))
+    })
+    
+    output$plot_output <- renderPlot({
+        if (is.null(react$design) || is.null(react$design_argdefinitions)) {
+            return(NULL)
+        }
+        
+        d_args <- formals(react$design)
+        d_argdefs <- react$design_argdefinitions
+        
+        insp_args <- list()
+        
+        for (d_argname in names(d_args)) {
+            d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
+            inp_name <- paste0('inspect_arg_', d_argname)
+            inp_value <- input[[inp_name]]
+            d_argclass <- d_argdef$class
+            
+            if (isTruthy(inp_value)) {
+                insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
+            }
+        }
+        
+        print('will run diagnoses with arguments:')
+        print(insp_args)
+        
+        diag_results <- run_diagnoses(react$design, insp_args,
+                                      sims = default_diag_sims,
+                                      bootstrap_sims = defaul_diag_bootstrap_sims)
+        
+        print(diag_results)
     })
     
     output$plot_conf <- renderUI({

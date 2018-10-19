@@ -4,6 +4,10 @@
 # Oct. 2018
 #
 
+library(stringr)
+library(future)
+library(rlang)
+
 
 #' Append `v` to list `l`. Appending is slow, don't use that often!
 #' @export
@@ -13,12 +17,39 @@ list_append <- function(l, v) {
     l
 }
 
+parse_sequence_string <- function(s, cls) {
+    if (cls %in% c('numeric', 'integer') && grepl('...', s, fixed = TRUE)) {   # int/num sequences with range like 1, 2, ..., 10
+        start_end <- str_split(s, "\\.\\.\\.")[[1]]
+        start <- str_trim(str_split(start_end[1], ',')[[1]])
+        startnums <- as.numeric(start[start != ''])
+
+        end <- str_trim(str_replace_all(start_end[[2]], ',', ''))
+        endnum <- as.numeric(end)
+        
+        if (length(startnums) > 1) {
+            step <- startnums[2] - startnums[1]
+        } else {
+            step <- ifelse(startnums[1] <= endnum, 1, -1)
+        }
+        
+        return(seq(from = startnums[1], to = endnum, by = step))
+    } else {  # character list or int/num scalar or int/num sequence like 1, 3, 8, 2
+        elems <- str_trim(str_split(s, ',')[[1]])
+        if (cls %in% c('numeric', 'integer')) {
+            return(as.numeric(elems))
+        } else {
+            return(elems)
+        }
+    }
+}
+
+
 #' Create an input element for a design argument with name `argname`,
 #' Returns NULL if argument type is not supported.
 #' @export
 #'
-input_elem_for_design_arg <- function(argname, argdefault, argdefinition, width = '70%') {
-    inp_id <- paste0('design_arg_', argname)
+input_elem_for_design_arg <- function(argname, argdefault, argdefinition, width = '70%', idprefix = 'design') {
+    inp_id <- paste0(idprefix, '_arg_', argname)
     
     argclass <- class(argdefault)
     argtype <- typeof(argdefault)
@@ -110,7 +141,7 @@ create_design_parameter_ui <- function(type, react, design_instance_fn, input = 
             }
             
             if (type == 'design') {
-                inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%')
+                inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%', idprefix = type)
                 inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
                                                        checkboxInput(inp_elem_name_fixed, label = 'fixed', width = '30%')),
                                               inp_elem)
@@ -126,7 +157,7 @@ create_design_parameter_ui <- function(type, react, design_instance_fn, input = 
                     }
                 }
                 
-                inp_elem_complete <- textInput(paste0('design_arg_', argname), argname, value = argvalue)
+                inp_elem_complete <- textInput(paste0('inspect_arg_', argname), argname, value = argvalue)
             }
             
             boxes <- list_append(boxes, inp_elem_complete)
@@ -134,4 +165,15 @@ create_design_parameter_ui <- function(type, react, design_instance_fn, input = 
     }
     
     return(do.call(material_card, c('Compare design parameters', boxes)))
+}
+
+
+run_diagnoses <- function(designer, args, sims, bootstrap_sims) {
+    # TODO: caching
+    
+    plan('multicore', workers = n_diagnosis_workers)
+    
+    all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
+    
+    all_designs
 }
