@@ -68,9 +68,7 @@ ui <- material_page(
             ),
             material_column(
                 width = 3,
-                material_card("Plot configuration",
-                              uiOutput("plot_conf")
-                )
+                uiOutput("plot_conf")
             )
         )
     )
@@ -257,21 +255,7 @@ server <- function(input, output) {
             return(NULL)
         }
         
-        d_args <- formals(react$design)
-        d_argdefs <- react$design_argdefinitions
-        
-        insp_args <- list()
-        
-        for (d_argname in names(d_args)) {
-            d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
-            inp_name <- paste0('inspect_arg_', d_argname)
-            inp_value <- input[[inp_name]]
-            d_argclass <- d_argdef$class
-            
-            if (isTruthy(inp_value)) {
-                insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
-            }
-        }
+        insp_args <- get_args_for_inspection(react$design, react$design_argdefinitions, input)
         
         print('will run diagnoses with arguments:')
         print(insp_args)
@@ -284,7 +268,65 @@ server <- function(input, output) {
     })
     
     output$plot_conf <- renderUI({
+        boxes <- list()
         
+        if (is.null(react$design) || is.null(react$design_argdefinitions)) {
+            boxes <- list_append(boxes, p('Load a design first'))
+        } else {
+            inp_prefix <- 'plot_conf_'
+            
+            d <- design_instance()
+            d_estimates <- get_estimates(d)
+            minimal_diag <- diagnose_design(d, sims = 1, bootstrap_sims = 1)
+            
+            # 1. estimator
+            inp_estimator_id <- paste0(inp_prefix, "estimator")    
+            inp_estimator <- selectInput(inp_estimator_id, "Estimator Label",
+                                         choices = unique(d_estimates$estimator_label))
+            boxes <- list_append(boxes, inp_estimator)
+            
+            # 2. coefficient
+            if ("term" %in% names(d_estimates)) {
+                coefficients <- d_estimates$term[d_estimates$estimator_label == input[[inp_estimator_id]]]
+            } else {
+                coefficients <- ""
+            }
+            
+            inp_coeff_id <- paste0(inp_prefix, "coefficient")
+            inp_coeff <- selectInput(inp_coeff_id, "Coefficient", choices = coefficients)
+            boxes <- list_append(boxes, inp_coeff)
+            
+            # 3. diagnosand (y-axis)
+            inp_diag_param_id <- paste0(inp_prefix, "diag_param")
+            inp_diag_param <- selectInput(inp_diag_param_id, "Diagnosand (y-axis)",
+                                          choices = minimal_diag$diagnosand_names)
+            boxes <- list_append(boxes, inp_diag_param)
+            
+            # 4. main inspection parameter (x-axis)
+            insp_args <- get_args_for_inspection(react$design, react$design_argdefinitions, input)
+            insp_args_lengths <- sapply(insp_args, length)
+            variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
+            
+            inp_x_param_id <- paste0(inp_prefix, "x_param")
+            inp_x_param <- selectInput(inp_x_param_id, "Primary parameter (x-axis)",
+                                       choices = variable_args)
+            boxes <- list_append(boxes, inp_x_param)
+            
+            # 5. secondary inspection parameter (color)
+            variable_args_optional <- c('', variable_args)
+            inp_color_param_id <- paste0(inp_prefix, "color_param")
+            inp_color_param <- selectInput(inp_color_param_id, "Secondary parameter (color)",
+                                           choices = variable_args_optional)
+            boxes <- list_append(boxes, inp_color_param)
+            
+            # 6. tertiary inspection parameter (small multiples)
+            inp_facets_param_id <- paste0(inp_prefix, "facets_param")
+            inp_facets_param <- selectInput(inp_facets_param_id, "Tertiary parameter (small multiples)",
+                                            choices = variable_args_optional)
+            boxes <- list_append(boxes, inp_facets_param)
+        }
+        
+        do.call(material_card, c(title="Plot configuration", boxes))
     })
 }
 

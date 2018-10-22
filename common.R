@@ -168,6 +168,26 @@ create_design_parameter_ui <- function(type, react, design_instance_fn, input = 
 }
 
 
+get_args_for_inspection <- function(design, d_argdefs, input) {
+    d_args <- formals(design)
+    
+    insp_args <- list()
+    
+    for (d_argname in names(d_args)) {
+        d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
+        inp_name <- paste0('inspect_arg_', d_argname)
+        inp_value <- input[[inp_name]]
+        d_argclass <- d_argdef$class
+        
+        if (isTruthy(inp_value)) {
+            insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
+        }
+    }
+    
+    insp_args
+}
+
+
 run_diagnoses <- function(designer, args, sims, bootstrap_sims) {
     # TODO: caching
     
