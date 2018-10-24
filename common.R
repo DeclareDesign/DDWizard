@@ -195,5 +195,5 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims) {
     
     all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
     
-    all_designs
+    diagnose_design(all_designs, sims = sims, bootstrap_sims = bootstrap_sims)
 }

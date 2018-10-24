@@ -10,7 +10,10 @@ source('conf.R')
 source('common.R')
 
 
-# Define UI for application that draws a histogram
+#######################################
+# Frontend: User interface definition #
+#######################################
+
 ui <- material_page(
     title = app_title,
     nav_bar_color = nav_bar_color,
@@ -63,6 +66,7 @@ ui <- material_page(
             material_column(
                 width = 6,
                 material_card("Diagnostic plots",
+                              actionButton('update_plot', 'Update plot'),
                               plotOutput('plot_output')
                 )
             ),
@@ -73,6 +77,11 @@ ui <- material_page(
         )
     )
 )
+
+
+###########################################################
+# Backend: Input handling and output generation on server #
+###########################################################
 
 
 server <- function(input, output) {
@@ -159,6 +168,24 @@ server <- function(input, output) {
         
         d_inst
     })
+    
+    get_diagnoses_for_plot <- eventReactive(input$update_plot, {
+        if (is.null(react$design) || is.null(react$design_argdefinitions)) {
+            return(NULL)
+        }
+        
+        insp_args <- get_args_for_inspection(react$design, react$design_argdefinitions, input)
+        
+        print('will run diagnoses with arguments:')
+        print(insp_args)
+        
+        diag_results <- run_diagnoses(react$design, insp_args,
+                                      sims = default_diag_sims,
+                                      bootstrap_sims = defaul_diag_bootstrap_sims)
+        
+        diag_results
+    })
+    
     
     ### input observers ###
     
@@ -251,29 +278,16 @@ server <- function(input, output) {
     })
     
     output$plot_output <- renderPlot({
-        if (is.null(react$design) || is.null(react$design_argdefinitions)) {
-            return(NULL)
-        }
-        
-        insp_args <- get_args_for_inspection(react$design, react$design_argdefinitions, input)
-        
-        print('will run diagnoses with arguments:')
-        print(insp_args)
-        
-        diag_results <- run_diagnoses(react$design, insp_args,
-                                      sims = default_diag_sims,
-                                      bootstrap_sims = defaul_diag_bootstrap_sims)
-        
+        diag_results <- get_diagnoses_for_plot()        
         print(diag_results)
     })
     
     output$plot_conf <- renderUI({
-        boxes <- list()
-        
         if (is.null(react$design) || is.null(react$design_argdefinitions)) {
-            boxes <- list_append(boxes, p('Load a design first'))
+            boxes <- list(p('Load a design first'))
         } else {
             inp_prefix <- 'plot_conf_'
+            boxes <- list()
             
             d <- design_instance()
             d_estimates <- get_estimates(d)
@@ -282,7 +296,8 @@ server <- function(input, output) {
             # 1. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")    
             inp_estimator <- selectInput(inp_estimator_id, "Estimator Label",
-                                         choices = unique(d_estimates$estimator_label))
+                                         choices = unique(d_estimates$estimator_label),
+                                         selected = input[[inp_estimator_id]])
             boxes <- list_append(boxes, inp_estimator)
             
             # 2. coefficient
@@ -293,13 +308,16 @@ server <- function(input, output) {
             }
             
             inp_coeff_id <- paste0(inp_prefix, "coefficient")
-            inp_coeff <- selectInput(inp_coeff_id, "Coefficient", choices = coefficients)
+            inp_coeff <- selectInput(inp_coeff_id, "Coefficient",
+                                     choices = coefficients,
+                                     selected = input[[inp_coeff_id]])
             boxes <- list_append(boxes, inp_coeff)
             
             # 3. diagnosand (y-axis)
             inp_diag_param_id <- paste0(inp_prefix, "diag_param")
             inp_diag_param <- selectInput(inp_diag_param_id, "Diagnosand (y-axis)",
-                                          choices = minimal_diag$diagnosand_names)
+                                          choices = minimal_diag$diagnosand_names,
+                                          selected = input[[inp_diag_param_id]])
             boxes <- list_append(boxes, inp_diag_param)
             
             # 4. main inspection parameter (x-axis)
@@ -309,20 +327,23 @@ server <- function(input, output) {
             
             inp_x_param_id <- paste0(inp_prefix, "x_param")
             inp_x_param <- selectInput(inp_x_param_id, "Primary parameter (x-axis)",
-                                       choices = variable_args)
+                                       choices = variable_args,
+                                       selected = input[[inp_x_param_id]])
             boxes <- list_append(boxes, inp_x_param)
             
             # 5. secondary inspection parameter (color)
             variable_args_optional <- c('', variable_args)
             inp_color_param_id <- paste0(inp_prefix, "color_param")
             inp_color_param <- selectInput(inp_color_param_id, "Secondary parameter (color)",
-                                           choices = variable_args_optional)
+                                           choices = variable_args_optional,
+                                           selected = input[[inp_color_param_id]])
             boxes <- list_append(boxes, inp_color_param)
             
             # 6. tertiary inspection parameter (small multiples)
             inp_facets_param_id <- paste0(inp_prefix, "facets_param")
             inp_facets_param <- selectInput(inp_facets_param_id, "Tertiary parameter (small multiples)",
-                                            choices = variable_args_optional)
+                                            choices = variable_args_optional,
+                                            selected = input[[inp_facets_param_id]])
             boxes <- list_append(boxes, inp_facets_param)
         }
         

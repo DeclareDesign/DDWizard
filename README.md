@@ -10,3 +10,8 @@ A [Shiny app](http://shiny.rstudio.com/) for creating, editing and inspecting de
 ## Dependencies
 
 - [*DesignLibrary* from branch `enhancements_wizard`](https://github.com/DeclareDesign/DesignLibrary/tree/enhancements_wizard)
+
+
+## TODOs
+
+- add [progress indicator](http://shiny.rstudio.com/articles/progress.html) for inspector
