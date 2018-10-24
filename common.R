@@ -7,6 +7,7 @@
 library(stringr)
 library(future)
 library(rlang)
+library(digest)
 
 
 #' Append `v` to list `l`. Appending is slow, don't use that often!
@@ -188,14 +189,35 @@ get_args_for_inspection <- function(design, d_argdefs, input) {
 }
 
 
-run_diagnoses <- function(designer, args, sims, bootstrap_sims) {
-    # TODO: caching
+run_diagnoses <- function(designer, args, sims, bootstrap_sims, use_cache = TRUE) {
+    if (use_cache) {
+        fingerprint_args <- args
+        fingerprint_args$sims <- sims
+        fingerprint_args$bootstrap_sims <- bootstrap_sims
+        fingerprint_args$design <- designer
+        fingerprint <- digest(fingerprint_args)
+        
+        cache_file <- paste0('.cache/diag_', fingerprint, '.RDS')
+        
+        if (file.exists(cache_file)) {
+            return(readRDS(cache_file))
+        }
+    } else {
+        cache_file <- NULL
+    }
+    
     
     plan('multicore', workers = n_diagnosis_workers)
     
     all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
     
-    diagnose_design(all_designs, sims = sims, bootstrap_sims = bootstrap_sims)
+    diag_res <- diagnose_design(all_designs, sims = sims, bootstrap_sims = bootstrap_sims)
+    
+    if (!is.null(diag_res) && !is.null(cache_file)) {
+        saveRDS(diag_res, cache_file)
+    }
+    
+    diag_res
 }
 
 dd_theme <- function() {
