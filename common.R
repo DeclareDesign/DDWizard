@@ -197,3 +197,19 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims) {
     
     diagnose_design(all_designs, sims = sims, bootstrap_sims = bootstrap_sims)
 }
+
+dd_theme <- function() {
+    theme_bw() +
+        theme(
+            axis.ticks = element_blank(),
+            axis.line = element_blank(),
+            axis.text=element_text(),#size=12),
+            axis.title=element_text(face="bold"),#size=14,
+            strip.text.x = element_text(face="bold"),
+            panel.border = element_blank(),
+            panel.grid.major = element_line(color = '#eeeeee'),
+            strip.background = element_blank(),
+            legend.position = "bottom",
+            text = element_text(family = "Palatino", size=16)
+        )
+}

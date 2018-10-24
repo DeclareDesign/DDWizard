@@ -4,6 +4,7 @@ library(shinymaterial)
 library(shinythemes)
 library(shinyBS)
 library(shinyjs)
+library(ggplot2)
 
 
 source('conf.R')
@@ -61,7 +62,8 @@ ui <- material_page(
         material_row(
             material_column(
                 width = 3,
-                uiOutput("compare_design_parameters")    # display not-fixed parameters of a design / allow to define sequences for comparison in plots
+                uiOutput("compare_design_parameters")    # display not-fixed parameters of a design / allow to define sequences
+                                                         # for comparison in plots
             ),
             material_column(
                 width = 6,
@@ -278,8 +280,45 @@ server <- function(input, output) {
     })
     
     output$plot_output <- renderPlot({
-        diag_results <- get_diagnoses_for_plot()        
-        print(diag_results)
+        req(input$plot_conf_x_param)
+        
+        plotdf <- get_diagnoses_for_plot()$diagnosands_df
+        
+        
+        plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
+        plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
+
+        aes_args <- list(
+            'x' = input$plot_conf_x_param,
+            'y' = input$plot_conf_diag_param,
+            'ymin' = 'diagnosand_min',
+            'ymax' = 'diagnosand_max'
+        )
+        
+        if (isTruthy(input$plot_conf_color_param)) {
+            plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
+            aes_args$color <- 'color_param'
+        }
+        
+        if (isTruthy(input$plot_conf_facets_param)) {
+            plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
+        }
+        
+        print(plotdf)
+        
+        aes_definition <- do.call(aes_string, aes_args)
+        p <- ggplot(plotdf, aes_definition) +
+            geom_line() +
+            geom_pointrange() +
+            scale_y_continuous(name = input$plot_conf_diag_param) +
+            dd_theme() +
+            labs(x = input$plot_conf_x_param, color = input$plot_conf_color_param)
+        
+        if (isTruthy(input$plot_conf_facets_param)) {
+            p <- p + facet_wrap(input$plot_conf_facets_param, ncol = 2, labeller = label_both)
+        }
+        
+        p
     })
     
     output$plot_conf <- renderUI({
