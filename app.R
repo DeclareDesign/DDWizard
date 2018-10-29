@@ -295,16 +295,21 @@ server <- function(input, output) {
             'ymax' = 'diagnosand_max'
         )
         
-        if (isTruthy(input$plot_conf_color_param)) {
+        print(input$plot_conf_color_param)
+        
+        if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
             plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
             aes_args$color <- 'color_param'
+            plot_conf_color_param <- NULL
+        } else {
+            plot_conf_color_param <- input$plot_conf_color_param
         }
         
-        if (isTruthy(input$plot_conf_facets_param)) {
+        if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
             plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
         }
         
-        print(plotdf)
+        #print(plotdf)
         
         aes_definition <- do.call(aes_string, aes_args)
         p <- ggplot(plotdf, aes_definition) +
@@ -312,9 +317,9 @@ server <- function(input, output) {
             geom_pointrange() +
             scale_y_continuous(name = input$plot_conf_diag_param) +
             dd_theme() +
-            labs(x = input$plot_conf_x_param, color = input$plot_conf_color_param)
+            labs(x = input$plot_conf_x_param, color = plot_conf_color_param)
         
-        if (isTruthy(input$plot_conf_facets_param)) {
+        if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
             p <- p + facet_wrap(input$plot_conf_facets_param, ncol = 2, labeller = label_both)
         }
         
@@ -371,7 +376,7 @@ server <- function(input, output) {
             boxes <- list_append(boxes, inp_x_param)
             
             # 5. secondary inspection parameter (color)
-            variable_args_optional <- c('', variable_args)
+            variable_args_optional <- c('(none)', variable_args)
             inp_color_param_id <- paste0(inp_prefix, "color_param")
             inp_color_param <- selectInput(inp_color_param_id, "Secondary parameter (color)",
                                            choices = variable_args_optional,
