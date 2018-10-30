@@ -39,7 +39,6 @@ Optional for parallel processing during simulation:
 - `common.R`: Common utility functions
 - `conf.R`: Configuration options
 
-
 ## TODOs
 
-- add [progress indicator](http://shiny.rstudio.com/articles/progress.html) for inspector
+See "Issues" page on GitHub.
