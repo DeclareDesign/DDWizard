@@ -313,9 +313,20 @@ server <- function(input, output) {
     
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
+        d_args <- design_args()
+        isolate({
+            # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
+            # was defined in inspect tab
+            defaults <- sapply(names(d_args), function(argname) {
+                ifelse(is.null(input[[paste0('inspect_arg_', argname)]]) || length(parse_sequence_string(input[[paste0('inspect_arg_', argname)]])) < 2,
+                       d_args[[argname]],
+                       input[[paste0('inspect_arg_', argname)]])
+            }, simplify = FALSE)
+        })
+        
         tags$div(create_design_parameter_ui('inspect', react, design_instance,
                                             input = input,
-                                            defaults = design_args()))
+                                            defaults = defaults))
     })
     
     

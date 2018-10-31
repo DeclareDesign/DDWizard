@@ -207,11 +207,13 @@ get_args_for_inspection <- function(design, d_argdefs, input) {
     for (d_argname in names(d_args)) {
         d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
         inp_name <- paste0('inspect_arg_', d_argname)
+        
         inp_value <- input[[inp_name]]
         d_argclass <- d_argdef$class
         
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
-        if (isTruthy(inp_value)) {
+        inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
+        if (isTruthy(inp_value) && !isTruthy(input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
         }
     }
