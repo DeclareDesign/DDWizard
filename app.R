@@ -333,59 +333,68 @@ server <- function(input, output) {
     # center: plot output
     output$plot_output <- renderPlot({
         # run diagnoses and get the result data frame
-        diag_results <- get_diagnoses_for_plot()
-        req(diag_results)
-        plotdf <- diag_results$diagnosands_df
-        
-        # diagnosand values +/- SE
-        # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
-        plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
-        plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
-        
-        # base aesthetics for line plot
-        isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
-            aes_args <- list(
-                'x' = input$plot_conf_x_param,   
-                'y' = input$plot_conf_diag_param,
-                'ymin' = 'diagnosand_min',
-                'ymax' = 'diagnosand_max'
-            )
+        n_steps = 4
+        withProgress(message = 'Simulating data and generating plot...', value = 0, {
+            incProgress(1/n_steps)
+            diag_results <- get_diagnoses_for_plot()
+            incProgress(1/n_steps)
+            req(diag_results)
+            plotdf <- diag_results$diagnosands_df
             
-            # if the "color" parameter is set, add it to the aeshetics definition
-            if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
-                plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
-                aes_args$color <- 'color_param'
-                aes_args$group <- 'color_param'
-                plot_conf_color_param <- NULL
-            } else {
-                plot_conf_color_param <- input$plot_conf_color_param
-            }
+            # diagnosand values +/- SE
+            # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
+            plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
+            plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
             
-            # if the "facets" parameter is set, add it to the aeshetics definition
-            if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
-                plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
-            }
+            # base aesthetics for line plot
+            isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
+                aes_args <- list(
+                    'x' = input$plot_conf_x_param,   
+                    'y' = input$plot_conf_diag_param,
+                    'ymin' = 'diagnosand_min',
+                    'ymax' = 'diagnosand_max'
+                )
+                
+                # if the "color" parameter is set, add it to the aeshetics definition
+                if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
+                    plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
+                    aes_args$color <- 'color_param'
+                    aes_args$group <- 'color_param'
+                    plot_conf_color_param <- NULL
+                } else {
+                    plot_conf_color_param <- input$plot_conf_color_param
+                }
+                
+                # if the "facets" parameter is set, add it to the aeshetics definition
+                if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
+                    plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
+                }
+                
+                #print(plotdf)
+                
+                # create aesthetics definition
+                aes_definition <- do.call(aes_string, aes_args)
+                
+                incProgress(1/n_steps)
+                
+                # create base line plot
+                p <- ggplot(plotdf, aes_definition) +
+                    geom_line() +
+                    geom_pointrange() +
+                    scale_y_continuous(name = input$plot_conf_diag_param) +
+                    dd_theme() +
+                    labs(x = input$plot_conf_x_param, color = plot_conf_color_param)
+                
+                # add facets if necessary
+                if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
+                    p <- p + facet_wrap(input$plot_conf_facets_param, ncol = 2, labeller = label_both)
+                }
+                
+                incProgress(1/n_steps)
             
-            #print(plotdf)
-            
-            # create aesthetics definition
-            aes_definition <- do.call(aes_string, aes_args)
-            
-            # create base line plot
-            p <- ggplot(plotdf, aes_definition) +
-                geom_line() +
-                geom_pointrange() +
-                scale_y_continuous(name = input$plot_conf_diag_param) +
-                dd_theme() +
-                labs(x = input$plot_conf_x_param, color = plot_conf_color_param)
-            
-            # add facets if necessary
-            if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
-                p <- p + facet_wrap(input$plot_conf_facets_param, ncol = 2, labeller = label_both)
-            }
-            
-            # return plot
-            p
+                # return plot
+                p
+            })
         })
     })
     
