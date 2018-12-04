@@ -84,6 +84,15 @@ ui <- material_page(
                 material_card("Diagnostic plots",
                               actionButton('update_plot', 'Update plot'),
                               plotOutput('plot_output')
+                ),
+                bsCollapse(id='inspect_sections_container',
+                           bsCollapsePanel('Diagnosands',
+                                           textOutput("section_diagnosands_message"),
+                                           dataTableOutput("section_diagnosands_table"),
+                                           downloadButton("section_diagnosands_download_subset",
+                                                          label = "Download above table", disabled = "disabled"),
+                                           downloadButton("section_diagnosands_download_full",
+                                                          label = "Download full diagnosands table", disabled = "disabled"))
                 )
             ),
             material_column(   # right: plot configuration
@@ -111,7 +120,8 @@ server <- function(input, output) {
         design_id = NULL,               # identifier for current design instance *after* being instantiated
         design_argdefinitions = NULL,   # argument definitions for current design instance
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
-        captured_msgs = NULL            # captured warnings and other messages during design creation
+        captured_msgs = NULL,           # captured warnings and other messages during design creation
+        diagnosands = NULL              # diagnosands for current plot in "inspect" tab
     )
     
     ### reactive expressions ###
@@ -212,6 +222,26 @@ server <- function(input, output) {
         } else {
             return(NULL)
         }
+    })
+    
+    # get subset data frame of diagnosands for display and download
+    get_diagnosands_for_display <- reactive({
+        req(react$diagnosands)
+        
+        # set columns to show
+        cols <- c(input$plot_conf_x_param)
+        
+        if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
+            cols <- c(cols, input$plot_conf_color_param)
+        }
+        if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
+            cols <- c(cols, input$plot_conf_facets_param)
+        }
+        
+        cols <- c(cols, 'estimator_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+        
+        # return data frame subset
+        react$diagnosands[cols]
     })
     
     
@@ -339,7 +369,10 @@ server <- function(input, output) {
             diag_results <- get_diagnoses_for_plot()
             incProgress(1/n_steps)
             req(diag_results)
+            
             plotdf <- diag_results$diagnosands_df
+            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]
+            react$diagnosands <- plotdf
             
             # diagnosand values +/- SE
             # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
@@ -391,6 +424,9 @@ server <- function(input, output) {
                 }
                 
                 incProgress(1/n_steps)
+                
+                shinyjs::enable('section_diagnosands_download_subset')
+                shinyjs::enable('section_diagnosands_download_full')
             
                 # return plot
                 p
@@ -398,6 +434,50 @@ server <- function(input, output) {
         })
     })
     
+    # center below plot: diagnosands table message
+    output$section_diagnosands_message <- renderText({
+        if (is.null(react$diagnosands)) {
+            return('Not data yet. Set comparison parameters and generate a plot first.')
+        }
+    })
+    
+    # center below plot: diagnosands table
+    output$section_diagnosands_table <- renderDataTable({
+        get_diagnosands_for_display()
+    }, options = list(autoWidth = TRUE,
+                      searching = FALSE)
+    )
+    
+    # center below plot: download buttons
+    output$section_diagnosands_download_subset <- downloadHandler(
+        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_diagnosands.csv')
+        },
+        content = function(file) {
+            write.csv(get_diagnosands_for_display(), file = file)
+        }
+    )
+    
+    output$section_diagnosands_download_full <- downloadHandler(
+        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_diagnosands_full.csv')
+        },
+        content = function(file) {
+            write.csv(react$diagnosands, file = file)
+        }
+    )   
     
     # right: inspection plot configuration
     output$plot_conf <- renderUI({
