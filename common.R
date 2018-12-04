@@ -241,6 +241,7 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, use_cache = TRUE
             return(readRDS(cache_file))
         }
     } else {
+        print('caching disabled')
         cache_file <- NULL
     }
     
