@@ -102,7 +102,7 @@ ui <- material_page(
 
 server <- function(input, output) {
     options(warn = 1)    # always directly print warnings
-    load_design <- 'simple_two_arm_designer'     # TODO: so far, design cannot be chosen from lib
+    load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
     
     ### reactive values  ###
     
@@ -182,7 +182,7 @@ server <- function(input, output) {
             }, type = 'message')
             
             react$design_id <- load_design
-            react$design_argdefinitions <- attr(d_inst, 'definitions')  # get the designer's argument definitions
+            react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
             
             print('design instance changed')
         }
@@ -355,6 +355,7 @@ server <- function(input, output) {
             if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
                 plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
                 aes_args$color <- 'color_param'
+                aes_args$group <- 'color_param'
                 plot_conf_color_param <- NULL
             } else {
                 plot_conf_color_param <- input$plot_conf_color_param
@@ -400,7 +401,7 @@ server <- function(input, output) {
             
             # create the design instance and get its estimates
             d <- design_instance()
-            d_estimates <- get_estimates(d)
+            d_estimates <- draw_estimates(d)
             
             # we need to find out the set of available diagnosands
             available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
