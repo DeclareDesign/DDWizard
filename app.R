@@ -86,7 +86,8 @@ ui <- material_page(
                                            checkboxInput('simconf_force_rerun', label = 'Always re-run simulations (disable cache)'))),  # add more simulation options here (issue #2)
                 material_card("Diagnostic plots",
                               actionButton('update_plot', 'Update plot'),
-                              plotOutput('plot_output')
+                              plotOutput('plot_output'),
+                              downloadButton("download_plot", label = "download plot")
                 ),
                 bsCollapse(id='inspect_sections_container',
                            bsCollapsePanel('Diagnosands',
@@ -364,7 +365,7 @@ server <- function(input, output) {
     })
     
     
-    # center: plot output
+    # -------------- center: plot output --------------
     output$plot_output <- renderPlot({
         # run diagnoses and get the result data frame
         n_steps = 4
