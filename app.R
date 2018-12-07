@@ -483,12 +483,6 @@ server <- function(input, output) {
                 }
                 
                 if(input$confi_int_id == 1){
-                    print(input$confi_int_id == 1)
-                    print(input$plot_conf_facets_param)
-                    print(class(plotdf))
-                    p <- p + geom_ribbon(data = plotdf,aes(ymin = diagnosand_lowerbound, ymax = diagnosand_upperbound), fill = "grey70", size = 3,  alpha = 0.5)
-                    print(plotdf$diagnosand_lowerbound)
-                    print(plotdf$diagnosand_upperbound)
                   p <- p + geom_ribbon(data = plotdf,aes(ymin = diagnosand_lowerbound, ymax = diagnosand_upperbound), 
                                        fill = "grey70", size = 3,  alpha = 0.5)
                     
