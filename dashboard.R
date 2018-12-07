@@ -1,10 +1,4 @@
-# Shiny application with UI and server-side code
-#
-# Markus Konrad <markus.konrad@wzb.eu>
-# Sisi Huang <sisi.huang@wzb.eu>
-# Dec. 2018
-#
-
+library(shinydashboard)
 library(DesignLibrary)
 library(shiny)
 library(shinymaterial)
@@ -18,98 +12,92 @@ source('conf.R')
 source('common.R')
 
 
-
-#--------- ui setting ---------
-ui <- material_page(
-    # title
-    title = app_title,
-    nav_bar_color = nav_bar_color,
-    shiny::tags$title(app_title),
-    
-    # additional JS / CSS libraries
-    bootstrapLib(),
-    withMathJax(),
-    tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
-    ),
-    shinyjs::useShinyjs(),
-    
-    # tabs
-    material_tabs(
-        tabs = c(
-            "Design" = "tab_design",
-            "Inspect" = "tab_inspect"
-        )
-    ),
-    
-    # ------------ "Design" tab ------------
-    material_tab_content(
-        tab_id = 'tab_design',
-        material_row(
-            material_column(  # left: input and design parameters
-                width = 3,
-                material_card("Input",
-                              div(style="text-align: center;",
-                                  actionButton("import_from_design_lib", label = "Import")
-                              )
-                ),
-                uiOutput("design_parameters")    # display *all* arguments of an imported design
-            ),
-            material_column(  # center: design output
-                width = 9,
-                material_card("Download",
-                              downloadButton('download_r_script', label = 'R code', disabled = 'disabled'),
-                              downloadButton('download_rds_obj', label = 'Design as RDS file', disabled = 'disabled')),
-                bsCollapse(id='sections_container',
-                           bsCollapsePanel('Messages', verbatimTextOutput("section_messages")),
-                           bsCollapsePanel('Summary', verbatimTextOutput("section_summary")),
-                           bsCollapsePanel('Code output', verbatimTextOutput("section_design_code"))
+# ------------- UI --------------
+# header
+header <- dashboardHeader(title = "DDWizard")
+# body
+body <- dashboardBody(
+    #body content
+    useShinyjs(),
+    tabItems(
+        tabItem(tabName = "intro"),
+        tabItem(tabName = "design",
+                fluidRow(
+                    column(width = 3,
+                           box("Input",width = NULL,
+                               div(style="text-align: center;",
+                                   actionButton("import_from_design_lib", label = "Import")
+                               )),
+                           
+                           uiOutput("design_parameters")  
+                    ),    # display *all* arguments of an imported design
+                
+              # center: design output
+                   
+                    box("Download", width = 9,
+                        downloadButton('download_r_script', label = 'R code', disabled = 'disabled'),
+                        downloadButton('download_rds_obj', label = 'Design as RDS file', disabled = 'disabled')),
+                    box(id='sections_container', width = 9,
+                        bsCollapsePanel('Messages', verbatimTextOutput("section_messages")),
+                        bsCollapsePanel('Summary', verbatimTextOutput("section_summary")),
+                        bsCollapsePanel('Code output', verbatimTextOutput("section_design_code"))
+                    )  
+                 ) 
+        ),
+        tabItem(tabName = "inspect",
+                fluidRow(
+                    box(   # left: design parameters for comparison
+                        width = 3,
+                        uiOutput("compare_design_parameters")    # display not-fixed parameters of a design / allow to define sequences
+                        # for comparison in plots
+                    ),
+                    column(width = 6,
+                        box(id='inspect_sections_simconf_container',width = NULL,
+                                   bsCollapsePanel('Configure simulations',
+                                                   checkboxInput('simconf_force_rerun', label = 'Always re-run simulations (disable cache)'))),  # add more simulation options here (issue #2)
+                        box("Diagnostic plots",width = NULL,
+                                      br(),br(),
+                                      actionButton('update_plot', 'Update plot'),
+                                      plotOutput('plot_output'),
+                                      downloadButton("download_plot", label = "Download the plot", disabled = "disabled" )
+                        ),
+                        box(id='inspect_sections_container',width = NULL,
+                                   bsCollapsePanel('Diagnosands',
+                                                   textOutput("section_diagnosands_message"),
+                                                   dataTableOutput("section_diagnosands_table"),
+                                                   downloadButton("section_diagnosands_download_subset",
+                                                                  label = "Download above table", disabled = "disabled"),
+                                                   br(),br(),
+                                                   downloadButton("section_diagnosands_download_full",
+                                                                  label = "Download full diagnosands table", disabled = "disabled"))
+                        
+                    )),
+                    box(   # right: plot configuration
+                        width = 3,
+                        uiOutput("plot_conf")
+                    )
+                
+   
                 )
             )
-        )
-    ),
-
-    # ------------ "Inspect" tab ------------
-    material_tab_content(
-        tab_id = 'tab_inspect',
-        material_row(
-            material_column(   # left: design parameters for comparison
-                width = 3,
-                uiOutput("compare_design_parameters")    # display not-fixed parameters of a design / allow to define sequences
-                                                         # for comparison in plots
-            ),
-            material_column(   # center: inspection output
-                width = 6,
-                bsCollapse(id='inspect_sections_simconf_container',
-                           bsCollapsePanel('Configure simulations',
-                                           checkboxInput('simconf_force_rerun', label = 'Always re-run simulations (disable cache)'))),  # add more simulation options here (issue #2)
-                material_card("Diagnostic plots",
-                              actionButton('update_plot', 'Update plot'),
-                              plotOutput('plot_output'),
-                              downloadButton("download_plot", label = "Download the plot", disabled = "disabled" )
-                ),
-                bsCollapse(id='inspect_sections_container',
-                           bsCollapsePanel('Diagnosands',
-                                           textOutput("section_diagnosands_message"),
-                                           dataTableOutput("section_diagnosands_table"),
-                                           downloadButton("section_diagnosands_download_subset",
-                                                          label = "Download above table", disabled = "disabled"),
-                                           downloadButton("section_diagnosands_download_full",
-                                                          label = "Download full diagnosands table", disabled = "disabled"))
-                )
-            ),
-            material_column(   # right: plot configuration
-                width = 3,
-                uiOutput("plot_conf")
-            )
-        )
+    )
+)
+    
+# sidebar
+sidebar <- dashboardSidebar(
+    # Sidebar content
+    sidebarMenu(
+        menuItem("Introduction", tabName = "intro", icon = icon("dashboard")),
+        menuItem("Design", tabName = "design", icon = icon("dashboard")),
+        menuItem("Inspect", tabName = "inspect", icon = icon("dashboard"))
     )
 )
 
+ui <- dashboardPage(header = header, body = body, sidebar = sidebar)
 
-#--------- server setting ---------
+# ------------- Server --------------
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
     load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
     
@@ -383,15 +371,13 @@ server <- function(input, output) {
                 aes_args <- list(
                     'x' = input$plot_conf_x_param,
                     'y' = input$plot_conf_diag_param,
-                    'ymin' =plotdf$diagnosand_min,
-                    # 'ymin' = 'diagnosand_min',
-                    # 'ymax' = 'diagnosand_max'
-                    'ymax' = plotdf$diagnosand_max
+                    'ymin' = 'diagnosand_min',
+                    'ymax' = 'diagnosand_max'
                 )
                 
                 # if the "color" parameter is set, add it to the aeshetics definition
                 if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
-                    plotdf$color_param <- factor(plotdf[[input$plot_conf_color_param]])
+                    plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
                     aes_args$color <- input$plot_conf_color_param
                     #aes_args$color <- 'color_param'
                     aes_args$group <- 'color_param'
@@ -421,7 +407,7 @@ server <- function(input, output) {
                     labs(x = input$plot_conf_x_param
                          #, 
                          #title = "Diagnostic_plot"
-                         )
+                    )
                 
                 # add facets if necessary
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
@@ -437,7 +423,7 @@ server <- function(input, output) {
         })
         
     })
-   
+    
     
     # -------------- center: plot output --------------
     
@@ -446,7 +432,7 @@ server <- function(input, output) {
         shinyjs::enable('section_diagnosands_download_subset')
         shinyjs::enable('section_diagnosands_download_full')
         shinyjs::enable('download_plot')
-
+        
     })
     
     # -------- download the plot --------
@@ -584,5 +570,4 @@ server <- function(input, output) {
     })
 }
 
-# Run the application 
-shinyApp(ui = ui, server = server)
+shinyApp(ui, server)
