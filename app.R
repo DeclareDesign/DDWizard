@@ -1,7 +1,8 @@
 # Shiny application with UI and server-side code
 #
 # Markus Konrad <markus.konrad@wzb.eu>
-# Oct. 2018
+# Sisi Huang <sisi.huang@wzb.eu>
+# Dec. 2018
 #
 
 library(DesignLibrary)
@@ -17,10 +18,8 @@ source('conf.R')
 source('common.R')
 
 
-#######################################
-# Frontend: User interface definition #
-#######################################
 
+#--------- ui setting ---------
 ui <- material_page(
     # title
     title = app_title,
@@ -87,7 +86,7 @@ ui <- material_page(
                 material_card("Diagnostic plots",
                               actionButton('update_plot', 'Update plot'),
                               plotOutput('plot_output'),
-                              downloadButton("download_plot", label = "download plot")
+                              downloadButton("download_plot", label = "download the plot", disabled = "disabled" )
                 ),
                 bsCollapse(id='inspect_sections_container',
                            bsCollapsePanel('Diagnosands',
@@ -108,10 +107,7 @@ ui <- material_page(
 )
 
 
-###########################################################
-# Backend: Input handling and output generation on server #
-###########################################################
-
+#--------- server setting ---------
 
 server <- function(input, output) {
     options(warn = 1)    # always directly print warnings
@@ -364,10 +360,8 @@ server <- function(input, output) {
                                             defaults = defaults))
     })
     
-    
-    # -------------- center: plot output --------------
-    output$plot_output <- renderPlot({
-        # run diagnoses and get the result data frame
+    # make the plot reactive
+    plotinput <- reactive({
         n_steps = 4
         withProgress(message = 'Simulating data and generating plot...', value = 0, {
             incProgress(1/n_steps)
@@ -387,7 +381,7 @@ server <- function(input, output) {
             # base aesthetics for line plot
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
                 aes_args <- list(
-                    'x' = input$plot_conf_x_param,   
+                    'x' = input$plot_conf_x_param,
                     'y' = input$plot_conf_diag_param,
                     'ymin' = 'diagnosand_min',
                     'ymax' = 'diagnosand_max'
@@ -421,7 +415,7 @@ server <- function(input, output) {
                     geom_pointrange() +
                     scale_y_continuous(name = input$plot_conf_diag_param) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param, color = plot_conf_color_param)
+                    labs(x = input$plot_conf_x_param, color = plot_conf_color_param, title = "Diagnostic_plot")
                 
                 # add facets if necessary
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
@@ -430,13 +424,12 @@ server <- function(input, output) {
                 
                 incProgress(1/n_steps)
                 
-                shinyjs::enable('section_diagnosands_download_subset')
-                shinyjs::enable('section_diagnosands_download_full')
-            
-                # return plot
-                p
+                
+                print(p)
+                
             })
         })
+        
     })
     
     # center below plot: diagnosands table message
