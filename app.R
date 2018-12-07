@@ -219,6 +219,9 @@ server <- function(input, output) {
                                           bootstrap_sims = defaul_diag_bootstrap_sims,
                                           use_cache = !input$simconf_force_rerun)
             
+            shinyjs::enable('section_diagnosands_download_subset')
+            shinyjs::enable('section_diagnosands_download_full')
+            
             return(diag_results)
         } else {
             return(NULL)
@@ -416,10 +419,7 @@ server <- function(input, output) {
                     geom_pointrange() +
                     scale_y_continuous(name = input$plot_conf_diag_param) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param
-                         #, 
-                         #title = "Diagnostic_plot"
-                         )
+                    labs(x = input$plot_conf_x_param)
                 
                 # add facets if necessary
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
@@ -448,10 +448,16 @@ server <- function(input, output) {
     # -------- download the plot --------
     output$download_plot <- downloadHandler(
         filename = function() {
-            "Diagnostic_plot.png"
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_diagnostic_plot.png')
         },
         content = function(file) {
-            png(file, width = 1200,height = 1000)
+            png(file, width = 1200, height = 900)
             print(plotinput())
             dev.off()
         }
