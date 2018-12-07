@@ -223,10 +223,20 @@ server <- function(input, output) {
             print(insp_args)
             
             # run diagnoses and get results
-            diag_results <- run_diagnoses(react$design, insp_args,
-                                          sims = default_diag_sims,
-                                          bootstrap_sims = defaul_diag_bootstrap_sims,
-                                          use_cache = !input$simconf_force_rerun)
+            isolate({
+                if (length(input$plot_conf_diag_param_param) == 0) {
+                    diag_param_alpha <- 0.05
+                } else {
+                    diag_param_alpha <- input$plot_conf_diag_param_param
+                }
+                
+                diag_results <- run_diagnoses(react$design, insp_args,
+                                              sims = default_diag_sims,
+                                              bootstrap_sims = default_diag_bootstrap_sims,
+                                              diag_param_alpha = diag_param_alpha,
+                                              use_cache = !input$simconf_force_rerun,
+                                              advance_progressbar = 1/6)
+            })
             
             return(diag_results)
         } else {
@@ -410,11 +420,12 @@ server <- function(input, output) {
     # center: plot output
     output$plot_output <- renderPlot({
         # run diagnoses and get the result data frame
-        n_steps = 4
+        n_steps = 6
         withProgress(message = 'Simulating data and generating plot...', value = 0, {
             incProgress(1/n_steps)
+            
             diag_results <- get_diagnoses_for_plot()
-            incProgress(1/n_steps)
+            
             req(diag_results)
             
             plotdf <- diag_results$diagnosands_df
@@ -491,8 +502,13 @@ server <- function(input, output) {
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
         get_diagnosands_for_display()
-    }, options = list(autoWidth = TRUE,
-                      searching = FALSE)
+    }, options = list(searching = FALSE,
+                      ordering = FALSE,
+                      paging = TRUE,
+                      pageLength = 10,
+                      info = FALSE,
+                      lengthChange = FALSE,
+                      scrollX = TRUE)
     )
     
     # center below plot: download buttons
@@ -572,6 +588,20 @@ server <- function(input, output) {
                                           choices = available_diagnosands,
                                           selected = input[[inp_diag_param_id]])
             boxes <- list_append(boxes, inp_diag_param)
+            
+            # 3b. optional: diagnosand parameter
+            if (length(input[[inp_diag_param_id]]) > 0 && input[[inp_diag_param_id]] == 'power') {
+                inp_diag_param_param_id <- paste0(inp_prefix, "diag_param_param")
+                if (length(input[[inp_diag_param_param_id]]) > 0) {
+                    inp_diag_param_param_default <- input[[inp_diag_param_param_id]]
+                } else {
+                    inp_diag_param_param_default <- 0.05
+                }
+                inp_diag_param_param <- numericInput(inp_diag_param_param_id, "Alpha for power",
+                                                     min = 0, max = 1, step = 0.01,
+                                                     value = inp_diag_param_param_default)
+                boxes <- list_append(boxes, inp_diag_param_param)
+            }
             
             # 4. main inspection parameter (x-axis)
             insp_args <- get_args_for_inspection(react$design, react$design_argdefinitions, input)
