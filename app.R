@@ -42,7 +42,7 @@ ui <- material_page(
         )
     ),
     
-    # "Design" tab
+    # ------------ "Design" tab ------------
     material_tab_content(
         tab_id = 'tab_design',
         material_row(
@@ -69,7 +69,7 @@ ui <- material_page(
         )
     ),
 
-    # "Inspect" tab
+    # ------------ "Inspect" tab ------------
     material_tab_content(
         tab_id = 'tab_inspect',
         material_row(
@@ -86,7 +86,7 @@ ui <- material_page(
                 material_card("Diagnostic plots",
                               actionButton('update_plot', 'Update plot'),
                               plotOutput('plot_output'),
-                              downloadButton("download_plot", label = "download the plot", disabled = "disabled" )
+                              downloadButton("download_plot", label = "Download the plot", disabled = "disabled" )
                 ),
                 bsCollapse(id='inspect_sections_container',
                            bsCollapsePanel('Diagnosands',
@@ -390,7 +390,8 @@ server <- function(input, output) {
                 # if the "color" parameter is set, add it to the aeshetics definition
                 if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
                     plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
-                    aes_args$color <- 'color_param'
+                    aes_args$color <- input$plot_conf_color_param
+                    #aes_args$color <- 'color_param'
                     aes_args$group <- 'color_param'
                     plot_conf_color_param <- NULL
                 } else {
@@ -415,7 +416,10 @@ server <- function(input, output) {
                     geom_pointrange() +
                     scale_y_continuous(name = input$plot_conf_diag_param) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param, color = plot_conf_color_param, title = "Diagnostic_plot")
+                    labs(x = input$plot_conf_x_param
+                         #, 
+                         #title = "Diagnostic_plot"
+                         )
                 
                 # add facets if necessary
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
@@ -431,6 +435,27 @@ server <- function(input, output) {
         })
         
     })
+   
+    
+    # -------------- center: plot output --------------
+    
+    output$plot_output <- renderPlot({
+        print(plotinput())
+        shinyjs::enable('download_plot')
+
+    })
+    
+    # -------- download the plot --------
+    output$download_plot <- downloadHandler(
+        filename = function() {
+            "Diagnostic_plot.png"
+        },
+        content = function(file) {
+            png(file, width = 1200,height = 1000)
+            print(plotinput())
+            dev.off()
+        }
+    )
     
     # center below plot: diagnosands table message
     output$section_diagnosands_message <- renderText({
