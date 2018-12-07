@@ -489,6 +489,9 @@ server <- function(input, output) {
                     p <- p + geom_ribbon(data = plotdf,aes(ymin = diagnosand_lowerbound, ymax = diagnosand_upperbound), fill = "grey70", size = 3,  alpha = 0.5)
                     print(plotdf$diagnosand_lowerbound)
                     print(plotdf$diagnosand_upperbound)
+                  p <- p + geom_ribbon(data = plotdf,aes(ymin = diagnosand_lowerbound, ymax = diagnosand_upperbound), 
+                                       fill = "grey70", size = 3,  alpha = 0.5)
+                    
                 }
                 
                 incProgress(1/n_steps)
