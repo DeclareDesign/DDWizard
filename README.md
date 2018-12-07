@@ -1,6 +1,8 @@
 # DeclareDesign Wizard
 
-Contact: Markus Konrad <markus.konrad@wzb.eu>
+Contact: 
+Markus Konrad <markus.konrad@wzb.eu>
+Sisi Huang <sisi.huang@wzb.eu>
 
 A [Shiny app](http://shiny.rstudio.com/) for creating, editing and inspecting designs.
 

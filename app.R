@@ -91,7 +91,8 @@ ui <- material_page(
                                            checkboxInput('simconf_force_rerun', label = 'Always re-run simulations (disable cache)'))),  # add more simulation options here (issue #2)
                 material_card("Diagnostic plots",
                               actionButton('update_plot', 'Update plot'),
-                              plotOutput('plot_output')
+                              plotOutput('plot_output'),
+                              downloadButton("download_plot", label = "Download the plot", disabled = "disabled" )
                 ),
                 bsCollapse(id='inspect_sections_container',
                            bsCollapsePanel('Diagnosands',
@@ -416,16 +417,12 @@ server <- function(input, output) {
                                             defaults = defaults))
     })
     
-    
-    # center: plot output
-    output$plot_output <- renderPlot({
-        # run diagnoses and get the result data frame
+    # make the plot reactive
+    plotinput <- reactive({
         n_steps = 6
         withProgress(message = 'Simulating data and generating plot...', value = 0, {
             incProgress(1/n_steps)
-            
             diag_results <- get_diagnoses_for_plot()
-            
             req(diag_results)
             
             plotdf <- diag_results$diagnosands_df
@@ -449,7 +446,8 @@ server <- function(input, output) {
                 # if the "color" parameter is set, add it to the aeshetics definition
                 if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
                     plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
-                    aes_args$color <- 'color_param'
+                    aes_args$color <- input$plot_conf_color_param
+                    #aes_args$color <- 'color_param'
                     aes_args$group <- 'color_param'
                     plot_conf_color_param <- NULL
                 } else {
@@ -486,11 +484,37 @@ server <- function(input, output) {
                 shinyjs::enable('section_diagnosands_download_subset')
                 shinyjs::enable('section_diagnosands_download_full')
             
-                # return plot
-                p
+                print(p)
             })
         })
     })
+   
+    
+    # -------------- center: plot output --------------
+    
+    output$plot_output <- renderPlot({
+        print(plotinput())
+        shinyjs::enable('download_plot')
+
+    })
+    
+    # -------- download the plot --------
+    output$download_plot <- downloadHandler(
+        filename = function() {
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_diagnostic_plot.png')
+        },
+        content = function(file) {
+            png(file, width = 1200, height = 900)
+            print(plotinput())
+            dev.off()
+        }
+    )
     
     # center below plot: diagnosands table message
     output$section_diagnosands_message <- renderText({
