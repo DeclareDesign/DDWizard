@@ -16,6 +16,14 @@ list_append <- function(l, v) {
     l
 }
 
+# Round numeric values in a data frame to `digits`.
+# Copied from "wizard_shiny" repository.
+round_df <- function(df, digits){
+    i <- vapply(df, is.numeric, TRUE)
+    df[i] <- lapply(df[i], round, digits)
+    df
+}
+
 
 # Parse a sequence string `s` in the form of "n, n+s, ..., m", e.g. "1, 2, ..., 5" or "0, 0.25, ..., 1", etc.
 # Convert the result to a vector of class `cls`.

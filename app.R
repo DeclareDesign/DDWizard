@@ -64,7 +64,12 @@ ui <- material_page(
                 bsCollapse(id='sections_container',
                            bsCollapsePanel('Messages', verbatimTextOutput("section_messages")),
                            bsCollapsePanel('Summary', verbatimTextOutput("section_summary")),
-                           bsCollapsePanel('Code output', verbatimTextOutput("section_design_code"))
+                           bsCollapsePanel('Code output', verbatimTextOutput("section_design_code")),
+                           bsCollapsePanel('Simulated data',
+                                           p("The following table shows a single draw of the data."),
+                                           actionButton("simdata_redraw", label = "Redraw data", disabled = "disabled"),
+                                           downloadButton("simdata_download", label = "Download data", disabled = "disabled"),
+                                           dataTableOutput("section_simdata_table"))
                 )
             )
         )
@@ -122,6 +127,7 @@ server <- function(input, output) {
         design = NULL,                  # parametric designer object (a closure)
         design_id = NULL,               # identifier for current design instance *after* being instantiated
         design_argdefinitions = NULL,   # argument definitions for current design instance
+        simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_msgs = NULL,           # captured warnings and other messages during design creation
         diagnosands = NULL              # diagnosands for current plot in "inspect" tab
@@ -258,9 +264,18 @@ server <- function(input, output) {
         react$design_id <- NULL    # set after being instantiated
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
+        shinyjs::enable('simdata_redraw')
+        shinyjs::enable('simdata_download')
         print('parametric design loaded')
     })
     
+    # input observer for click on "redraw data" button in "simulated data" section
+    observeEvent(input$simdata_redraw, {
+        d <- req(design_instance())
+        simdata <- draw_data(d)
+        simdata <- round_df(simdata, 4)
+        react$simdata <- simdata
+    })
     
     ### DESIGN TAB: output elements ###
     
@@ -340,6 +355,34 @@ server <- function(input, output) {
             if(!is.null(d)) {   # save design instance
                 saveRDS(d, file = file)
             }
+        }
+    )
+    
+    # center: simulated data table
+    output$section_simdata_table <- renderDataTable({
+        react$simdata
+    }, options = list(searching = FALSE,
+                      ordering = FALSE,
+                      paging = TRUE,
+                      pageLength = 10,
+                      info = FALSE,
+                      lengthChange = FALSE,
+                      scrollX = TRUE))
+    
+    # center: download simulated data
+    output$simdata_download <- downloadHandler(
+        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_simulated_data.csv')
+        },
+        content = function(file) {
+            req(react$simdata)
+            write.csv(react$simdata, file = file, row.names = FALSE)
         }
     )
     
@@ -464,7 +507,7 @@ server <- function(input, output) {
             paste0(design_name, '_diagnosands.csv')
         },
         content = function(file) {
-            write.csv(get_diagnosands_for_display(), file = file)
+            write.csv(get_diagnosands_for_display(), file = file, row.names = FALSE)
         }
     )
     
@@ -479,7 +522,7 @@ server <- function(input, output) {
             paste0(design_name, '_diagnosands_full.csv')
         },
         content = function(file) {
-            write.csv(react$diagnosands, file = file)
+            write.csv(react$diagnosands, file = file, row.names = FALSE)
         }
     )   
     
