@@ -1,8 +1,7 @@
 # Shiny application with UI and server-side code
 #
 # Markus Konrad <markus.konrad@wzb.eu>
-# Sisi Huang <sisi.huang@wzb.eu>
-# Dec. 2018
+# Oct. 2018
 #
 
 library(DesignLibrary)
@@ -18,8 +17,10 @@ source('conf.R')
 source('common.R')
 
 
+#######################################
+# Frontend: User interface definition #
+#######################################
 
-#--------- ui setting ---------
 ui <- material_page(
     # title
     title = app_title,
@@ -42,7 +43,7 @@ ui <- material_page(
         )
     ),
     
-    # ------------ "Design" tab ------------
+    # "Design" tab
     material_tab_content(
         tab_id = 'tab_design',
         material_row(
@@ -63,13 +64,18 @@ ui <- material_page(
                 bsCollapse(id='sections_container',
                            bsCollapsePanel('Messages', verbatimTextOutput("section_messages")),
                            bsCollapsePanel('Summary', verbatimTextOutput("section_summary")),
-                           bsCollapsePanel('Code output', verbatimTextOutput("section_design_code"))
+                           bsCollapsePanel('Code output', verbatimTextOutput("section_design_code")),
+                           bsCollapsePanel('Simulated data',
+                                           p("The following table shows a single draw of the data."),
+                                           actionButton("simdata_redraw", label = "Redraw data", disabled = "disabled"),
+                                           downloadButton("simdata_download", label = "Download data", disabled = "disabled"),
+                                           dataTableOutput("section_simdata_table"))
                 )
             )
         )
     ),
 
-    # ------------ "Inspect" tab ------------
+    # "Inspect" tab
     material_tab_content(
         tab_id = 'tab_inspect',
         material_row(
@@ -107,7 +113,10 @@ ui <- material_page(
 )
 
 
-#--------- server setting ---------
+###########################################################
+# Backend: Input handling and output generation on server #
+###########################################################
+
 
 server <- function(input, output) {
     options(warn = 1)    # always directly print warnings
@@ -119,6 +128,7 @@ server <- function(input, output) {
         design = NULL,                  # parametric designer object (a closure)
         design_id = NULL,               # identifier for current design instance *after* being instantiated
         design_argdefinitions = NULL,   # argument definitions for current design instance
+        simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_msgs = NULL,           # captured warnings and other messages during design creation
         diagnosands = NULL              # diagnosands for current plot in "inspect" tab
@@ -214,13 +224,20 @@ server <- function(input, output) {
             print(insp_args)
             
             # run diagnoses and get results
-            diag_results <- run_diagnoses(react$design, insp_args,
-                                          sims = default_diag_sims,
-                                          bootstrap_sims = defaul_diag_bootstrap_sims,
-                                          use_cache = !input$simconf_force_rerun)
-            
-            shinyjs::enable('section_diagnosands_download_subset')
-            shinyjs::enable('section_diagnosands_download_full')
+            isolate({
+                if (length(input$plot_conf_diag_param_param) == 0) {
+                    diag_param_alpha <- 0.05
+                } else {
+                    diag_param_alpha <- input$plot_conf_diag_param_param
+                }
+                
+                diag_results <- run_diagnoses(react$design, insp_args,
+                                              sims = default_diag_sims,
+                                              bootstrap_sims = default_diag_bootstrap_sims,
+                                              diag_param_alpha = diag_param_alpha,
+                                              use_cache = !input$simconf_force_rerun,
+                                              advance_progressbar = 1/6)
+            })
             
             return(diag_results)
         } else {
@@ -258,9 +275,18 @@ server <- function(input, output) {
         react$design_id <- NULL    # set after being instantiated
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
+        shinyjs::enable('simdata_redraw')
+        shinyjs::enable('simdata_download')
         print('parametric design loaded')
     })
     
+    # input observer for click on "redraw data" button in "simulated data" section
+    observeEvent(input$simdata_redraw, {
+        d <- req(design_instance())
+        simdata <- draw_data(d)
+        simdata <- round_df(simdata, 4)
+        react$simdata <- simdata
+    })
     
     ### DESIGN TAB: output elements ###
     
@@ -343,6 +369,34 @@ server <- function(input, output) {
         }
     )
     
+    # center: simulated data table
+    output$section_simdata_table <- renderDataTable({
+        react$simdata
+    }, options = list(searching = FALSE,
+                      ordering = FALSE,
+                      paging = TRUE,
+                      pageLength = 10,
+                      info = FALSE,
+                      lengthChange = FALSE,
+                      scrollX = TRUE))
+    
+    # center: download simulated data
+    output$simdata_download <- downloadHandler(
+        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_simulated_data.csv')
+        },
+        content = function(file) {
+            req(react$simdata)
+            write.csv(react$simdata, file = file, row.names = FALSE)
+        }
+    )
+    
     ### INSPECT TAB: output elements ###
     
     # left: design parameters to inspect
@@ -365,11 +419,10 @@ server <- function(input, output) {
     
     # make the plot reactive
     plotinput <- reactive({
-        n_steps = 4
+        n_steps = 6
         withProgress(message = 'Simulating data and generating plot...', value = 0, {
             incProgress(1/n_steps)
             diag_results <- get_diagnoses_for_plot()
-            incProgress(1/n_steps)
             req(diag_results)
             
             plotdf <- diag_results$diagnosands_df
@@ -384,7 +437,7 @@ server <- function(input, output) {
             # base aesthetics for line plot
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
                 aes_args <- list(
-                    'x' = input$plot_conf_x_param,
+                    'x' = input$plot_conf_x_param,   
                     'y' = input$plot_conf_diag_param,
                     'ymin' =plotdf$diagnosand_min,
                     # 'ymin' = 'diagnosand_min',
@@ -421,7 +474,7 @@ server <- function(input, output) {
                     geom_pointrange() +
                     scale_y_continuous(name = input$plot_conf_diag_param) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param)
+                    labs(x = input$plot_conf_x_param, color = plot_conf_color_param)
                 
                 # add facets if necessary
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
@@ -430,12 +483,12 @@ server <- function(input, output) {
                 
                 incProgress(1/n_steps)
                 
-                
+                shinyjs::enable('section_diagnosands_download_subset')
+                shinyjs::enable('section_diagnosands_download_full')
+            
                 print(p)
-                
             })
         })
-        
     })
    
     
@@ -477,8 +530,13 @@ server <- function(input, output) {
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
         get_diagnosands_for_display()
-    }, options = list(autoWidth = TRUE,
-                      searching = FALSE)
+    }, options = list(searching = FALSE,
+                      ordering = FALSE,
+                      paging = TRUE,
+                      pageLength = 10,
+                      info = FALSE,
+                      lengthChange = FALSE,
+                      scrollX = TRUE)
     )
     
     # center below plot: download buttons
@@ -493,7 +551,7 @@ server <- function(input, output) {
             paste0(design_name, '_diagnosands.csv')
         },
         content = function(file) {
-            write.csv(get_diagnosands_for_display(), file = file)
+            write.csv(get_diagnosands_for_display(), file = file, row.names = FALSE)
         }
     )
     
@@ -508,7 +566,7 @@ server <- function(input, output) {
             paste0(design_name, '_diagnosands_full.csv')
         },
         content = function(file) {
-            write.csv(react$diagnosands, file = file)
+            write.csv(react$diagnosands, file = file, row.names = FALSE)
         }
     )   
     
@@ -558,6 +616,20 @@ server <- function(input, output) {
                                           choices = available_diagnosands,
                                           selected = input[[inp_diag_param_id]])
             boxes <- list_append(boxes, inp_diag_param)
+            
+            # 3b. optional: diagnosand parameter
+            if (length(input[[inp_diag_param_id]]) > 0 && input[[inp_diag_param_id]] == 'power') {
+                inp_diag_param_param_id <- paste0(inp_prefix, "diag_param_param")
+                if (length(input[[inp_diag_param_param_id]]) > 0) {
+                    inp_diag_param_param_default <- input[[inp_diag_param_param_id]]
+                } else {
+                    inp_diag_param_param_default <- 0.05
+                }
+                inp_diag_param_param <- numericInput(inp_diag_param_param_id, "Alpha for power",
+                                                     min = 0, max = 1, step = 0.01,
+                                                     value = inp_diag_param_param_default)
+                boxes <- list_append(boxes, inp_diag_param_param)
+            }
             
             # 4. main inspection parameter (x-axis)
             insp_args <- get_args_for_inspection(react$design, react$design_argdefinitions, input)

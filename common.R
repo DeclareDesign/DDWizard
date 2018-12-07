@@ -16,6 +16,14 @@ list_append <- function(l, v) {
     l
 }
 
+# Round numeric values in a data frame to `digits`.
+# Copied from "wizard_shiny" repository.
+round_df <- function(df, digits){
+    i <- vapply(df, is.numeric, TRUE)
+    df[i] <- lapply(df[i], round, digits)
+    df
+}
+
 
 # Parse a sequence string `s` in the form of "n, n+s, ..., m", e.g. "1, 2, ..., 5" or "0, 0.25, ..., 1", etc.
 # Convert the result to a vector of class `cls`.
@@ -223,41 +231,55 @@ get_args_for_inspection <- function(design, d_argdefs, input) {
 
 
 # Run diagnoses on designer `designer` and parameter space `args`. Run `sims` simulations and `bootstrap_sims` bootstraps.
-# If `use_cache` is TRUE, check if diagnosis results already exist for this designer / parameter combinations and return
-# the cached results or create new diagnosis results.
+# If `use_cache` is TRUE, check if simulated data already exists for this designer / parameter combinations and use cached
+# data or create newly simulated data for running diagnoses.
 # The simulations are run in parallel if packages `future` and `future.apply` are installed.
-run_diagnoses <- function(designer, args, sims, bootstrap_sims, use_cache = TRUE) {
+run_diagnoses <- function(designer, args, sims, bootstrap_sims, diag_param_alpha = 0.05, use_cache = TRUE, advance_progressbar = 0) {
+    # generate designs from designer with arguments `args`
+    all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
+    if (advance_progressbar) incProgress(advance_progressbar)
+    
+    # get simulated data either from cache or generate it
+    
+    simdata <- NULL
     if (use_cache) {
         # cache fingerprint generated from designer object, simulation config. and parameter space
         fingerprint_args <- args
         fingerprint_args$sims <- sims
-        fingerprint_args$bootstrap_sims <- bootstrap_sims
         fingerprint_args$design <- designer
+        fingerprint_args$cache_version <- 1       # increment whenever the simulated data in cache is not compatible anymore (i.e. DD upgrade)
         fingerprint <- digest(fingerprint_args)   # uses MD5
         
-        cache_file <- paste0('.cache/diag_', fingerprint, '.RDS')
+        cache_file <- paste0('.cache/simdata_', fingerprint, '.RDS')
         
         if (file.exists(cache_file)) {   # read and return result object from cache
-            return(readRDS(cache_file))
+            if (advance_progressbar) incProgress(advance_progressbar)
+            simdata <- readRDS(cache_file)
         }
     } else {
         print('caching disabled')
         cache_file <- NULL
     }
     
-    # set up to run in parallel
-    plan('multicore', workers = n_diagnosis_workers)
-    
-    # generate designs from designer with arguments `args`
-    all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
-    
-    # run diagnoses
-    diag_res <- diagnose_design(all_designs, sims = sims, bootstrap_sims = bootstrap_sims)
-    
-    # save to cache if requested
-    if (!is.null(diag_res) && !is.null(cache_file)) {
-        saveRDS(diag_res, cache_file)
+    if (is.null(simdata)) {  # generate simulations
+        # set up to run in parallel
+        plan('multicore', workers = n_diagnosis_workers)
+        
+        # simulate data
+        simdata <- simulate_designs(all_designs, sims = sims)
+        if (advance_progressbar) incProgress(advance_progressbar)
+        
+        # save simulations to cache if requested
+        if (!is.null(simdata) && !is.null(cache_file)) {
+            saveRDS(simdata, cache_file)
+        }
     }
+    
+    # run diagnoses using the simulated data
+    # note: this is not cached
+    def_diag_fns <- function(data) { DeclareDesign:::default_diagnosands(data, alpha = diag_param_alpha) }  # pass alpha parameter for power calc.
+    diag_res <- diagnose_designs(simdata, diagnosands = def_diag_fns, bootstrap_sims = bootstrap_sims)
+    if (advance_progressbar) incProgress(advance_progressbar)
     
     diag_res
 }
