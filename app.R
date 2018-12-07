@@ -288,7 +288,7 @@ server <- function(input, output) {
         react$simdata <- simdata
     })
     
-    ### DESIGN TAB: output elements ###
+    ### ----- DESIGN TAB: output elements ------ 
     
     # left side: designer parameters
     output$design_parameters <- renderUI({
@@ -397,7 +397,7 @@ server <- function(input, output) {
         }
     )
     
-    ### INSPECT TAB: output elements ###
+    ### --- INSPECT TAB: output elements ---
     
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
@@ -439,10 +439,9 @@ server <- function(input, output) {
                 aes_args <- list(
                     'x' = input$plot_conf_x_param,   
                     'y' = input$plot_conf_diag_param,
-                    'ymin' =plotdf$diagnosand_min,
-                    # 'ymin' = 'diagnosand_min',
-                    # 'ymax' = 'diagnosand_max'
-                    'ymax' = plotdf$diagnosand_max
+                    'ymin' = 'diagnosand_min',
+                    'ymax' = 'diagnosand_max'
+                    
                 )
                 
                 # if the "color" parameter is set, add it to the aeshetics definition
@@ -474,7 +473,9 @@ server <- function(input, output) {
                     geom_pointrange() +
                     scale_y_continuous(name = input$plot_conf_diag_param) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param, color = plot_conf_color_param)
+                    labs(x = input$plot_conf_x_param
+                         #, color = plot_conf_color_param
+                         )
                 
                 # add facets if necessary
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
@@ -496,8 +497,6 @@ server <- function(input, output) {
     
     output$plot_output <- renderPlot({
         print(plotinput())
-        shinyjs::enable('section_diagnosands_download_subset')
-        shinyjs::enable('section_diagnosands_download_full')
         shinyjs::enable('download_plot')
 
     })
