@@ -496,7 +496,7 @@ server <- function(input, output) {
                 }
                 
                 # add confidence interval but it won't work when x-axis is the sample size or no variable
-                if(input$confi_int_id != "N" | input$confi_int_id != "(none)"){
+                if(input$plot_conf_color_param != "N" & input$plot_conf_color_param != "(none)"){
                   p <- p + geom_ribbon(data = plotdf,aes(ymin = diagnosand_lowerbound, ymax = diagnosand_upperbound), 
                                        fill = "grey70", size = 3,  alpha = 0.5)
                     
