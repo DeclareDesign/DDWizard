@@ -468,8 +468,8 @@ server <- function(input, output) {
                     plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
                 }
                 
-                print(aes_args)
-                print(plotdf)
+#                print(aes_args)
+#                print(plotdf)
                 
                 # create aesthetics definition
                 aes_definition <- do.call(aes_string, aes_args)
@@ -484,7 +484,7 @@ server <- function(input, output) {
                     dd_theme() +
                     labs(x = input$plot_conf_x_param)
                 
-                # add confidence interval but it won't work when x-axis is the sample size or no variable
+                # add confidence interval if requested
                 if (isTruthy(input$plot_conf_confi_int_id)) {
                     p <- p + geom_ribbon(alpha = 0.25, color = 'white')
                 }
