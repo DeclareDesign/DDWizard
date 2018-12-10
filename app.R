@@ -223,6 +223,7 @@ server <- function(input, output) {
             print('will run diagnoses with arguments:')
             print(insp_args)
             
+       
             # run diagnoses and get results
             isolate({
                 if (length(input$plot_conf_diag_param_param) == 0) {
@@ -237,12 +238,19 @@ server <- function(input, output) {
                                               diag_param_alpha = diag_param_alpha,
                                               use_cache = !input$simconf_force_rerun,
                                               advance_progressbar = 1/6)
+                
+                
+                
+               
+                
             })
             
             return(diag_results)
         } else {
             return(NULL)
         }
+        
+       
     })
     
     # get subset data frame of diagnosands for display and download
@@ -288,7 +296,7 @@ server <- function(input, output) {
         react$simdata <- simdata
     })
     
-    ### DESIGN TAB: output elements ###
+    ### ----- DESIGN TAB: output elements ------ 
     
     # left side: designer parameters
     output$design_parameters <- renderUI({
@@ -397,7 +405,7 @@ server <- function(input, output) {
         }
     )
     
-    ### INSPECT TAB: output elements ###
+    # ------ INSPECT TAB: output elements ------
     
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
@@ -434,6 +442,11 @@ server <- function(input, output) {
             plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
             plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
             
+            # the bound value of confidence interval: diagnosand values +/-SE*1.96
+            plotdf$diagnosand_lowerbound <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]*1.96
+            plotdf$diagnosand_upperbound <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]*1.96
+            
+            
             # base aesthetics for line plot
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
                 aes_args <- list(
@@ -441,11 +454,12 @@ server <- function(input, output) {
                     'y' = input$plot_conf_diag_param,
                     'ymin' = 'diagnosand_min',
                     'ymax' = 'diagnosand_max'
+                    
                 )
                 
                 # if the "color" parameter is set, add it to the aeshetics definition
                 if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
-                    plotdf$color_param <- as.factor(plotdf[[input$plot_conf_color_param]])
+                    plotdf$color_param <- factor(plotdf[[input$plot_conf_color_param]])
                     aes_args$color <- input$plot_conf_color_param
                     #aes_args$color <- 'color_param'
                     aes_args$group <- 'color_param'
@@ -472,19 +486,28 @@ server <- function(input, output) {
                     geom_pointrange() +
                     scale_y_continuous(name = input$plot_conf_diag_param) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param, color = plot_conf_color_param)
+                    labs(x = input$plot_conf_x_param
+                         #, color = plot_conf_color_param
+                         )
                 
                 # add facets if necessary
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
                     p <- p + facet_wrap(input$plot_conf_facets_param, ncol = 2, labeller = label_both)
                 }
                 
+                if(input$confi_int_id == 1){
+                  p <- p + geom_ribbon(data = plotdf,aes(ymin = diagnosand_lowerbound, ymax = diagnosand_upperbound), 
+                                       fill = "grey70", size = 3,  alpha = 0.5)
+                    
+                }
+                
                 incProgress(1/n_steps)
                 
                 shinyjs::enable('section_diagnosands_download_subset')
                 shinyjs::enable('section_diagnosands_download_full')
-            
+                
                 print(p)
+            
             })
         })
     })
@@ -646,7 +669,10 @@ server <- function(input, output) {
                                            selected = input[[inp_color_param_id]])
             boxes <- list_append(boxes, inp_color_param)
             
-            # 6. tertiary inspection parameter (small multiples)
+            # 6. CI check box 
+            inp_con_int_param <- checkboxInput(inputId = "confi_int_id",label = "Confidence Interval", value = TRUE)
+            boxes <- list_append(boxes, inp_con_int_param)
+            # 7. tertiary inspection parameter (small multiples)
             inp_facets_param_id <- paste0(inp_prefix, "facets_param")
             inp_facets_param <- selectInput(inp_facets_param_id, "Tertiary parameter (small multiples)",
                                             choices = variable_args_optional,
