@@ -92,7 +92,7 @@ ui <- material_page(
                 material_card("Diagnostic plots",
                               actionButton('update_plot', 'Update plot'),
                               plotOutput('plot_output'),
-                              downloadButton("download_plot", label = "Download the plot", disabled = "disabled" )
+                              downloadButton("download_plot", label = "Download plot", disabled = "disabled" )
                 ),
                 bsCollapse(id='inspect_sections_container',
                            bsCollapsePanel('Diagnosands',
@@ -437,14 +437,10 @@ server <- function(input, output) {
             plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]
             react$diagnosands <- plotdf
             
-            # diagnosand values +/- SE
-            # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
-            plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
-            plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]
-            
             # the bound value of confidence interval: diagnosand values +/-SE*1.96
-            plotdf$diagnosand_lowerbound <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]*1.96
-            plotdf$diagnosand_upperbound <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]]*1.96
+            # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
+            plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
+            plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
             
             
             # base aesthetics for line plot
@@ -460,12 +456,11 @@ server <- function(input, output) {
                 # if the "color" parameter is set, add it to the aeshetics definition
                 if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
                     plotdf$color_param <- factor(plotdf[[input$plot_conf_color_param]])
-                    aes_args$color <- input$plot_conf_color_param
-                    #aes_args$color <- 'color_param'
+                    aes_args$color <- 'color_param'
+                    aes_args$fill <- 'color_param'
                     aes_args$group <- 'color_param'
-                    plot_conf_color_param <- NULL
                 } else {
-                    plot_conf_color_param <- input$plot_conf_color_param
+                    aes_args$group <- 1
                 }
                 
                 # if the "facets" parameter is set, add it to the aeshetics definition
@@ -473,7 +468,8 @@ server <- function(input, output) {
                     plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
                 }
                 
-                #print(plotdf)
+                print(aes_args)
+                print(plotdf)
                 
                 # create aesthetics definition
                 aes_definition <- do.call(aes_string, aes_args)
@@ -483,23 +479,20 @@ server <- function(input, output) {
                 # create base line plot
                 p <- ggplot(plotdf, aes_definition) +
                     geom_line() +
-                    geom_pointrange() +
+                    geom_point() +
                     scale_y_continuous(name = input$plot_conf_diag_param) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param
-                         #, color = plot_conf_color_param
-                         )
+                    labs(x = input$plot_conf_x_param)
+                
+                # add confidence interval but it won't work when x-axis is the sample size or no variable
+                if (isTruthy(input$plot_conf_confi_int_id)) {
+                    p <- p + geom_ribbon(alpha = 0.25, color = 'white')
+                }
+                
                 
                 # add facets if necessary
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
                     p <- p + facet_wrap(input$plot_conf_facets_param, ncol = 2, labeller = label_both)
-                }
-                
-                # add confidence interval but it won't work when x-axis is the sample size or no variable
-                if(input$plot_conf_color_param != "N" & input$plot_conf_color_param != "(none)"){
-                  p <- p + geom_ribbon(data = plotdf,aes(ymin = diagnosand_lowerbound, ymax = diagnosand_upperbound), 
-                                       fill = "grey70", size = 3,  alpha = 0.5)
-                    
                 }
                 
                 incProgress(1/n_steps)
@@ -651,7 +644,13 @@ server <- function(input, output) {
                 boxes <- list_append(boxes, inp_diag_param_param)
             }
             
-            # 4. main inspection parameter (x-axis)
+            
+            # 4. CI check box 
+            inp_con_int_param_id <- paste0(inp_prefix, "confi_int_id")
+            inp_con_int_param <- checkboxInput(inp_con_int_param_id, label = "Show confidence interval", value = TRUE)
+            boxes <- list_append(boxes, inp_con_int_param)
+            
+            # 5. main inspection parameter (x-axis)
             insp_args <- get_args_for_inspection(react$design, react$design_argdefinitions, input)
             insp_args_lengths <- sapply(insp_args, length)
             variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
@@ -662,17 +661,14 @@ server <- function(input, output) {
                                        selected = input[[inp_x_param_id]])
             boxes <- list_append(boxes, inp_x_param)
             
-            # 5. secondary inspection parameter (color)
+            # 6. secondary inspection parameter (color)
             variable_args_optional <- c('(none)', variable_args)
             inp_color_param_id <- paste0(inp_prefix, "color_param")
             inp_color_param <- selectInput(inp_color_param_id, "Secondary parameter (color)",
                                            choices = variable_args_optional,
                                            selected = input[[inp_color_param_id]])
             boxes <- list_append(boxes, inp_color_param)
-            
-            # 6. CI check box 
-            inp_con_int_param <- checkboxInput(inputId = "confi_int_id",label = "Confidence Interval", value = TRUE)
-            boxes <- list_append(boxes, inp_con_int_param)
+
             # 7. tertiary inspection parameter (small multiples)
             inp_facets_param_id <- paste0(inp_prefix, "facets_param")
             inp_facets_param <- selectInput(inp_facets_param_id, "Tertiary parameter (small multiples)",
