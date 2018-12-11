@@ -88,7 +88,10 @@ ui <- material_page(
                 width = 6,
                 bsCollapse(id='inspect_sections_simconf_container',
                            bsCollapsePanel('Configure simulations',
-                                           checkboxInput('simconf_force_rerun', label = 'Always re-run simulations (disable cache)'))),  # add more simulation options here (issue #2)
+                                           checkboxInput('simconf_force_rerun', label = 'Always re-run simulations (disable cache)'),
+                                           # add more simulation options here (issue #2)
+                                           numericInput("sim_num_id", label = "Num. of simulations", value = default_diag_sims),
+                                           numericInput("bootstrap_num_id", label = "Num. of simulations", value = default_diag_bootstrap_sims))), 
                 material_card("Diagnostic plots",
                               actionButton('update_plot', 'Update plot'),
                               plotOutput('plot_output'),
@@ -233,8 +236,8 @@ server <- function(input, output) {
                 }
                 
                 diag_results <- run_diagnoses(react$design, insp_args,
-                                              sims = default_diag_sims,
-                                              bootstrap_sims = default_diag_bootstrap_sims,
+                                              sims = input$sim_num_id,
+                                              bootstrap_sims = input$bootstrap_num_id,
                                               diag_param_alpha = diag_param_alpha,
                                               use_cache = !input$simconf_force_rerun,
                                               advance_progressbar = 1/6)
