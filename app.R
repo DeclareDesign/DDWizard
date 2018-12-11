@@ -88,7 +88,13 @@ ui <- material_page(
                 width = 6,
                 bsCollapse(id='inspect_sections_simconf_container',
                            bsCollapsePanel('Configure simulations',
-                                           checkboxInput('simconf_force_rerun', label = 'Always re-run simulations (disable cache)'))),  # add more simulation options here (issue #2)
+                                           checkboxInput('simconf_force_rerun', label = 'Always re-run simulations (disable cache)'),
+                                           numericInput("simconf_sim_num", label = "Num. of simulations",
+                                                        value = default_diag_sims,
+                                                        min = 1, max = 1000, step = 1),
+                                           numericInput("simconf_bootstrap_num", label = "Num. of bootstraps",
+                                                        value = default_diag_bootstrap_sims,
+                                                        min = 1, max = 1000, step = 1))), 
                 material_card("Diagnostic plots",
                               actionButton('update_plot', 'Update plot'),
                               plotOutput('plot_output'),
@@ -233,16 +239,11 @@ server <- function(input, output) {
                 }
                 
                 diag_results <- run_diagnoses(react$design, insp_args,
-                                              sims = default_diag_sims,
-                                              bootstrap_sims = default_diag_bootstrap_sims,
+                                              sims = input$simconf_sim_num,
+                                              bootstrap_sims = input$simconf_bootstrap_num,
                                               diag_param_alpha = diag_param_alpha,
                                               use_cache = !input$simconf_force_rerun,
                                               advance_progressbar = 1/6)
-                
-                
-                
-               
-                
             })
             
             return(diag_results)
