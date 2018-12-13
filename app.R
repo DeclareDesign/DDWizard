@@ -96,6 +96,7 @@ ui <- material_page(
                                                         value = default_diag_bootstrap_sims,
                                                         min = 1, max = 1000, step = 1))), 
                 material_card("Diagnostic plots",
+                              uiOutput('plot_message'),
                               actionButton('update_plot', 'Update plot'),
                               plotOutput('plot_output'),
                               downloadButton("download_plot", label = "Download plot", disabled = "disabled" )
@@ -416,10 +417,18 @@ server <- function(input, output) {
             # was defined in inspect tab
             defaults <- sapply(names(d_args), function(argname) {
                 ifelse(is.null(input[[paste0('inspect_arg_', argname)]]) || length(parse_sequence_string(input[[paste0('inspect_arg_', argname)]])) < 2,
-                       d_args[[argname]],
+                       as.character(d_args[[argname]]),
                        input[[paste0('inspect_arg_', argname)]])
             }, simplify = FALSE)
         })
+        
+        # set a default value for "N" the first time
+        d_args_charvec <- as.character(d_args)
+        names(d_args_charvec) <- names(d_args)
+        if (all(defaults == d_args_charvec)) {
+            n_int <- as.integer(defaults['N'])
+            defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
+        }
         
         tags$div(create_design_parameter_ui('inspect', react, design_instance,
                                             input = input,
@@ -507,13 +516,29 @@ server <- function(input, output) {
         })
     })
    
+    # -------------- center: messages for plot --------------
+    
+    output$plot_message <- renderUI({
+        if (is.null(react$diagnosands)) {
+            return(HTML('<p>Specify values for arguments that you want to diagnose 
+                        the design with on the left by supplying scalar values, lists
+                        of values (like 10, 20, 30) or ranges with a step size
+                        (like 10, 20, ..., 100).</p>
+                        <p>On the right side you can choose which arguments should
+                        be mapped to which visual property of the diagnosis plot
+                        and which type of diagnosand should be used. Finally click
+                        "Update plot" to simulate data and run the diagnoses.<br><br></p>'))
+        } else {
+            return('')
+        }
+    })
+    
     
     # -------------- center: plot output --------------
     
     output$plot_output <- renderPlot({
         print(plotinput())
         shinyjs::enable('download_plot')
-
     })
     
     # -------- download the plot --------
