@@ -16,6 +16,21 @@ list_append <- function(l, v) {
     l
 }
 
+# Merge list `l1` with `l2` and return combined list. If the same key exists in both lists, the
+# value in `l2` will overwrite the value in `l1`.
+list_merge <- function(l1, l2) {
+    l_out <- list()
+    keys1 <- names(l1)
+    keys2 <- names(l2)
+    
+    for (k in keys1) { l_out[[k]] <- l1[[k]] }
+    for (k in keys2) { l_out[[k]] <- l2[[k]] }
+    
+    stopifnot(setequal(union(keys1, keys2), names(l_out)))
+    
+    l_out
+}
+
 # Round numeric values in a data frame to `digits`.
 # Copied from "wizard_shiny" repository.
 round_df <- function(df, digits){
@@ -62,8 +77,8 @@ parse_sequence_string <- function(s, cls = 'numeric') {
 # Use min/max and class definition from `argdefinition` (comes from designer "definitions" attrib.).
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
 # Returns NULL if argument class is not supported.
-input_elem_for_design_arg <- function(argname, argdefault, argdefinition, width = '70%', idprefix = 'design') {
-    inp_id <- paste0(idprefix, '_arg_', argname)
+input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
+    inp_id <- nspace(paste0(idprefix, '_arg_', argname))
     
     argclass <- class(argdefault)
     argtype <- typeof(argdefault)
@@ -140,11 +155,12 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # Create UI element with input boxes for design parameters. If `type` is "design", then this is for the
 # "Design" tab, otherwise it's the design parameters for comparison UI for the "Inspect" tab.
 # `react` is a list of reactive values (designer object and arg. definitions are needed).
+# `nspace` is the namespace prefix function
 # `design_instance_fn` is the function to generate a design (`design_instance` from app.R).
 # `input` is the shiny input values list, which is used to determine whether an argument has been set to
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
-create_design_parameter_ui <- function(type, react, design_instance_fn, input = NULL, defaults = NULL) {
+create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, input = NULL, defaults = NULL) {
     boxes <- list()
     
     if (is.null(react$design)) {
@@ -153,7 +169,7 @@ create_design_parameter_ui <- function(type, react, design_instance_fn, input = 
         if (type == 'design') {
             # design description and name come first in the "design" tab
             boxes <- list_append(boxes, HTML(attr(react$design, 'description')))
-            boxes <- list_append(boxes, textInput('design_arg_design_name', 'Design name', value = react$design_id))
+            boxes <- list_append(boxes, textInput(nspace('design_arg_design_name'), 'Design name', value = react$design_id))
         }
         
         args <- formals(react$design)
@@ -177,9 +193,9 @@ create_design_parameter_ui <- function(type, react, design_instance_fn, input = 
                 # for the "design" tab, create two input elements for each argument:
                 # 1. the argument value input box
                 # 2. the "fixed" checkbox next to it
-                inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%', idprefix = type)
+                inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%', nspace = nspace, idprefix = type)
                 inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                       checkboxInput(inp_elem_name_fixed, label = 'fixed', width = '30%')),
+                                                       checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%')),
                                               inp_elem)
             } else {   # type == 'inspect'
                 if (!is.null(defaults) && argname %in% names(defaults)) {
@@ -193,7 +209,7 @@ create_design_parameter_ui <- function(type, react, design_instance_fn, input = 
                 }
                 
                 # in "inspect" tab, the input is always a text input in order to support input of sequences
-                inp_elem_complete <- textInput(paste0('inspect_arg_', argname), argname, value = argvalue)
+                inp_elem_complete <- textInput(nspace(paste0('inspect_arg_', argname)), argname, value = argvalue)
             }
             
             boxes <- list_append(boxes, inp_elem_complete)
