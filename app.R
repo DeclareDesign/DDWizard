@@ -1,14 +1,25 @@
+# DeclareDesign Wizard shiny app.
+#
+# This shiny app displays several tabs, each of which is a separate shiny module (http://shiny.rstudio.com/articles/modules.html)
+# implemented in the respective "tab_ ... .R" file. Hence this file only implements the "skeleton" of the application.
+#
+# Markus Konrad <markus.konrad@wzb.eu>
+# Sisi Huang <sisi.huang@wzb.eu>
+#
+# Dec. 2018
+#
+
 library(DesignLibrary)
 library(shiny)
 library(shinymaterial)
 library(shinythemes)
 library(shinyBS)
 library(shinyjs)
-library(ggplot2)
 
 
 source('conf.R')
 source('common.R')
+source('uihelpers.R')
 source('tab_design.R')
 source('tab_inspect.R')
 
@@ -45,6 +56,12 @@ ui <- material_page(
     # "Inspect" tab
     inspectTabUI('tab_inspect')
 )
+
+
+###########################################################
+# Backend: Input handling and output generation on server #
+###########################################################
+
 
 server <- function(input, output) {
     design_tab_proxy <- callModule(designTab, 'tab_design')

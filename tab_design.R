@@ -1,3 +1,13 @@
+# UI and server module for "Design" tab.
+#
+# designTab function returns a list of objects that allow to access its reactive values and some functions (see end of file).
+#
+# Markus Konrad <markus.konrad@wzb.eu>
+# Sisi Huang <sisi.huang@wzb.eu>
+#
+# Dec. 2018
+#
+
 ### UI ###
 
 designTabUI <- function(id, label = 'Design') {

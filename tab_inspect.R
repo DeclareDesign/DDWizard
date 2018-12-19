@@ -1,3 +1,11 @@
+# UI and server module for "Inspect" tab.
+#
+# Markus Konrad <markus.konrad@wzb.eu>
+# Sisi Huang <sisi.huang@wzb.eu>
+#
+# Dec. 2018
+#
+
 ### UI ###
 
 inspectTabUI <- function(id, label = 'Inspect') {
@@ -147,10 +155,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             incProgress(1/n_steps)
             diag_results <- get_diagnoses_for_plot()
             req(diag_results)
-            
-            print('DEBUG:')
-            print(input$plot_conf_estimator)
-            print(input$plot_conf_coefficient)
             
             plotdf <- diag_results$diagnosands_df
             plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]
