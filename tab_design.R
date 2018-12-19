@@ -264,7 +264,8 @@ designTab <- function(input, output, session) {
     return(list(
         react = react,
         design_args = design_args,
-        design_instance = design_instance
+        design_instance = design_instance,
+        input = input
     ))
 }
     

@@ -136,7 +136,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         tags$div(create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
                                             design_tab_proxy$design_instance,
-                                            input = input,
+                                            input = design_tab_proxy$input,
                                             defaults = defaults))
     })
     
