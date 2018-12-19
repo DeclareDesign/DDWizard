@@ -1,10 +1,10 @@
 ### UI ###
 
-designTabUI <- function(id, label = 'Design Tab') {
+designTabUI <- function(id, label = 'Design') {
     nspace <- NS(id)
     
     material_tab_content(
-        tab_id = nspace('tab_design'),
+        tab_id = id,
         material_row(
             material_column(  # left: input and design parameters
                 width = 3,
@@ -259,6 +259,13 @@ designTab <- function(input, output, session) {
             write.csv(react$simdata, file = file, row.names = FALSE)
         }
     )
+    
+    # return reactive values and some functions to be accessed from other modules
+    return(list(
+        react = react,
+        design_args = design_args,
+        design_instance = design_instance
+    ))
 }
     
 

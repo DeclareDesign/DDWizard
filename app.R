@@ -10,6 +10,7 @@ library(ggplot2)
 source('conf.R')
 source('common.R')
 source('tab_design.R')
+source('tab_inspect.R')
 
 
 #######################################
@@ -33,16 +34,21 @@ ui <- material_page(
     # tabs
     material_tabs(
         tabs = c(
-            "Design" = "tab_design"
+            "Design" = "tab_design",
+            "Inspect" = "tab_inspect"
         )
     ),
     
     # "Design" tab
-    designTabUI('tab_design', 'Test')
+    designTabUI('tab_design'),
+    
+    # "Inspect" tab
+    inspectTabUI('tab_inspect')
 )
 
 server <- function(input, output) {
-    callModule(designTab, 'tab_design')
+    design_tab_proxy <- callModule(designTab, 'tab_design')
+    callModule(inspectTab, 'tab_inspect', design_tab_proxy)
 }
 
 # Run the application 
