@@ -68,9 +68,6 @@ designTab <- function(input, output, session) {
     
     #load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
     load_design <- reactive(input$choose_design_lib_id)
-    print("!!!!!!!")
-    print(isolate(load_design()))
-    print("!!!!!")
    
     
     ### reactive values  ###
@@ -153,7 +150,6 @@ designTab <- function(input, output, session) {
             
             react$design_id <- load_design()
             react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
-            
             print('design instance changed')
         }
         
@@ -165,9 +161,6 @@ designTab <- function(input, output, session) {
     # input observer for click on design import
     observeEvent(input$import_from_design_lib, {
         # loads a pre-defined designer from the library
-        print("------")
-        print(isolate(load_design()))
-        print("-------")
         react$design <- getFromNamespace(load_design(), 'DesignLibrary')
         react$design_id <- NULL    # set after being instantiated
         shinyjs::enable('download_r_script')

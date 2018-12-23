@@ -35,6 +35,7 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
         inp_elem_args$value = argdefault
     }
     
+    
     if (argdefinition$class == 'character') {
         inp_elem_constructor <- textInput
     } else if (argdefinition$class %in% c('numeric', 'integer')) {
@@ -51,7 +52,9 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
     }
     
     # create the input element and return it
-    if (!is.null(inp_elem_constructor)) {
+    #--------- modified by Sisi -------------
+    # make sure there are enough elements in the inp_elem_args
+    if (!is.null(inp_elem_constructor) & length(inp_elem_args) == 7) {
         return(do.call(inp_elem_constructor, inp_elem_args))
     }
     
