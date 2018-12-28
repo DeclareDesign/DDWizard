@@ -124,6 +124,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
         d_args <- design_tab_proxy$design_args()
+        print(d_args)
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
@@ -138,7 +139,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         d_args_charvec <- as.character(d_args)
         names(d_args_charvec) <- names(d_args)
         if (all(defaults == d_args_charvec)) {
-            n_int <- as.integer(defaults['N'])
+            n_int <- as.integer(defaults['N']) 
             defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
         }
         

@@ -101,11 +101,12 @@ designTab <- function(input, output, session) {
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
                 # convert an input value to a argument value of correct class
+                if (length(argdefinition) != 0){
                 argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                 
                 if (!is.null(argvalue)) {  # add the value to the list of designer arguments
                     output_args[[argname]] <- argvalue
-                }
+                }}
                 
                 # determine whether argument was set to "fixed"
                 arg_is_fixed_value <- input[[paste0('design_arg_', argname, '_fixed')]]
@@ -163,11 +164,14 @@ designTab <- function(input, output, session) {
         # loads a pre-defined designer from the library
         react$design <- getFromNamespace(load_design(), 'DesignLibrary')
         react$design_id <- NULL    # set after being instantiated
+        react$design_argdefinitions = NULL # make sure to reload the argument definitions from new design
+        
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
         shinyjs::enable('simdata_redraw')
         shinyjs::enable('simdata_download')
         print('parametric design loaded')
+        
     })
     
     # input observer for click on "redraw data" button in "simulated data" section
