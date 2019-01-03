@@ -159,14 +159,19 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             req(diag_results)
             
             plotdf <- diag_results$diagnosands_df
-            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]
+            # when the coefficients are empty 
+            if(input$plot_conf_coefficient != ""){
+                plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]   
+            }else{
+                plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator,]   
+            }
+            
             react$diagnosands <- plotdf
             
             # the bound value of confidence interval: diagnosand values +/-SE*1.96
             # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
             plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
             plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
-            
             
             # base aesthetics for line plot
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
