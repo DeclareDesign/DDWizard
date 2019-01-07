@@ -45,7 +45,8 @@ STEP_TYPES <- list(
     )
 )
 
-# default_step_type = "population"
+default_step_type = "population"
+
 # default_step_template = "N obs, W and X cov"
 # 
 # default_step_input <- list(
@@ -70,18 +71,28 @@ sandboxTab <- function(input, output, session) {
     ### UI outputs ###
     
     output$design_steps <- renderUI({
+        nspace <- NS('tab_sandbox')
         available_types <- names(STEP_TYPES)
         
         boxes <- list()
         
         for(i in 1:react$n_steps) {
             inp_prefix <- sprintf('step%d_', i)
-            print(inp_prefix)
             
             inp_id_type <- paste0(inp_prefix, 'type')
-            
-            inp_type <- selectInput(inp_id_type, 'Type', available_types, input[[inp_id_type]])
+            cur_step_type <- input[[inp_id_type]]
+            print(cur_step_type)
+            if (is.null(cur_step_type)) {
+                cur_step_type <- default_step_type
+            }
+            inp_type <- selectInput(nspace(inp_id_type), 'Type', available_types, cur_step_type)
             boxes <- list_append(boxes, inp_type)
+            
+            inp_id_template <- paste0(inp_prefix, 'template')
+            inp_template <- selectInput(nspace(inp_id_template), 'Parameter template',
+                                        names(STEP_TYPES[[cur_step_type]]), input[[inp_id_template]])
+            boxes <- list_append(boxes, inp_template)
+            
         }
         
         boxes
