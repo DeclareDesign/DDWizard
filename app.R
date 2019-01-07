@@ -21,6 +21,7 @@ source('conf.R')
 source('common.R')
 source('uihelpers.R')
 source('tab_design.R')
+source('tab_sandbox.R')
 source('tab_inspect.R')
 
 
@@ -45,13 +46,17 @@ ui <- material_page(
     # tabs
     material_tabs(
         tabs = c(
-            "Design" = "tab_design",
-            "Inspect" = "tab_inspect"
+            "Load design" = "tab_design",
+            "Create new design" = "tab_sandbox",
+            "Inspect design" = "tab_inspect"
         )
     ),
     
     # "Design" tab
     designTabUI('tab_design'),
+    
+    # "Sandbox" tab
+    sandboxTabUI('tab_sandbox'),
     
     # "Inspect" tab
     inspectTabUI('tab_inspect')
@@ -65,6 +70,7 @@ ui <- material_page(
 
 server <- function(input, output) {
     design_tab_proxy <- callModule(designTab, 'tab_design')
+    callModule(sandboxTab, 'tab_sandbox')
     callModule(inspectTab, 'tab_inspect', design_tab_proxy)
 }
 
