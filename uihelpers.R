@@ -117,8 +117,13 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
         # to get arg. definitions
         arg_defs <- react$design_argdefinitions
         
+        args_desgin_med <- args[!sapply(args, is.null)]
+        args_desgin <- args_desgin_med[!sapply(args_desgin_med, is.character)]
+   
         for (argname in names(args)) {
-            if (argname %in% args_control_skip_design_args) next()
+            # for (argname_desgin in names(args_desgin)){
+            '%!in%' <- function(x,y)!('%in%'(x,y))
+            if (argname %in% args_control_skip_design_args | argname %!in% names(args_desgin)) next()
             argdefault <- args[[argname]]
             argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
             
@@ -127,6 +132,8 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
             if (type != 'design' && isTruthy(input[[inp_elem_name_fixed]])) {
                 next()
             }
+            
+            
             
             if (type == 'design') {
                 # for the "design" tab, create two input elements for each argument:
@@ -152,7 +159,7 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
             }
             
             boxes <- list_append(boxes, inp_elem_complete)
-        }
+        }#}
     }
     
     return(do.call(material_card, c('Compare design parameters', boxes)))
