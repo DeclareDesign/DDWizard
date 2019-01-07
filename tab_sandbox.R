@@ -56,6 +56,8 @@ default_step_template = "N obs, W and X cov"
 # )
 
 sandboxTab <- function(input, output, session) {
+    nspace <- NS('tab_sandbox')
+    
     react <- reactiveValues(
         n_steps = 1
         # step_inputs = list(default_step_input)
@@ -67,15 +69,18 @@ sandboxTab <- function(input, output, session) {
     observeEvent(input$add_step, {
         # react$step_inputs <- list_append(react$step_inputs, default_step_input)
         react$n_steps <- react$n_steps + 1
+        #open_step <- sprintf('Step %d (%s)', react$n_steps, default_step_type)
+        #updateCollapse(session, nspace('steps_collapsable'), open = open_step)
     })
     
     ### UI outputs ###
     
     output$design_steps <- renderUI({
-        nspace <- NS('tab_sandbox')
         available_types <- names(STEP_TYPES)
         
         boxes <- list()
+        
+        first_step_name <- NULL
         
         for(i in 1:react$n_steps) {
             inp_prefix <- sprintf('step%d_', i)
@@ -87,8 +92,14 @@ sandboxTab <- function(input, output, session) {
                 cur_step_type <- default_step_type
             }
             
+            step_name <- sprintf('Step %d (%s)', i, cur_step_type)
+            step_output_elems <- list(step_name)
+            if (i == 1) {
+                first_step_name <- step_name
+            }
+            
             inp_type <- selectInput(nspace(inp_id_type), 'Type', available_types, cur_step_type)
-            boxes <- list_append(boxes, inp_type)
+            step_output_elems <- list_append(step_output_elems, inp_type)
             
             step_templates <- STEP_TYPES[[cur_step_type]]
             inp_id_template <- paste0(inp_prefix, 'template')
@@ -100,7 +111,7 @@ sandboxTab <- function(input, output, session) {
             
             inp_template <- selectInput(nspace(inp_id_template), 'Parameter template',
                                         names(step_templates), cur_step_template)
-            boxes <- list_append(boxes, inp_template)
+            step_output_elems <- list_append(step_output_elems, inp_template)
             
             stepfn_args <- formals(step_templates[[cur_step_template]])
             
@@ -109,10 +120,16 @@ sandboxTab <- function(input, output, session) {
                 
                 inp_id_stepfn_arg <- paste0(inp_prefix, 'arg_', arg_name)
                 inp_stepfn_arg <- textInput(nspace(inp_id_stepfn_arg), arg_name, arg_default)
-                boxes <- list_append(boxes, inp_stepfn_arg)
+                step_output_elems <- list_append(step_output_elems, inp_stepfn_arg)
             }
+            
+            boxes <- list_append(boxes, do.call(bsCollapsePanel, step_output_elems))
         }
         
-        boxes
+        boxes$id <- nspace('steps_collapsable')
+        boxes$multiple <- TRUE
+        boxes$open <- first_step_name
+        
+        do.call(bsCollapse, boxes)
     })
 }
