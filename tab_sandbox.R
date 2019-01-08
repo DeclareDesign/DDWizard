@@ -18,13 +18,15 @@ sandboxTabUI <- function(id, label = 'Sandbox') {
             material_column(  # left: definition of design steps
                 width = 4,
                 material_card("Steps",
+                              textInput(nspace("design_name"), "Design name", value = "my_design"),
                               uiOutput(nspace("design_steps")),
                               actionButton(nspace("add_step"), "+")
                 )
             ),
             material_column(  # right: design output
                 width = 8,
-                material_card("Code"),
+                material_card("Code",
+                              verbatimTextOutput(nspace("design_code"))),
                 material_card("Download",
                               downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                               downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')
@@ -131,5 +133,52 @@ sandboxTab <- function(input, output, session) {
         boxes$open <- first_step_name
         
         do.call(bsCollapse, boxes)
+    })
+    
+    output$design_code <- renderText({
+        code_steps <- list()
+        code_steps_objectnames <- c()
+        
+        for(i in 1:react$n_steps) {
+            #print(i)
+            inp_prefix <- sprintf('step%d_', i)
+            
+            inp_id_type <- paste0(inp_prefix, 'type')
+            step_type <- input[[inp_id_type]]
+            
+            if (is.null(step_type)) {
+                step_type <- default_step_type
+            }
+            
+            inp_id_template <- paste0(inp_prefix, 'template')
+            step_template <- input[[inp_id_template]]
+            
+            if (is.null(step_template)) {
+                step_template <- default_step_template
+            }
+            
+            step_fn <- STEP_TYPES[[step_type]][[step_template]]
+            step_fn_args <- names(formals(step_fn))
+            step_fn_args <- setdiff(step_fn_args, "data")
+            
+            step_inputs <- sapply(step_fn_args, function(arg_name) expr(!!as.numeric(input[[paste0(inp_prefix, 'arg_', arg_name)]])))
+            #print(step_inputs)
+            
+            if (length(step_fn_args) != 0) {
+                body <- capture.output(do.call(step_fn, exprs(!!!(step_inputs))))
+                
+            } else {
+                body <- capture.output(rlang::expr(!!step_fn))
+            }
+            
+            step_name <- generate_unique_name(step_type, code_steps_objectnames)
+            code_steps[[i]] <- paste0(c(paste0(step_name, " <- "), rep("", length(body)-1)), body)
+            code_steps_objectnames <- c(code_steps_objectnames, step_name)
+            #print(code_steps[[i]])
+            #print('---')
+        }
+        
+        code_steps[[react$n_steps+1]] <- paste0(paste0(input$design_name, " <- "), paste0(code_steps_objectnames, collapse = " + "))
+        paste0(unlist(code_steps), collapse = "\n")
     })
 }

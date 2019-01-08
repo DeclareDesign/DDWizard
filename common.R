@@ -154,3 +154,17 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diag_param_alpha
     
     diag_res
 }
+
+generate_unique_name <- function(suggested, existing, try = 0) {
+    if (try == 0) {
+        candidate <- suggested
+    } else {
+        candidate <- paste(suggested, try, sep = '_')
+    }
+    
+    if (candidate %in% existing) {
+        return(generate_unique_name(suggested, existing, try = try + 1))
+    } else {
+        return(candidate)
+    }
+}
