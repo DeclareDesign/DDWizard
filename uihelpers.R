@@ -115,7 +115,7 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
         if (is.null(react$design_argdefinitions)) design_instance_fn()    # create instance with default args in order
         # to get arg. definitions
         arg_defs <- react$design_argdefinitions
-        
+        # subset our arg_design, fliter the arguments we want
         args_desgin_med <- args[!sapply(args, is.null)]
         args_desgin <- args_desgin_med[!sapply(args_desgin_med, is.character)]
         if (sum(sapply(args_desgin, is.logical)) > 0) {
