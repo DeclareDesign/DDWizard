@@ -52,7 +52,6 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
     }
     
     # create the input element and return it
-    #--------- modified by Sisi -------------
     # make sure there are enough elements in the inp_elem_args
     if (!is.null(inp_elem_constructor) & length(inp_elem_args) == 7) {
         return(do.call(inp_elem_constructor, inp_elem_args))
@@ -119,11 +118,18 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
         
         args_desgin_med <- args[!sapply(args, is.null)]
         args_desgin <- args_desgin_med[!sapply(args_desgin_med, is.character)]
-   
-        for (argname in names(args)) {
-            # for (argname_desgin in names(args_desgin)){
-            '%!in%' <- function(x,y)!('%in%'(x,y))
-            if (argname %in% args_control_skip_design_args | argname %!in% names(args_desgin)) next()
+        if (sum(sapply(args_desgin, is.logical)) > 0) {
+            args_desgin <- args_desgin[!sapply(args_desgin, is.logical)]
+        } else if (!is.na(args_desgin["conditions"])){
+            args_desgin["conditions"] = NULL
+        } else {
+            args_desgin
+        }
+        
+       
+        for (argname in names(args_desgin)) {
+            if (argname %in% args_control_skip_design_args)
+                next()
             argdefault <- args[[argname]]
             argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
             
@@ -159,7 +165,7 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
             }
             
             boxes <- list_append(boxes, inp_elem_complete)
-        }#}
+        }
     }
     
     return(do.call(material_card, c('Compare design parameters', boxes)))
