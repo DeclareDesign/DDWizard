@@ -35,6 +35,7 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
         inp_elem_args$value = argdefault
     }
     
+    
     if (argdefinition$class == 'character') {
         inp_elem_constructor <- textInput
     } else if (argdefinition$class %in% c('numeric', 'integer')) {
@@ -51,7 +52,8 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
     }
     
     # create the input element and return it
-    if (!is.null(inp_elem_constructor)) {
+    # make sure there are enough elements in the inp_elem_args
+    if (!is.null(inp_elem_constructor) & length(inp_elem_args) == 7) {
         return(do.call(inp_elem_constructor, inp_elem_args))
     }
     
@@ -113,9 +115,21 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
         if (is.null(react$design_argdefinitions)) design_instance_fn()    # create instance with default args in order
         # to get arg. definitions
         arg_defs <- react$design_argdefinitions
+        # subset our arg_design, fliter the arguments we want
+        args_desgin_med <- args[!sapply(args, is.null)]
+        args_desgin <- args_desgin_med[!sapply(args_desgin_med, is.character)]
+        if (sum(sapply(args_desgin, is.logical)) > 0) {
+            args_desgin <- args_desgin[!sapply(args_desgin, is.logical)]
+        } else if (!is.na(args_desgin["conditions"])){
+            args_desgin["conditions"] = NULL
+        } else {
+            args_desgin
+        }
         
-        for (argname in names(args)) {
-            if (argname %in% args_control_skip_design_args) next()
+       
+        for (argname in names(args_desgin)) {
+            if (argname %in% args_control_skip_design_args)
+                next()
             argdefault <- args[[argname]]
             argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
             
@@ -124,6 +138,8 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
             if (type != 'design' && isTruthy(input[[inp_elem_name_fixed]])) {
                 next()
             }
+            
+            
             
             if (type == 'design') {
                 # for the "design" tab, create two input elements for each argument:
