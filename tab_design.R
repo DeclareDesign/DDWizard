@@ -36,11 +36,12 @@ designTabUI <- function(id, label = 'Design') {
                                                                                                                         "Two Arm" = "two_arm_designer",
                                                                                                                         "Two By Two" = "two_by_two_designer"), 
                                               selected = "two_arm_designer", multiple = F),
-                                  actionButton(nspace("import_from_design_lib"), label = "Import"),
-                                  checkboxInput(nspace("fixed_all"), "all fixed", FALSE)
+                                  actionButton(nspace("import_from_design_lib"), label = "Import")
+                                  
                               )
                 ),
-                uiOutput(nspace("design_parameters"))    # display *all* arguments of an imported design
+                uiOutput(nspace("design_parameters")),    # display *all* arguments of an imported design
+                checkboxInput(nspace("fixed_all"), "all fixed", FALSE)
             ),
             material_column(  # center: design output
                 width = 9,
