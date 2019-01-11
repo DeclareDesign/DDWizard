@@ -98,9 +98,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # `input` is the shiny input values list, which is used to determine whether an argument has been set to
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
-create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, input = NULL, defaults = NULL) {
+create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, input = NULL, defaults = NULL, all_fixed = FALSE) {
     boxes <- list()
-    
     if (is.null(react$design)) {
         boxes <- list_append(boxes, p('Load a design first'))
     } else {
@@ -126,6 +125,8 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
             args_design
         }
         
+      
+       
        
         for (argname in names(args_design)) {
             if (argname %in% args_control_skip_design_args)
@@ -145,7 +146,11 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
                 # 1. the argument value input box
                 # 2. the "fixed" checkbox next to it
                 inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%', nspace = nspace, idprefix = type)
-                if (!is.null(inp_elem)) {
+                if (!is.null(inp_elem) & all_fixed == TRUE) {
+                    inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                                           checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%', value = T)),
+                                                  inp_elem)
+                } else if (!is.null(inp_elem) & all_fixed == FALSE ){
                     inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
                                                            checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%')),
                                                   inp_elem)

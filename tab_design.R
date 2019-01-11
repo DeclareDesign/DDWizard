@@ -37,9 +37,11 @@ designTabUI <- function(id, label = 'Design') {
                                                                                                                         "Two By Two" = "two_by_two_designer"), 
                                               selected = "two_arm_designer", multiple = F),
                                   actionButton(nspace("import_from_design_lib"), label = "Import")
+                                  
                               )
                 ),
-                uiOutput(nspace("design_parameters"))    # display *all* arguments of an imported design
+                uiOutput(nspace("design_parameters")),    # display *all* arguments of an imported design
+                checkboxInput(nspace("fixed_all"), "all fixed", FALSE)
             ),
             material_column(  # center: design output
                 width = 9,
@@ -68,7 +70,6 @@ designTab <- function(input, output, session) {
     
     #load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
     load_design <- reactive(input$choose_design_lib_id)
-   
     
     ### reactive values  ###
     
@@ -183,10 +184,14 @@ designTab <- function(input, output, session) {
     })
     
     ### output elements ###
-    
     # left side: designer parameters
+    # add one more argument for selecting all the attrs
+    # make this option to be reactive
+    design_all_fixed <- reactive(input$fixed_all)
     output$design_parameters <- renderUI({
-        create_design_parameter_ui('design', react, NS('tab_design'), design_instance)
+        create_design_parameter_ui(type = 'design', react = react, nspace =  NS('tab_design'), 
+                                   design_instance_fn = design_instance, input = NULL, defaults = NULL,
+                                   all_fixed = design_all_fixed())
     })
     
     # center: design code
