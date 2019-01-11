@@ -35,25 +35,25 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
         inp_elem_args$value = argdefault
     }
     
-    
-    if (argdefinition$class == 'character') {
-        inp_elem_constructor <- textInput
-    } else if (argdefinition$class %in% c('numeric', 'integer')) {
-        inp_elem_constructor <- numericInput
-        inp_elem_args$min = argmin
-        inp_elem_args$max = argmax
-        
-        # set step value for input element depending on class
-        if (argdefinition$class == 'numeric') {
-            inp_elem_args$step = 0.1
-        } else if (argdefinition$class == 'integer') {
-            inp_elem_args$step = 1
+    if ('class' %in% names(argdefinition)) {
+        if (argdefinition$class == 'character') {
+            inp_elem_constructor <- textInput
+        } else if (argdefinition$class %in% c('numeric', 'integer')) {
+            inp_elem_constructor <- numericInput
+            inp_elem_args$min = argmin
+            inp_elem_args$max = argmax
+            
+            # set step value for input element depending on class
+            if (argdefinition$class == 'numeric') {
+                inp_elem_args$step = 0.1
+            } else if (argdefinition$class == 'integer') {
+                inp_elem_args$step = 1
+            }
         }
     }
     
     # create the input element and return it
-    # make sure there are enough elements in the inp_elem_args
-    if (!is.null(inp_elem_constructor) & length(inp_elem_args) == 7) {
+    if (!is.null(inp_elem_constructor)) {
         return(do.call(inp_elem_constructor, inp_elem_args))
     }
     
@@ -116,22 +116,23 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
         # to get arg. definitions
         arg_defs <- react$design_argdefinitions
         # subset our arg_design, fliter the arguments we want
-        args_desgin_med <- args[!sapply(args, is.null)]
-        args_desgin <- args_desgin_med[!sapply(args_desgin_med, is.character)]
-        if (sum(sapply(args_desgin, is.logical)) > 0) {
-            args_desgin <- args_desgin[!sapply(args_desgin, is.logical)]
-        } else if (!is.na(args_desgin["conditions"])){
-            args_desgin["conditions"] = NULL
+        args_design_med <- args[!sapply(args, is.null)]
+        args_design <- args_design_med[!sapply(args_design_med, is.character)]
+        if (sum(sapply(args_design, is.logical)) > 0) {
+            args_design <- args_design[!sapply(args_design, is.logical)]
+        } else if (!is.na(args_design["conditions"])){
+            args_design["conditions"] <- NULL
         } else {
-            args_desgin
+            args_design
         }
         
        
-        for (argname in names(args_desgin)) {
+        for (argname in names(args_design)) {
             if (argname %in% args_control_skip_design_args)
                 next()
             argdefault <- args[[argname]]
             argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
+            inp_elem_complete <- NULL
             
             # check whether an element is set to fixed and skip it for "inspect" tab
             inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
@@ -139,16 +140,18 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
                 next()
             }
             
-            
-            
             if (type == 'design') {
                 # for the "design" tab, create two input elements for each argument:
                 # 1. the argument value input box
                 # 2. the "fixed" checkbox next to it
                 inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%', nspace = nspace, idprefix = type)
-                inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                       checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%')),
-                                              inp_elem)
+                if (!is.null(inp_elem)) {
+                    inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                                           checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%')),
+                                                  inp_elem)
+                } else {
+                    warning(paste('input element could not be created for argument', argname))
+                }
             } else {   # type == 'inspect'
                 if (!is.null(defaults) && argname %in% names(defaults)) {
                     argvalue <- as.character(defaults[[argname]])
@@ -164,7 +167,9 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
                 inp_elem_complete <- textInput(nspace(paste0('inspect_arg_', argname)), argname, value = argvalue)
             }
             
-            boxes <- list_append(boxes, inp_elem_complete)
+            if (!is.null(inp_elem_complete)) {
+                boxes <- list_append(boxes, inp_elem_complete)
+            }
         }
     }
     

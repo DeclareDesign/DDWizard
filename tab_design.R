@@ -164,7 +164,7 @@ designTab <- function(input, output, session) {
         # loads a pre-defined designer from the library
         react$design <- getFromNamespace(load_design(), 'DesignLibrary')
         react$design_id <- NULL    # set after being instantiated
-        react$design_argdefinitions = NULL # make sure to reload the argument definitions from new design
+        react$design_argdefinitions <- NULL # make sure to reload the argument definitions from new design
         
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
