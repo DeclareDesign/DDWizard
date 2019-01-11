@@ -124,6 +124,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
         d_args <- design_tab_proxy$design_args()
+        print(d_args)
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
@@ -135,10 +136,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         })
         
         # set a default value for "N" the first time
+        # but there are some design without N argument 
         d_args_charvec <- as.character(d_args)
         names(d_args_charvec) <- names(d_args)
-        if (all(defaults == d_args_charvec)) {
-            n_int <- as.integer(defaults['N'])
+        if (all(defaults == d_args_charvec) & !is.null(unlist(defaults['N']))) {
+            n_int <- as.integer(defaults['N']) 
             defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
         }
         
@@ -157,14 +159,19 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             req(diag_results)
             
             plotdf <- diag_results$diagnosands_df
-            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]
+            # when the coefficients are empty 
+            if(input$plot_conf_coefficient != ""){
+                plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]   
+            }else{
+                plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator,]   
+            }
+            
             react$diagnosands <- plotdf
             
             # the bound value of confidence interval: diagnosand values +/-SE*1.96
             # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
             plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
             plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
-            
             
             # base aesthetics for line plot
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked

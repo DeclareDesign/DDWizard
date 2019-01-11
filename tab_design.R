@@ -20,6 +20,22 @@ designTabUI <- function(id, label = 'Design') {
                 width = 3,
                 material_card("Input",
                               div(style="text-align: center;",
+                                  # add a selectbox to choose the design from DesignLibrary
+                                  selectInput(nspace("choose_design_lib_id"), label = "Choose design name", choices = c("Factorial" = "factorial_designer",
+                                                                                                                        "Multi Arm" = "multi_arm_designer",
+                                                                                                                        "Binary IV" = "binary_iv_designer", 
+                                                                                                                        "Block Cluster Two Arm" = "block_cluster_two_arm_designer",
+                                                                                                                        "Cluster Sampling" = "cluster_sampling_designer", 
+                                                                                                                        "Mediation Analysis" = "mediation_analysis_designer",
+                                                                                                                        "Pretest Posttest" = "pretest_posttest_designer",
+                                                                                                                        "Process Tracing" = "process_tracing_designer",
+                                                                                                                        "Randomized Response" = "randomized_response_designer",
+                                                                                                                        "Regression Discontinuity" = "regression_discontinuity_designer",
+                                                                                                                        "Spillover" = "spillover_designer",
+                                                                                                                        "Two Arm Attrition" = "two_arm_attrition_designer",
+                                                                                                                        "Two Arm" = "two_arm_designer",
+                                                                                                                        "Two By Two" = "two_by_two_designer"), 
+                                              selected = "two_arm_designer", multiple = F),
                                   actionButton(nspace("import_from_design_lib"), label = "Import")
                               )
                 ),
@@ -50,7 +66,9 @@ designTabUI <- function(id, label = 'Design') {
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
     
-    load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
+    #load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
+    load_design <- reactive(input$choose_design_lib_id)
+   
     
     ### reactive values  ###
     
@@ -83,11 +101,12 @@ designTab <- function(input, output, session) {
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
                 # convert an input value to a argument value of correct class
+                if (length(argdefinition) != 0){
                 argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                 
                 if (!is.null(argvalue)) {  # add the value to the list of designer arguments
                     output_args[[argname]] <- argvalue
-                }
+                }}
                 
                 # determine whether argument was set to "fixed"
                 arg_is_fixed_value <- input[[paste0('design_arg_', argname, '_fixed')]]
@@ -99,7 +118,7 @@ designTab <- function(input, output, session) {
             #output_args$design_name <- c(input$design_arg_design_name)  # super strange, doesn't work
             
             # additional designer arguments: design name and vector of fixed arguments
-            output_args$design_name <- load_design
+            output_args$design_name <- load_design()
             output_args$fixed <- fixed_args
             
             print('design args changed:')
@@ -130,9 +149,8 @@ designTab <- function(input, output, session) {
                 }, type = 'output')
             }, type = 'message')
             
-            react$design_id <- load_design
+            react$design_id <- load_design()
             react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
-            
             print('design instance changed')
         }
         
@@ -144,13 +162,16 @@ designTab <- function(input, output, session) {
     # input observer for click on design import
     observeEvent(input$import_from_design_lib, {
         # loads a pre-defined designer from the library
-        react$design <- getFromNamespace(load_design, 'DesignLibrary')
+        react$design <- getFromNamespace(load_design(), 'DesignLibrary')
         react$design_id <- NULL    # set after being instantiated
+        react$design_argdefinitions <- NULL # make sure to reload the argument definitions from new design
+        
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
         shinyjs::enable('simdata_redraw')
         shinyjs::enable('simdata_download')
         print('parametric design loaded')
+        
     })
     
     # input observer for click on "redraw data" button in "simulated data" section
