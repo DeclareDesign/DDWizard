@@ -112,8 +112,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
             cols <- c(cols, input$plot_conf_facets_param)
         }
+       
+        if ("term" %in% colnames(react$diagnosands)){
+            cols <- c(cols, 'estimator_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+        } else {
+            cols <- c(cols, 'estimator_label', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+        }
         
-        cols <- c(cols, 'estimator_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
         
         # return data frame subset
         react$diagnosands[cols]
