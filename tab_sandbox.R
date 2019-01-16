@@ -42,15 +42,84 @@ sandboxTabUI <- function(id, label = 'Sandbox') {
 
 default_step_type = "population"
 
+# copied from fabricatr_shiny and modified
+# orig. author: Aaron Rudkin
+# TODO: put in separate source file
+
+binomial_trials <- function(nspace, input, inp_prefix) {
+    id <- paste0(inp_prefix, 'trials')
+    
+    conditionalPanel(
+        condition = paste0("input.", inp_prefix, "vartype == 'binomial'"),
+        numericInput(nspace(id),
+                     label = "Number of trials:",
+                     value = default_value(input, id, 1),
+                     min = 1),
+        ns = nspace
+    )
+}
+
+binomial_binary_prob <- function(nspace, input, inp_prefix) {
+    id <- paste0(inp_prefix, 'prob')
+    
+    conditionalPanel(
+        condition = paste0("input.", inp_prefix, "vartype == 'binary' || ",
+                           "input.", inp_prefix, "vartype == 'binomial'"),
+        sliderInput(nspace(id),
+                    label = "Probability",
+                    min = 0, max = 1,
+                    value = default_value(input, id, 0.5),
+                    step = 0.01),
+        ns = nspace
+    )
+}
+
+
+population_var_types <- c(
+    'binary',
+    'binomial'
+)
+
+generate_population_single_var_inputs <- function(nspace, input, inp_prefix, i) {
+    inp_id_name <- paste0(inp_prefix, 'varname')
+    inp_id_type <- paste0(inp_prefix, 'vartype')
+    
+    generate_args <- list(
+        textInput(nspace(inp_id_name), 'Name',
+                  default_value(input, inp_id_name, paste0('X', i))),
+        selectInput(nspace(inp_id_type), 'Type', population_var_types,
+                    default_value(input, inp_id_type, population_var_types[1])),
+        binomial_trials(nspace, input, inp_prefix),
+        binomial_binary_prob(nspace, input, inp_prefix)
+    )
+    
+    do.call(wellPanel, generate_args)
+}
+
+generate_population_all_vars_inputs <- function(nspace, input, inp_prefix, react) {
+    reactval_name_n_vars <- paste0(inp_prefix, 'n_vars')
+    
+    if (!(reactval_name_n_vars %in% names(reactiveValuesToList(react)))) {
+        react[[reactval_name_n_vars]] <- 1
+    }
+    
+    lapply(1:react[[reactval_name_n_vars]], function(i) {
+        generate_population_single_var_inputs(nspace, input, paste0(inp_prefix, 'var', i, '_'), i)
+    })
+}
+
 step_conf_panels <- list(
-    'population' = function(nspace, input, inp_prefix) {
+    'population' = function(nspace, input, inp_prefix, react) {
+        pop_conf_input_elems <- generate_population_all_vars_inputs(nspace, input, inp_prefix, react)
+        
         conditionalPanel(
             condition = paste0('input.', inp_prefix, 'type == "population"'),
-            p('Population conf.'),
+            numericInput(nspace(paste0(inp_prefix, 'num_obs')), 'Number of observations', min = 0, value = 10, step = 1),
+            pop_conf_input_elems,
             ns = nspace
         )
     },
-    'sampling' = function(nspace, input, inp_prefix) {
+    'sampling' = function(nspace, input, inp_prefix, react) {
         conditionalPanel(
             condition = paste0('input.', inp_prefix, 'type == "sampling"'),
             p('Sampling conf.'),
@@ -126,7 +195,7 @@ sandboxTab <- function(input, output, session) {
         } else {
             step_name <- sprintf('Step %d (%s)', cur_step, cur_step_type)
         }
-        boxes <- list_append(boxes, p(step_name))
+        boxes <- list_append(boxes, h6(step_name))
         
         for(i in 1:react$n_steps) {
             inp_prefix <- sprintf('step%d_', i)
@@ -143,7 +212,7 @@ sandboxTab <- function(input, output, session) {
             step_showhide_panel <- div(    # couldn't get conditionalPanel to work together with actionButton, so I'm using this...
                 style = paste0('display:', ifelse(cur_step == i, 'block', 'none')),
                 inp_type,
-                step_conf_panels[[cur_step_type]](nspace, input, inp_prefix)
+                step_conf_panels[[cur_step_type]](nspace, input, inp_prefix, react)
             )
             
             boxes <- list_append(boxes, step_showhide_panel)
