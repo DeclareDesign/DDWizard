@@ -59,7 +59,8 @@ inspectTabUI <- function(id, label = 'Inspect') {
 
 inspectTab <- function(input, output, session, design_tab_proxy) {
     react <- reactiveValues(
-        diagnosands = NULL              # diagnosands for current plot in "inspect" tab
+        diagnosands = NULL,            # diagnosands for current plot in "inspect" tab
+        diagnosands_results = NULL
     )
     
     # reactive function to run diagnoses and return the results once "Update plot" is clicked
@@ -89,6 +90,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                               diag_param_alpha = diag_param_alpha,
                                               use_cache = !input$simconf_force_rerun,
                                               advance_progressbar = 1/6)
+                
             })
             
             return(diag_results)
@@ -345,7 +347,28 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d_estimates <- draw_estimates(d)
             
             # we need to find out the set of available diagnosands
-            available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
+            # make sure there is no missing value 
+            # subset the data to filter the No NA labels 
+            colnames_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
+            react$diagnosands_results <- get_diagnoses_for_plot()$diagnosands_df
+            print("!!")
+            print(isolate(react$diagnosands_results))
+            print("!!")
+            name_diagnosands <- c()
+            
+            for (i in 1: length(colnames_diagnosands)){
+                upper_bound <- react$diagnosands_results[[colnames_diagnosands[i]]] + react$diagnosands_results[[(paste0("se(", colnames_diagnosands[i], ")"))]] *1.96
+                lower_bound <- react$diagnosands_results[[colnames_diagnosands[i]]] - react$diagnosands_results[[(paste0("se(", colnames_diagnosands[i], ")"))]] *1.96
+                if (sum(is.na(upper_bound)) + sum(is.na(lower_bound)) > 0) {
+                    next()
+                } else {
+                    name_diagnosands[i] <- colnames_diagnosands[i]
+                }
+            }
+            
+            available_diagnosands <- name_diagnosands[!is.na(name_diagnosands)]
+            # old version 
+            # available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
             
             # old approach: run a minimal diagnosis
             # minimal_diag <- diagnose_design(d, sims = 1, bootstrap_sims = 1)
