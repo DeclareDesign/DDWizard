@@ -167,6 +167,37 @@ population_inputs <- list(
                              input_unif_min, input_unif_max,
                              ns = nspace)
         )
+    },
+    'likert_type' = function(nspace, id, default) {
+        list(
+            selectInput(nspace(id),
+                        label = "Type of Likert",
+                        choices = list(
+                            "Seven point with leaners" = "7",
+                            "Five point" = "5",
+                            "Four point with no neutral" = "4"
+                        ),
+                        selected = default
+            )
+        )
+    },
+    'quantile_type' = function(nspace, id, default) {
+        list(
+            numericInput(nspace(id),
+                         label = "Number of quantiles to break data into",
+                         value = default,
+                         min = 3)
+        )
+    },
+    'categorical' = function(nspace, id, default) {
+        list(
+            textInput(nspace(id),
+                      label = "Comma separated probabilities for each category",
+                      value = default[[1]]),
+            textInput(nspace(paste0(id, '_labels')),
+                      label = "Comma separate category labels",
+                      value = default[[2]])
+        )
     }
 )
 
@@ -184,8 +215,41 @@ population_input_defaults <- list(
         'norm_sd' = 1,
         'unif_min' = -2.5,
         'unif_max' = 2.5
+    ),
+    'likert_type' = '7',
+    'quantile_type' = 3,
+    'categorical' = list(
+        "0.3, 0.3, 0.4",
+        "Red, Blue, Green"
     )
 )
+
+latent_var_code <- function(input, inp_prefix) {
+    latent_type <- default_value(input, paste0(inp_prefix, 'latent_var'),
+                                 population_input_defaults$latent_var$type)
+    
+    if (latent_type == 'rnorm') {
+        latent_var_mean <- default_value(input, paste0(inp_prefix, 'latent_var_norm_mean'),
+                                         population_input_defaults$latent_var$norm_mean)
+        latent_var_sd <- default_value(input, paste0(inp_prefix, 'latent_var_norm_sd'),
+                                       population_input_defaults$latent_var$norm_sd)
+        
+        latent_var_expr <- expr(rnorm(n = N,
+                                      mean = !!latent_var_mean,
+                                      sd = !!latent_var_sd))
+    } else {  # runif
+        latent_var_unif_min <- default_value(input, paste0(inp_prefix, 'latent_var_unif_min'),
+                                             population_input_defaults$latent_var$unif_min)
+        latent_var_unif_max <- default_value(input, paste0(inp_prefix, 'latent_var_unif_max'),
+                                             population_input_defaults$latent_var$unif_max)
+        
+        latent_var_expr <- expr(runif(n = N,
+                                      min = !!latent_var_unif_min,
+                                      max = !!latent_var_unif_max))
+    }
+    
+    latent_var_expr
+}
 
 population_var_definitions <- list(
     'binary' = list(
@@ -217,33 +281,46 @@ population_var_definitions <- list(
                                     population_input_defaults$ordered_likert_breaks[[1]])
             breaks <- c(-Inf, as.numeric(str_trim(unlist(strsplit(breaks, "[,;]")))), Inf)
             break_labels <- default_value(input, paste0(inp_prefix, 'ordered_likert_breaks_labels'),
-                                           population_input_defaults$ordered_likert_breaks[[2]])
+                                          population_input_defaults$ordered_likert_breaks[[2]])
             break_labels <- str_trim(unlist(strsplit(break_labels, "[,;]")))
             
-            latent_type <- default_value(input, paste0(inp_prefix, 'latent_var'),
-                                         population_input_defaults$latent_var$type)
+            latent_var_expr <- latent_var_code(input, inp_prefix)
             
-            if (latent_type == 'rnorm') {
-                latent_var_mean <- default_value(input, paste0(inp_prefix, 'latent_var_norm_mean'),
-                                                 population_input_defaults$latent_var$norm_mean)
-                latent_var_sd <- default_value(input, paste0(inp_prefix, 'latent_var_norm_sd'),
-                                               population_input_defaults$latent_var$norm_sd)
-                
-                latent_var_expr <- expr(rnorm(n = N,
-                                        mean = !!latent_var_mean,
-                                        sd = !!latent_var_sd))
-            } else {  # runif
-                latent_var_unif_min <- default_value(input, paste0(inp_prefix, 'latent_var_unif_min'),
-                                                     population_input_defaults$latent_var$unif_min)
-                latent_var_unif_max <- default_value(input, paste0(inp_prefix, 'latent_var_unif_max'),
-                                                     population_input_defaults$latent_var$unif_max)
-                
-                latent_var_expr <- expr(runif(n = N,
-                                              min = !!latent_var_unif_min,
-                                              max = !!latent_var_unif_max))
-            }
+            expr(draw_ordered(N = N,
+                              x = !!latent_var_expr,
+                              breaks = !!breaks,
+                              break_labels = !!break_labels))
+        }
+    ),
+    'likert' = list(
+        'requires' = c('likert_type', 'latent_var'),
+        'code' = function(input, inp_prefix) {
+            likert_type <- as.numeric(default_value(input, paste0(inp_prefix, 'likert_type'), population_input_defaults$likert_type))
+            latent_var_expr <- latent_var_code(input, inp_prefix)
             
-            expr(draw_ordered(N = N, x = !!latent_var_expr, breaks = !!breaks, break_labels = !!break_labels))
+            expr(draw_likert(N = N, x = !!latent_var_expr, type = !!likert_type))
+        }
+    ),
+    'quantile' = list(
+        'requires' = c('quantile_type'),
+        'code' = function(input, inp_prefix) {
+            quantile_type <- default_value(input, paste0(inp_prefix, 'quantile_type'), population_input_defaults$quantile_type)
+
+            expr(draw_quantile(N = N, type = !!quantile_type))
+        }
+    ),
+    'categorical' = list(
+        'requires' = c('categorical'),
+        'code' = function(input, inp_prefix) {
+            prob <- default_value(input, paste0(inp_prefix, 'categorical'),
+                                  population_input_defaults$categorical[[1]])
+            prob <- as.numeric(str_trim(unlist(strsplit(prob, "[,;]"))))
+            
+            category_labels <- default_value(input, paste0(inp_prefix, 'categorical_labels'),
+                                             population_input_defaults$categorical[[2]])
+            category_labels <- str_trim(unlist(strsplit(category_labels, "[,;]")))
+            
+            expr(draw_categorical(N = N, prob = !!prob, category_labels = !!category_labels))
         }
     )
 )
