@@ -72,7 +72,7 @@ step_conf <- list(
                 }
             }
             
-            quo(declare_population(N = !!N, !!!pop_args))
+            expr(declare_population(N = !!N, !!!pop_args))
         }
     ),
     'sampling' = list(
@@ -120,7 +120,7 @@ population_var_definitions <- list(
         'requires' = c('prob'),
         'code' = function(input, inp_prefix) {
             prob <- default_value(input, paste0(inp_prefix, 'prob'), population_input_defaults$prob)
-            quo(draw_binary(N = N, prob = !!prob))
+            expr(draw_binary(N = N, prob = !!prob))
         }
     ),
     'binomial' = list(
@@ -128,7 +128,7 @@ population_var_definitions <- list(
         'code' = function(input, inp_prefix) {
             prob <- default_value(input, paste0(inp_prefix, 'prob'), population_input_defaults$prob)
             trials <- default_value(input, paste0(inp_prefix, 'trials'), population_input_defaults$trials)
-            quo(draw_binomial(N = N, prob = !!prob, trials = !!trials))
+            expr(draw_binomial(N = N, prob = !!prob, trials = !!trials))
         }
     )
 )
