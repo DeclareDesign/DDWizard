@@ -21,23 +21,23 @@ designTabUI <- function(id, label = 'Design') {
                 material_card("Input",
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
-                                  selectInput(nspace("choose_design_lib_id"), label = "Choose design name", choices = c("Factorial" = "factorial_designer",
-                                                                                                                        "Multi Arm" = "multi_arm_designer",
-                                                                                                                        "Binary IV" = "binary_iv_designer", 
-                                                                                                                        "Block Cluster Two Arm" = "block_cluster_two_arm_designer",
-                                                                                                                        "Cluster Sampling" = "cluster_sampling_designer", 
-                                                                                                                        "Mediation Analysis" = "mediation_analysis_designer",
-                                                                                                                        "Pretest Posttest" = "pretest_posttest_designer",
-                                                                                                                        "Process Tracing" = "process_tracing_designer",
-                                                                                                                        "Randomized Response" = "randomized_response_designer",
-                                                                                                                        "Regression Discontinuity" = "regression_discontinuity_designer",
-                                                                                                                        "Spillover" = "spillover_designer",
-                                                                                                                        "Two Arm Attrition" = "two_arm_attrition_designer",
-                                                                                                                        "Two Arm" = "two_arm_designer",
-                                                                                                                        "Two By Two" = "two_by_two_designer"), 
-                                              selected = "two_arm_designer", multiple = F),
+                                  uiOutput(nspace("import_design_lib_id")),
+                                  # selectInput(nspace("choose_design_lib_id"), label = "Choose design name", choices = c("Factorial" = "factorial_designer",
+                                  #                                                                                       "Multi Arm" = "multi_arm_designer",
+                                  #                                                                                       "Binary IV" = "binary_iv_designer", 
+                                  #                                                                                       "Block Cluster Two Arm" = "block_cluster_two_arm_designer",
+                                  #                                                                                       "Cluster Sampling" = "cluster_sampling_designer", 
+                                  #                                                                                       "Mediation Analysis" = "mediation_analysis_designer",
+                                  #                                                                                       "Pretest Posttest" = "pretest_posttest_designer",
+                                  #                                                                                       "Process Tracing" = "process_tracing_designer",
+                                  #                                                                                       "Randomized Response" = "randomized_response_designer",
+                                  #                                                                                       "Regression Discontinuity" = "regression_discontinuity_designer",
+                                  #                                                                                       "Spillover" = "spillover_designer",
+                                  #                                                                                       "Two Arm Attrition" = "two_arm_attrition_designer",
+                                  #                                                                                       "Two Arm" = "two_arm_designer",
+                                  #                                                                                       "Two By Two" = "two_by_two_designer"), 
+                                  #             selected = "two_arm_designer", multiple = F),
                                   actionButton(nspace("import_from_design_lib"), label = "Import")
-                                  
                               )
                 ),
                 uiOutput(nspace("design_parameters")),    # display *all* arguments of an imported design
@@ -66,10 +66,11 @@ designTabUI <- function(id, label = 'Design') {
 ### Server ###
 
 designTab <- function(input, output, session) {
+   
     options(warn = 1)    # always directly print warnings
     
     #load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
-    load_design <- reactive(input$choose_design_lib_id)
+    load_design <- reactive(input$import_design_library)
     
     ### reactive values  ###
     
@@ -194,6 +195,25 @@ designTab <- function(input, output, session) {
                                    all_fixed = design_all_fixed())
     })
     
+    # left side: choose designers 
+    output$import_design_lib_id <- renderUI({
+        nspace =  NS('tab_design')
+        cached <- str_replace(grep("designer$", ls(as.environment("package:DesignLibrary")), value = TRUE), "_designer", "")
+        option <- c()
+        for (i in 1:length(cached)){
+            if (is.null(attr(getFromNamespace(paste(cached[i], sep = "_", "designer"), 'DesignLibrary'), "shiny"))){
+                next()
+            }else{
+                option[i] <- paste(cached[i], sep = "_", "designer")
+            }
+        }
+        test <- sub("_", " ",sub("_", " ", sub("_", " ", sub("_designer", " ", option[!is.na(option)]))))
+        options_data <- data.frame(names = option[!is.na(option)],abbr = stri_trans_totitle(test), stringsAsFactors = FALSE)
+        option_list <- as.list(options_data$names)
+        names(option_list) <- options_data$abbr
+
+        selectInput(nspace("import_design_library"), label = "Choose design name", selected = "two_arm_designer", choices = option_list,multiple = FALSE)
+    })
     # center: design code
     output$section_design_code <- renderText({
         if(!is.null(design_instance()) && !is.null(attr(design_instance(), 'code'))) {
