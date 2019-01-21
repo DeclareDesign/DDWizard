@@ -18,6 +18,15 @@ list_append <- function(l, v) {
     l
 }
 
+# copied from fabricatr_shiny and modified
+# orig. author: Aaron Rudkin
+default_value = function(input, id, default) {
+    ifelse(is.null(input[[id]]),
+           default,
+           input[[id]])
+}
+
+
 # Merge list `l1` with `l2` and return combined list. If the same key exists in both lists, the
 # value in `l2` will overwrite the value in `l1`.
 list_merge <- function(l1, l2) {
