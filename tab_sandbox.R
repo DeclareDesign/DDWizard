@@ -40,58 +40,118 @@ sandboxTabUI <- function(id, label = 'Sandbox') {
 
 ### Server ###
 
-default_step_type = "population"
+step_conf <- list(
+    'population' = list(
+        'ui' = function(nspace, input, inp_prefix, react) {
+            pop_conf_input_elems <- generate_population_all_vars_inputs(nspace, input, inp_prefix, react)
+            
+            conditionalPanel(
+                condition = paste0('input.', inp_prefix, 'type == "population"'),
+                numericInput(nspace(paste0(inp_prefix, 'num_obs')), 'Number of observations',
+                             min = 0, value = 10, step = 1),
+                numericInput(nspace(paste0(inp_prefix, 'num_vars')), 'Number of variables',
+                             min = 1, value = default_value(input, paste0(inp_prefix, 'num_vars'), 1), step = 1),
+                pop_conf_input_elems,
+                ns = nspace
+            )
+        },
+        'code' = function(input, inp_prefix) {
+            N <- input[[paste0(inp_prefix, 'num_obs')]]
+            n_vars <- input[[paste0(inp_prefix, 'num_vars')]]
+            
+            pop_args <- list()
+            for (i in 1:n_vars) {
+                inp_prefix_arg <- paste0(inp_prefix, 'var', i, '_')
+                varname <- input[[paste0(inp_prefix_arg, 'varname')]]
+                vartype <- input[[paste0(inp_prefix_arg, 'vartype')]]
+                
+                if (!is.null(varname) && !is.null(vartype)) {
+                    varcode_fn <- population_var_definitions[[vartype]]$code
+                    
+                    pop_args[[varname]] <- varcode_fn(input, inp_prefix_arg)
+                }
+            }
+            
+            quo(declare_population(N = !!N, !!!pop_args))
+        }
+    ),
+    'sampling' = list(
+        'ui' = function(nspace, input, inp_prefix, react) {
+            conditionalPanel(
+                condition = paste0('input.', inp_prefix, 'type == "sampling"'),
+                p('TODO: Sampling configuration'),
+                ns = nspace
+            )
+        },
+        'code' = function(input) {
+            
+        }
+    )
+)
 
-# copied from fabricatr_shiny and modified
+
+# many code parts copied from fabricatr_shiny and modified
 # orig. author: Aaron Rudkin
 # TODO: put in separate source file
 
-binomial_trials <- function(nspace, input, inp_prefix) {
-    id <- paste0(inp_prefix, 'trials')
-    
-    conditionalPanel(
-        condition = paste0("input.", inp_prefix, "vartype == 'binomial'"),
-        numericInput(nspace(id),
+population_inputs <- list(
+    'prob' = function(id, default) {
+        numericInput(id,
+                     label = "Probability",
+                     min = 0, max = 1,
+                     value = default,
+                     step = 0.01)
+    },
+    'trials' = function(id, default) {
+        numericInput(id,
                      label = "Number of trials:",
-                     value = default_value(input, id, 1),
-                     min = 1),
-        ns = nspace
+                     value = default,
+                     min = 1)
+    }
+)
+
+population_input_defaults <- list(
+    'prob' = 0.5,
+    'trials' = 1
+)
+
+population_var_definitions <- list(
+    'binary' = list(
+        'requires' = c('prob'),
+        'code' = function(input, inp_prefix) {
+            prob <- default_value(input, paste0(inp_prefix, 'prob'), population_input_defaults$prob)
+            quo(draw_binary(N = N, prob = !!prob))
+        }
+    ),
+    'binomial' = list(
+        'requires' = c('trials', 'prob'),
+        'code' = function(input, inp_prefix) {
+            prob <- default_value(input, paste0(inp_prefix, 'prob'), population_input_defaults$prob)
+            trials <- default_value(input, paste0(inp_prefix, 'trials'), population_input_defaults$trials)
+            quo(draw_binomial(N = N, prob = !!prob, trials = !!trials))
+        }
     )
-}
-
-binomial_binary_prob <- function(nspace, input, inp_prefix) {
-    id <- paste0(inp_prefix, 'prob')
-    
-    conditionalPanel(
-        condition = paste0("input.", inp_prefix, "vartype == 'binary' || ",
-                           "input.", inp_prefix, "vartype == 'binomial'"),
-        sliderInput(nspace(id),
-                    label = "Probability",
-                    min = 0, max = 1,
-                    value = default_value(input, id, 0.5),
-                    step = 0.01),
-        ns = nspace
-    )
-}
-
-
-population_var_types <- c(
-    'binary',
-    'binomial'
 )
 
 generate_population_single_var_inputs <- function(nspace, input, inp_prefix, i) {
     inp_id_name <- paste0(inp_prefix, 'varname')
     inp_id_type <- paste0(inp_prefix, 'vartype')
     
+    population_var_types <- names(population_var_definitions)
+    
+    var_type <- default_value(input, inp_id_type, population_var_types[1])
+    
     generate_args <- list(
         textInput(nspace(inp_id_name), 'Name',
                   default_value(input, inp_id_name, paste0('X', i))),
-        selectInput(nspace(inp_id_type), 'Type', population_var_types,
-                    default_value(input, inp_id_type, population_var_types[1])),
-        binomial_trials(nspace, input, inp_prefix),
-        binomial_binary_prob(nspace, input, inp_prefix)
+        selectInput(nspace(inp_id_type), 'Type', population_var_types, var_type)
     )
+    
+    for (inp_type in population_var_definitions[[var_type]]$requires) {
+        arg_input_elem <- population_inputs[[inp_type]](nspace(paste0(inp_prefix, inp_type)),
+                                                        population_input_defaults[[inp_type]])
+        generate_args <- list_append(generate_args, arg_input_elem)
+    }
     
     do.call(wellPanel, generate_args)
 }
@@ -105,28 +165,6 @@ generate_population_all_vars_inputs <- function(nspace, input, inp_prefix, react
     }
 }
 
-step_conf_panels <- list(
-    'population' = function(nspace, input, inp_prefix, react) {
-        pop_conf_input_elems <- generate_population_all_vars_inputs(nspace, input, inp_prefix, react)
-        
-        conditionalPanel(
-            condition = paste0('input.', inp_prefix, 'type == "population"'),
-            numericInput(nspace(paste0(inp_prefix, 'num_obs')), 'Number of observations',
-                         min = 0, value = 10, step = 1),
-            numericInput(nspace(paste0(inp_prefix, 'num_vars')), 'Number of variables',
-                         min = 1, value = default_value(input, paste0(inp_prefix, 'num_vars'), 1), step = 1),
-            pop_conf_input_elems,
-            ns = nspace
-        )
-    },
-    'sampling' = function(nspace, input, inp_prefix, react) {
-        conditionalPanel(
-            condition = paste0('input.', inp_prefix, 'type == "sampling"'),
-            p('TODO: Sampling configuration'),
-            ns = nspace
-        )
-    }
-)
 
 sandboxTab <- function(input, output, session) {
     nspace <- NS('tab_sandbox')
@@ -183,7 +221,7 @@ sandboxTab <- function(input, output, session) {
     })
     
     output$configure_step <- renderUI({
-        available_types <- names(step_conf_panels)
+        available_types <- names(step_conf)
         
         boxes <- list()
         
@@ -204,7 +242,7 @@ sandboxTab <- function(input, output, session) {
             cur_step_type <- input[[inp_id_type]]
     
             if (is.null(cur_step_type)) {
-                cur_step_type <- default_step_type
+                cur_step_type <- available_types[1]
             }
             
             inp_type <- selectInput(nspace(inp_id_type), 'Type', available_types, cur_step_type)
@@ -212,7 +250,7 @@ sandboxTab <- function(input, output, session) {
             step_showhide_panel <- div(    # couldn't get conditionalPanel to work together with actionButton, so I'm using this...
                 style = paste0('display:', ifelse(cur_step == i, 'block', 'none')),
                 inp_type,
-                step_conf_panels[[cur_step_type]](nspace, input, inp_prefix, react)
+                step_conf[[cur_step_type]]$ui(nspace, input, inp_prefix, react)
             )
             
             boxes <- list_append(boxes, step_showhide_panel)
@@ -220,55 +258,34 @@ sandboxTab <- function(input, output, session) {
         
         boxes
     })
-    
+
     output$design_code <- renderText({
-        'TODO'
+        code_steps <- character()
+        code_steps_objectnames <- character()
+
+        for(i in 1:react$n_steps) {
+            inp_prefix <- sprintf('step%d_', i)
+
+            inp_id_type <- paste0(inp_prefix, 'type')
+            step_type <- input[[inp_id_type]]
+
+            if (!is.null(step_type)) {
+                step_type_code_fn <- step_conf[[step_type]]$code
+                step_type_code <- step_type_code_fn(input, inp_prefix)
+                
+                if (!is.null(step_type_code)) {
+                    body <- deparse(step_type_code)
+                    
+                    step_name <- generate_unique_name(step_type, code_steps_objectnames)
+                    code_steps <- c(code_steps, paste0(c(paste0(step_name, " <- "), rep("", length(body)-1)), body))
+                    code_steps_objectnames <- c(code_steps_objectnames, step_name)
+                    #print(code_steps[[i]])
+                    #print('---')
+                }
+            }
+        }
+
+        code_steps <- c(code_steps, paste0(paste0(input$design_name, " <- "), paste0(code_steps_objectnames, collapse = " + ")))
+        paste0(code_steps, collapse = "\n")
     })
-    
-    # output$design_code <- renderText({
-    #     code_steps <- list()
-    #     code_steps_objectnames <- c()
-    #     
-    #     for(i in 1:react$n_steps) {
-    #         #print(i)
-    #         inp_prefix <- sprintf('step%d_', i)
-    #         
-    #         inp_id_type <- paste0(inp_prefix, 'type')
-    #         step_type <- input[[inp_id_type]]
-    #         
-    #         if (is.null(step_type)) {
-    #             step_type <- default_step_type
-    #         }
-    #         
-    #         inp_id_template <- paste0(inp_prefix, 'template')
-    #         step_template <- input[[inp_id_template]]
-    #         
-    #         if (is.null(step_template)) {
-    #             step_template <- default_step_template
-    #         }
-    #         
-    #         step_fn <- STEP_TYPES[[step_type]][[step_template]]
-    #         step_fn_args <- names(formals(step_fn))
-    #         step_fn_args <- setdiff(step_fn_args, "data")
-    #         
-    #         step_inputs <- sapply(step_fn_args, function(arg_name) expr(!!as.numeric(input[[paste0(inp_prefix, 'arg_', arg_name)]])))
-    #         #print(step_inputs)
-    #         
-    #         if (length(step_fn_args) != 0) {
-    #             body <- capture.output(do.call(step_fn, exprs(!!!(step_inputs))))
-    #             
-    #         } else {
-    #             body <- capture.output(rlang::expr(!!step_fn))
-    #         }
-    #         
-    #         step_name <- generate_unique_name(step_type, code_steps_objectnames)
-    #         code_steps[[i]] <- paste0(c(paste0(step_name, " <- "), rep("", length(body)-1)), body)
-    #         code_steps_objectnames <- c(code_steps_objectnames, step_name)
-    #         #print(code_steps[[i]])
-    #         #print('---')
-    #     }
-    #     
-    #     code_steps[[react$n_steps+1]] <- paste0(paste0(input$design_name, " <- "), paste0(code_steps_objectnames, collapse = " + "))
-    #     paste0(unlist(code_steps), collapse = "\n")
-    # })
 }
