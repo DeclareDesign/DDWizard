@@ -97,15 +97,12 @@ generate_population_single_var_inputs <- function(nspace, input, inp_prefix, i) 
 }
 
 generate_population_all_vars_inputs <- function(nspace, input, inp_prefix, react) {
-    reactval_name_n_vars <- paste0(inp_prefix, 'n_vars')
-    
-    if (!(reactval_name_n_vars %in% names(reactiveValuesToList(react)))) {
-        react[[reactval_name_n_vars]] <- 1
+    n_vars <- input[[paste0(inp_prefix, 'num_vars')]]
+    if (!is.null(n_vars)) {
+        lapply(1:n_vars, function(i) {
+            generate_population_single_var_inputs(nspace, input, paste0(inp_prefix, 'var', i, '_'), i)
+        })
     }
-    
-    lapply(1:react[[reactval_name_n_vars]], function(i) {
-        generate_population_single_var_inputs(nspace, input, paste0(inp_prefix, 'var', i, '_'), i)
-    })
 }
 
 step_conf_panels <- list(
@@ -114,7 +111,10 @@ step_conf_panels <- list(
         
         conditionalPanel(
             condition = paste0('input.', inp_prefix, 'type == "population"'),
-            numericInput(nspace(paste0(inp_prefix, 'num_obs')), 'Number of observations', min = 0, value = 10, step = 1),
+            numericInput(nspace(paste0(inp_prefix, 'num_obs')), 'Number of observations',
+                         min = 0, value = 10, step = 1),
+            numericInput(nspace(paste0(inp_prefix, 'num_vars')), 'Number of variables',
+                         min = 1, value = default_value(input, paste0(inp_prefix, 'num_vars'), 1), step = 1),
             pop_conf_input_elems,
             ns = nspace
         )
@@ -122,7 +122,7 @@ step_conf_panels <- list(
     'sampling' = function(nspace, input, inp_prefix, react) {
         conditionalPanel(
             condition = paste0('input.', inp_prefix, 'type == "sampling"'),
-            p('Sampling conf.'),
+            p('TODO: Sampling configuration'),
             ns = nspace
         )
     }
