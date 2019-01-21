@@ -47,10 +47,12 @@ step_conf <- list(
             
             conditionalPanel(
                 condition = paste0('input.', inp_prefix, 'type == "population"'),
-                numericInput(nspace(paste0(inp_prefix, 'num_obs')), 'Number of observations',
-                             min = 0, value = 10, step = 1),
-                numericInput(nspace(paste0(inp_prefix, 'num_vars')), 'Number of variables',
-                             min = 1, value = default_value(input, paste0(inp_prefix, 'num_vars'), 1), step = 1),
+                material_row(
+                    material_column(numericInput(nspace(paste0(inp_prefix, 'num_obs')), 'Number of observations',
+                                                 min = 0, value = 10, step = 1)),
+                    material_column(numericInput(nspace(paste0(inp_prefix, 'num_vars')), 'Number of variables',
+                                                 min = 1, value = default_value(input, paste0(inp_prefix, 'num_vars'), 1), step = 1))
+                ),
                 pop_conf_input_elems,
                 ns = nspace
             )
@@ -95,24 +97,94 @@ step_conf <- list(
 # TODO: put in separate source file
 
 population_inputs <- list(
-    'prob' = function(id, default) {
-        numericInput(id,
-                     label = "Probability",
-                     min = 0, max = 1,
-                     value = default,
-                     step = 0.01)
+    'prob' = function(nspace, id, default) {
+        list(numericInput(nspace(id),
+                          label = "Probability",
+                          min = 0, max = 1,
+                          value = default,
+                          step = 0.01))
     },
-    'trials' = function(id, default) {
-        numericInput(id,
-                     label = "Number of trials:",
-                     value = default,
-                     min = 1)
+    'trials' = function(nspace, id, default) {
+        list(numericInput(nspace(id),
+                          label = "Number of trials",
+                          value = default,
+                          min = 1))
+    },
+    'mean_count' = function(nspace, id, default) {
+        list(numericInput(nspace(id),
+                          label = "Mean count",
+                          value = default,
+                          min = 0))
+    },
+    'ordered_likert_breaks' = function(nspace, id, default) {
+        list(
+            textInput(nspace(id),
+                      label = "Break points for ordered categories",
+                      value = default[[1]]),
+            textInput(nspace(paste0(id, '_labels')),
+                      label = "Unquoted break labels",
+                      value = default[[2]])
+        )
+    },
+    'latent_var' = function(nspace, id, default) {
+        input_norm_mean <- numericInput(
+            nspace(paste0(id, '_norm_mean')),
+            label = "Mean",
+            value = default$norm_mean
+        )
+            
+        input_norm_sd <- numericInput(
+            nspace(paste0(id, '_norm_sd')),
+            label = "SD",
+            value = default$norm_sd
+        )
+
+        input_unif_min <- numericInput(
+            nspace(paste0(id, '_unif_min')),
+            label = "Min",
+            value = default$unif_min
+        )
+            
+        input_unif_max <- numericInput(
+            nspace(paste0(id, '_unif_max')),
+            label = "Max",
+            value = default$unif_max
+        )
+        
+        list(
+            selectInput(nspace(id),
+                        label = "Latent Variable",
+                        choices = list(
+                            "Normal" = "rnorm",
+                            "Uniform" = "runif"
+                        ),
+                        selected = default$type
+            ),
+            conditionalPanel(condition = paste0('input.', id, ' == "rnorm"'),
+                             input_norm_mean, input_norm_sd,
+                             ns = nspace),
+            conditionalPanel(condition = paste0('input.', id, ' == "runif"'),
+                             input_unif_min, input_unif_max,
+                             ns = nspace)
+        )
     }
 )
 
 population_input_defaults <- list(
     'prob' = 0.5,
-    'trials' = 1
+    'trials' = 1,
+    'mean_count' = 1,
+    'ordered_likert_breaks' = list(
+        '-1.5, -0.5, 0.5, 1.5',
+        'Strongly Disagree, Disagree, Neutral, Agree, Strongly Agree'
+    ),
+    'latent_var' = list(
+        'type' = 'rnorm',
+        'norm_mean' = 0,
+        'norm_sd' = 1,
+        'unif_min' = -2.5,
+        'unif_max' = 2.5
+    )
 )
 
 population_var_definitions <- list(
@@ -129,6 +201,49 @@ population_var_definitions <- list(
             prob <- default_value(input, paste0(inp_prefix, 'prob'), population_input_defaults$prob)
             trials <- default_value(input, paste0(inp_prefix, 'trials'), population_input_defaults$trials)
             expr(draw_binomial(N = N, prob = !!prob, trials = !!trials))
+        }
+    ),
+    'count' = list(
+        'requires' = c('mean_count'),
+        'code' = function(input, inp_prefix) {
+            mean_count <- default_value(input, paste0(inp_prefix, 'mean_count'), population_input_defaults$mean_count)
+            expr(draw_count(N = N, mean = !!mean_count))
+        }
+    ),
+    'ordered' = list(
+        'requires' = c('ordered_likert_breaks', 'latent_var'),
+        'code' = function(input, inp_prefix) {
+            breaks <- default_value(input, paste0(inp_prefix, 'ordered_likert_breaks'),
+                                    population_input_defaults$ordered_likert_breaks[[1]])
+            breaks <- c(-Inf, as.numeric(str_trim(unlist(strsplit(breaks, "[,;]")))), Inf)
+            break_labels <- default_value(input, paste0(inp_prefix, 'ordered_likert_breaks_labels'),
+                                           population_input_defaults$ordered_likert_breaks[[2]])
+            break_labels <- str_trim(unlist(strsplit(break_labels, "[,;]")))
+            
+            latent_type <- default_value(input, paste0(inp_prefix, 'latent_var'),
+                                         population_input_defaults$latent_var$type)
+            
+            if (latent_type == 'rnorm') {
+                latent_var_mean <- default_value(input, paste0(inp_prefix, 'latent_var_norm_mean'),
+                                                 population_input_defaults$latent_var$norm_mean)
+                latent_var_sd <- default_value(input, paste0(inp_prefix, 'latent_var_norm_sd'),
+                                               population_input_defaults$latent_var$norm_sd)
+                
+                latent_var_expr <- expr(rnorm(n = N,
+                                        mean = !!latent_var_mean,
+                                        sd = !!latent_var_sd))
+            } else {  # runif
+                latent_var_unif_min <- default_value(input, paste0(inp_prefix, 'latent_var_unif_min'),
+                                                     population_input_defaults$latent_var$unif_min)
+                latent_var_unif_max <- default_value(input, paste0(inp_prefix, 'latent_var_unif_max'),
+                                                     population_input_defaults$latent_var$unif_max)
+                
+                latent_var_expr <- expr(runif(n = N,
+                                              min = !!latent_var_unif_min,
+                                              max = !!latent_var_unif_max))
+            }
+            
+            expr(draw_ordered(N = N, x = !!latent_var_expr, breaks = !!breaks, break_labels = !!break_labels))
         }
     )
 )
@@ -148,9 +263,12 @@ generate_population_single_var_inputs <- function(nspace, input, inp_prefix, i) 
     )
     
     for (inp_type in population_var_definitions[[var_type]]$requires) {
-        arg_input_elem <- population_inputs[[inp_type]](nspace(paste0(inp_prefix, inp_type)),
-                                                        population_input_defaults[[inp_type]])
-        generate_args <- list_append(generate_args, arg_input_elem)
+        pop_input_elems_fn <- population_inputs[[inp_type]]
+        arg_input_elems <- pop_input_elems_fn(nspace, paste0(inp_prefix, inp_type),
+                                              population_input_defaults[[inp_type]])
+        for (e in arg_input_elems) {
+            generate_args <- list_append(generate_args, e)
+        }
     }
     
     do.call(wellPanel, generate_args)
@@ -159,9 +277,18 @@ generate_population_single_var_inputs <- function(nspace, input, inp_prefix, i) 
 generate_population_all_vars_inputs <- function(nspace, input, inp_prefix, react) {
     n_vars <- input[[paste0(inp_prefix, 'num_vars')]]
     if (!is.null(n_vars)) {
-        lapply(1:n_vars, function(i) {
+        input_boxes_vars <- lapply(1:n_vars, function(i) {
             generate_population_single_var_inputs(nspace, input, paste0(inp_prefix, 'var', i, '_'), i)
         })
+        
+        is_left <- as.logical(1:length(input_boxes_vars) %% 2)
+        boxes_left <- input_boxes_vars[is_left]
+        boxes_right <- input_boxes_vars[!is_left]
+        
+        material_row(
+            do.call(material_column, boxes_left),
+            do.call(material_column, boxes_right)
+        )
     }
 }
 
