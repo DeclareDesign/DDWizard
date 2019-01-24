@@ -351,9 +351,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             # subset the data to filter the No NA labels 
             colnames_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
             react$diagnosands_results <- get_diagnoses_for_plot()$diagnosands_df
-            print("!!")
-            print(isolate(react$diagnosands_results))
-            print("!!")
             name_diagnosands <- c()
             
             for (i in 1: length(colnames_diagnosands)){
