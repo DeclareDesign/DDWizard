@@ -63,6 +63,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands_results = NULL
     )
     
+    
     # reactive function to run diagnoses and return the results once "Update plot" is clicked
     get_diagnoses_for_plot <- eventReactive(input$update_plot, {
         req(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions)
@@ -175,6 +176,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             
             react$diagnosands <- plotdf
             
+            
             # the bound value of confidence interval: diagnosand values +/-SE*1.96
             # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
             plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
@@ -204,7 +206,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
                     plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
                 }
-                
+                p
                 # create aesthetics definition
                 aes_definition <- do.call(aes_string, aes_args)
                 
@@ -350,20 +352,23 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             # make sure there is no missing value 
             # subset the data to filter the No NA labels 
             colnames_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
+            colnames_diagnosands_se <-unname(sapply(colnames_diagnosands, function(x) paste0("se(", x, ")")))
             react$diagnosands_results <- get_diagnoses_for_plot()$diagnosands_df
-            name_diagnosands <- c()
+            available_react_diagnosands_data <- react$diagnosands_results[!is.na(data$estimator_label),]
+            available_diagnosands_data <- available_react_diagnosands_data[c(colnames_diagnosands_se,colnames_diagnosands)]
             
+            names_diagnosands <- c()
             for (i in 1: length(colnames_diagnosands)){
-                upper_bound <- react$diagnosands_results[[colnames_diagnosands[i]]] + react$diagnosands_results[[(paste0("se(", colnames_diagnosands[i], ")"))]] *1.96
-                lower_bound <- react$diagnosands_results[[colnames_diagnosands[i]]] - react$diagnosands_results[[(paste0("se(", colnames_diagnosands[i], ")"))]] *1.96
-                if (sum(is.na(upper_bound)) + sum(is.na(lower_bound)) > 0) {
+                selection_names <- colnames(available_diagnosands_data)[!sapply(available_diagnosands_data, function(x) any(is.na(x)))]
+                if(colnames_diagnosands_se[i] %in%  selection_names &
+                   colnames_diagnosands[i] %in% selection_names){
+                    names_diagnosands <- c(colnames_diagnosands[i], names_diagnosands)
+                }else{
                     next()
-                } else {
-                    name_diagnosands[i] <- colnames_diagnosands[i]
                 }
             }
-            
-            available_diagnosands <- name_diagnosands[!is.na(name_diagnosands)]
+           
+            available_diagnosands <- rev(names_diagnosands)
             # old version 
             # available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
             
