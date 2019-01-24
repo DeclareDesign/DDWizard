@@ -206,7 +206,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
                     plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
                 }
-                p
+                
                 # create aesthetics definition
                 aes_definition <- do.call(aes_string, aes_args)
                 
