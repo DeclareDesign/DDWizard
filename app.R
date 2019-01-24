@@ -15,7 +15,8 @@ library(shinymaterial)
 library(shinythemes)
 library(shinyBS)
 library(shinyjs)
-
+library(stringr)
+library(stringi)
 
 source('conf.R')
 source('common.R')
