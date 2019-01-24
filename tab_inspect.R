@@ -241,14 +241,19 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     output$plot_message <- renderUI({
         if (is.null(react$diagnosands)) {
-            return(HTML('<p>Specify values for arguments that you want to diagnose 
-                        the design with on the left by supplying scalar values, lists
-                        of values (like 10, 20, 30) or ranges with a step size
-                        (like 10, 20, ..., 100).</p>
-                        <p>On the right side you can choose which arguments should
+            return(HTML('<p><b>Top panel:</b> Specify the number of simulations
+                        in your diagnosis.</p> 
+                        <p><b>Left panel:</b> Specify which design arguments to
+                        vary in the diagnosis of your design. You can input numeric 
+                        values separated by a comma (e.g., 10, 20, 30) or provide 
+                        ranges of values with one step to create an arithmetic
+                        sequence of values (e.g., 10, 20, ..., 100 generates a sequence 
+                        from 10 to 100 where the difference in terms is 10).</p>
+                        <p><b>Right panel:</b> Choose which arguments should
                         be mapped to which visual property of the diagnosis plot
-                        and which type of diagnosand should be used. Finally click
-                        "Update plot" to simulate data and run the diagnoses.<br><br></p>'))
+                        and which diagnosand should be displayed.</p>
+                        <p>Click <b>"Update plot"</b> to run the diagnoses and
+                        display the updated plot.<br><br></p>'))
         } else {
             return('')
         }
