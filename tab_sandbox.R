@@ -362,6 +362,18 @@ generate_population_all_vars_inputs <- function(nspace, input, inp_prefix, react
         boxes_left <- input_boxes_vars[is_left]
         boxes_right <- input_boxes_vars[!is_left]
         
+        # unfortunately this is unusable as it always collapses the panel whenever you change a selection inside it:
+        # bsCollapse(
+        #     id = nspace('variables_collapse'),
+        #     bsCollapsePanel(
+        #         'Variables',
+        #         material_row(
+        #             do.call(material_column, boxes_left),
+        #             do.call(material_column, boxes_right)
+        #         )
+        #     )
+        # )
+        
         material_row(
             do.call(material_column, boxes_left),
             do.call(material_column, boxes_right)
