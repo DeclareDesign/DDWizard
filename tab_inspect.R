@@ -190,10 +190,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 
                 # if the "color" parameter is set, add it to the aeshetics definition
                 if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
-                    plotdf$color_param <- factor(plotdf[[input$plot_conf_color_param]])
-                    aes_args$color <- 'color_param'
-                    aes_args$fill <- 'color_param'
-                    aes_args$group <- 'color_param'
+                    plotdf[[input$plot_conf_color_param]] <- factor(plotdf[[input$plot_conf_color_param]])
+                    aes_args$color <- input$plot_conf_color_param
+                    aes_args$fill <- input$plot_conf_color_param
+                    aes_args$group <- input$plot_conf_color_param
                 } else {
                     aes_args$group <- 1
                 }
