@@ -151,7 +151,7 @@ designTab <- function(input, output, session) {
                 }, type = 'output')
             }, type = 'message')
             
-            react$design_id <- load_design()
+            react$design_id <- sapply(sub("_designer", "",load_design()), function(x) paste0(x,"_design"))
             react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
             print('design instance changed')
         }
