@@ -37,26 +37,37 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                                         min = 1, max = 1000, step = 1),
                                            numericInput(nspace("simconf_bootstrap_num"), label = "Num. of bootstraps",
                                                         value = default_diag_bootstrap_sims,
-                                                        min = 1, max = 1000, step = 1))), 
-                material_card("Diagnostic plots",
-                              uiOutput(nspace('plot_message')),
-                              actionButton(nspace('update_plot'), 'Update plot'),
-                              plotOutput(nspace('plot_output')),
-                              downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
+                                                        min = 1, max = 1000, step = 1))),
+                conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
+                    material_card("Diagnostic plots",
+                                  uiOutput(nspace('plot_message')),
+                                  actionButton(nspace('update_plot'), 'Update plot'),
+                                  plotOutput(nspace('plot_output')),
+                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
+                    ),
+                    bsCollapse(id='inspect_sections_container',
+                               bsCollapsePanel('Diagnosands',
+                                               textOutput(nspace("section_diagnosands_message")),
+                                               dataTableOutput(nspace("section_diagnosands_table")),
+                                               downloadButton(nspace("section_diagnosands_download_subset"),
+                                                              label = "Download above table", disabled = "disabled"),
+                                               downloadButton(nspace("section_diagnosands_download_full"),
+                                                              label = "Download full diagnosands table", disabled = "disabled"))
+                    )
                 ),
-                bsCollapse(id='inspect_sections_container',
-                           bsCollapsePanel('Diagnosands',
-                                           textOutput(nspace("section_diagnosands_message")),
-                                           dataTableOutput(nspace("section_diagnosands_table")),
-                                           downloadButton(nspace("section_diagnosands_download_subset"),
-                                                          label = "Download above table", disabled = "disabled"),
-                                           downloadButton(nspace("section_diagnosands_download_full"),
-                                                          label = "Download full diagnosands table", disabled = "disabled"))
+                conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === true"),
+                    material_card("Diagnostic plots",
+                        HTML('<p>Diagnosis plot not available since all parameters were set to <i>fixed</i>.</p>'),
+                        actionButton(nspace('update_plot_all_fixed'), 'Run single design diagnosis'),
+                        verbatimTextOutput(nspace('single_design_diagnosis'))
+                    )
                 )
             ),
-            material_column(   # right: plot configuration
-                width = 3,
-                uiOutput(nspace("plot_conf"))
+            conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
+                material_column(   # right: plot configuration
+                    width = 3,
+                    uiOutput(nspace("plot_conf"))
+                )
             )
         )
     )
@@ -74,36 +85,71 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         req(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions)
         
         # get all arguments from the left side pane in the "Inspect" tab
-        insp_args <- get_args_for_inspection(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions, input)
+        insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                             design_tab_proxy$react$design_argdefinitions,
+                                             input)
         
-        # only if at least one argument is a sequence (i.e. its length is > 1) for comparison,
-        # run the diagnoses and return a result
-        if (max(sapply(insp_args, length)) > 1) {
-            print('will run diagnoses with arguments:')
-            print(insp_args)
-            
-            # run diagnoses and get results
-            isolate({
-                if (length(input$plot_conf_diag_param_param) == 0) {
-                    diag_param_alpha <- 0.05
-                } else {
-                    diag_param_alpha <- input$plot_conf_diag_param_param
-                }
-                
-                diag_results <- run_diagnoses(design_tab_proxy$react$design, insp_args,
-                                              sims = input$simconf_sim_num,
-                                              bootstrap_sims = input$simconf_bootstrap_num,
-                                              diag_param_alpha = diag_param_alpha,
-                                              use_cache = !input$simconf_force_rerun,
-                                              advance_progressbar = 1/6)
-            })
-            
-            return(diag_results)
-        } else {
+        if (!design_tab_proxy$all_design_args_fixed() && max(sapply(insp_args, length)) == 0) {
+            # only if at least one argument is a sequence (i.e. its length is > 1) for comparison,
+            # run the diagnoses and return a result
             return(NULL)
         }
         
+        print('will run diagnoses with arguments:')
+        print(insp_args)
         
+        # run diagnoses and get results
+        isolate({
+            if (length(input$plot_conf_diag_param_param) == 0) {
+                diag_param_alpha <- 0.05
+            } else {
+                diag_param_alpha <- input$plot_conf_diag_param_param
+            }
+            
+            diag_results <- run_diagnoses(design_tab_proxy$react$design, insp_args,
+                                          sims = input$simconf_sim_num,
+                                          bootstrap_sims = input$simconf_bootstrap_num,
+                                          diag_param_alpha = diag_param_alpha,
+                                          use_cache = !input$simconf_force_rerun,
+                                          advance_progressbar = 1/6)
+        })
+        
+        plotdf <- diag_results$diagnosands_df
+        
+        # when the coefficients are empty 
+        if (isTruthy(input$plot_conf_coefficient)) {
+            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]   
+        } else if (isTruthy(input$plot_conf_estimator)) {
+            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator,]   
+        }
+        
+        react$diagnosands <- plotdf
+        diag_results$diagnosands_df_for_plot <- plotdf
+        
+        diag_results
+    })
+    
+    get_diagnosis_for_single_design <- eventReactive(input$update_plot_all_fixed, {
+        req(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions)
+        
+        # args <- design_tab_proxy$design_args()
+        # argnames <- names(args)
+        # argnames <- setdiff(argnames, 'fixed')
+        # insp_args <- args[argnames]
+        
+        d <- design_tab_proxy$design_instance()
+        
+        isolate({
+            # this is not cached so far
+            plan('multicore', workers = n_diagnosis_workers)
+            diag_results <- diagnose_design(d,
+                                            sims = input$simconf_sim_num,
+                                            bootstrap_sims = input$simconf_bootstrap_num)
+        })
+        
+        capture.output({
+            print(diag_results, width = 40)
+        }, type = 'output')
     })
     
     # get subset data frame of diagnosands for display and download
@@ -131,11 +177,24 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         react$diagnosands[cols]
     })
     
+    
     ### output elements ###
+    
+    # hidden (for conditional panel): return TRUE when all designer arguments were fixed, otherwise FALSE
+    output$all_design_args_fixed <- reactive({
+        req(design_tab_proxy$react$design)
+        design_tab_proxy$all_design_args_fixed()
+    })
+    outputOptions(output, 'all_design_args_fixed', suspendWhenHidden = FALSE)
+    
     
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
         req(design_tab_proxy$react$design)
+        
+        if (design_tab_proxy$all_design_args_fixed()) {
+            return(HTML('<p>No comparisons available since all parameters were set to <i>fixed</i>.</p>'))
+        }
         
         d_args <- design_tab_proxy$design_args()
         print(d_args)
@@ -158,10 +217,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
         }
         
-        tags$div(create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
-                                            design_tab_proxy$design_instance,
-                                            input = design_tab_proxy$input,
-                                            defaults = defaults))
+        param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
+                                                  design_tab_proxy$design_instance,
+                                                  input = design_tab_proxy$input,
+                                                  defaults = defaults)
+        tags$div(param_boxes)
     })
     
     # make the plot reactive
@@ -169,18 +229,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         n_steps = 6
         withProgress(message = 'Simulating data and generating plot...', value = 0, {
             incProgress(1/n_steps)
-            diag_results <- get_diagnoses_for_plot()
-            req(diag_results)
-            
-            plotdf <- diag_results$diagnosands_df
-            # when the coefficients are empty 
-            if(input$plot_conf_coefficient != ""){
-                plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]   
-            }else{
-                plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator,]   
-            }
-            
-            react$diagnosands <- plotdf
+            diag_res <- get_diagnoses_for_plot()
+            req(diag_res)
+            plotdf <- diag_res$diagnosands_df_for_plot
             
             # the bound value of confidence interval: diagnosand values +/-SE*1.96
             # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
@@ -342,7 +393,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         content = function(file) {
             write.csv(react$diagnosands, file = file, row.names = FALSE)
         }
-    )   
+    )
+    
+    output$single_design_diagnosis <- renderText({
+        diag <- get_diagnosis_for_single_design()
+        diag
+    })
     
     # right: inspection plot configuration
     output$plot_conf <- renderUI({

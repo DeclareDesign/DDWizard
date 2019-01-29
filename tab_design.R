@@ -186,6 +186,25 @@ designTab <- function(input, output, session) {
         sum(args_fixed, na.rm = TRUE) > 0
     })
     
+    # returns TRUE if all design arguments were set to fixed, otherwise FALSE
+    all_design_args_fixed <- reactive({
+        req(react$design)
+        
+        args <- formals(react$design)
+        
+        args_fixed <- sapply(names(args), function(argname) {
+            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
+            if (!is.null(input[[inp_elem_name_fixed]])) {
+                input[[inp_elem_name_fixed]]
+            } else {
+                NA
+            }
+        })
+        
+        sum(args_fixed, na.rm = TRUE) == sum(!is.na(args_fixed))
+    })
+    
+    
     ### input observers ###
     
     # input observer for click on design import
@@ -403,7 +422,8 @@ designTab <- function(input, output, session) {
         react = react,
         design_args = design_args,
         design_instance = design_instance,
-        input = input
+        input = input,
+        all_design_args_fixed = all_design_args_fixed
     ))
 }
     
