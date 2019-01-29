@@ -17,6 +17,7 @@ library(shinyBS)
 library(shinyjs)
 library(stringr)
 library(stringi)
+library(dplyr)
 
 source('conf.R')
 source('common.R')
