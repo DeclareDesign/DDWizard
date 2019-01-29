@@ -6,6 +6,16 @@
 # Dec. 2018
 #
 
+### CONFIG ###
+
+diagnosis_table_opts <- list(searching = FALSE,
+                             ordering = FALSE,
+                             paging = TRUE,
+                             pageLength = 10,
+                             info = FALSE,
+                             lengthChange = FALSE,
+                             scrollX = TRUE)
+
 ### UI ###
 
 inspectTabUI <- function(id, label = 'Inspect') {
@@ -59,15 +69,13 @@ inspectTabUI <- function(id, label = 'Inspect') {
                     material_card("Diagnostic plots",
                         HTML('<p>Diagnosis plot not available since all parameters were set to <i>fixed</i>.</p>'),
                         actionButton(nspace('update_plot_all_fixed'), 'Run single design diagnosis'),
-                        verbatimTextOutput(nspace('single_design_diagnosis'))
+                        dataTableOutput(nspace("single_diagnosands_table"))
                     )
                 )
             ),
-            conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
-                material_column(   # right: plot configuration
-                    width = 3,
-                    uiOutput(nspace("plot_conf"))
-                )
+            material_column(   # right: plot configuration
+                width = 3,
+                uiOutput(nspace("plot_conf"))
             )
         )
     )
@@ -80,6 +88,26 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands = NULL              # diagnosands for current plot in "inspect" tab
     )
     
+    # Run diagnoses using inspection arguments `insp_args`
+    run_diagnoses_using_inspection_args <- function(insp_args, advance_progressbar = 0) {
+        isolate({
+            if (length(input$plot_conf_diag_param_param) == 0) {
+                diag_param_alpha <- 0.05
+            } else {
+                diag_param_alpha <- input$plot_conf_diag_param_param
+            }
+            
+            diagn <- run_diagnoses(design_tab_proxy$react$design, insp_args,
+                                   sims = input$simconf_sim_num,
+                                   bootstrap_sims = input$simconf_bootstrap_num,
+                                   diag_param_alpha = diag_param_alpha,
+                                   use_cache = !input$simconf_force_rerun,
+                                   advance_progressbar = advance_progressbar)
+        })
+        
+        diagn
+    }
+    
     # reactive function to run diagnoses and return the results once "Update plot" is clicked
     get_diagnoses_for_plot <- eventReactive(input$update_plot, {
         req(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions)
@@ -89,7 +117,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                              design_tab_proxy$react$design_argdefinitions,
                                              input)
         
-        if (!design_tab_proxy$all_design_args_fixed() && max(sapply(insp_args, length)) == 0) {
+        if (max(sapply(insp_args, length)) == 0) {
             # only if at least one argument is a sequence (i.e. its length is > 1) for comparison,
             # run the diagnoses and return a result
             return(NULL)
@@ -99,20 +127,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         print(insp_args)
         
         # run diagnoses and get results
-        isolate({
-            if (length(input$plot_conf_diag_param_param) == 0) {
-                diag_param_alpha <- 0.05
-            } else {
-                diag_param_alpha <- input$plot_conf_diag_param_param
-            }
-            
-            diag_results <- run_diagnoses(design_tab_proxy$react$design, insp_args,
-                                          sims = input$simconf_sim_num,
-                                          bootstrap_sims = input$simconf_bootstrap_num,
-                                          diag_param_alpha = diag_param_alpha,
-                                          use_cache = !input$simconf_force_rerun,
-                                          advance_progressbar = 1/6)
-        })
+        diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
         
         plotdf <- diag_results$diagnosands_df
         
@@ -129,27 +144,16 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diag_results
     })
     
+    # reactive function to run diagnoses and return the results once "Run single design diagnosis" is clicked
     get_diagnosis_for_single_design <- eventReactive(input$update_plot_all_fixed, {
         req(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions)
         
-        # args <- design_tab_proxy$design_args()
-        # argnames <- names(args)
-        # argnames <- setdiff(argnames, 'fixed')
-        # insp_args <- args[argnames]
+        args <- design_tab_proxy$design_args()
+        argnames <- names(args)
+        argnames <- setdiff(argnames, 'fixed')
+        insp_args <- args[argnames]
         
-        d <- design_tab_proxy$design_instance()
-        
-        isolate({
-            # this is not cached so far
-            plan('multicore', workers = n_diagnosis_workers)
-            diag_results <- diagnose_design(d,
-                                            sims = input$simconf_sim_num,
-                                            bootstrap_sims = input$simconf_bootstrap_num)
-        })
-        
-        capture.output({
-            print(diag_results, width = 40)
-        }, type = 'output')
+        run_diagnoses_using_inspection_args(insp_args)
     })
     
     # get subset data frame of diagnosands for display and download
@@ -193,7 +197,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         req(design_tab_proxy$react$design)
         
         if (design_tab_proxy$all_design_args_fixed()) {
-            return(HTML('<p>No comparisons available since all parameters were set to <i>fixed</i>.</p>'))
+            return(HTML('<p>No comparisons available since all parameters were set to <i>fixed</i>.<br></p>'))
         }
         
         d_args <- design_tab_proxy$design_args()
@@ -355,14 +359,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
         get_diagnosands_for_display()
-    }, options = list(searching = FALSE,
-                      ordering = FALSE,
-                      paging = TRUE,
-                      pageLength = 10,
-                      info = FALSE,
-                      lengthChange = FALSE,
-                      scrollX = TRUE)
-    )
+    }, options = diagnosis_table_opts)
     
     # center below plot: download buttons
     output$section_diagnosands_download_subset <- downloadHandler(
@@ -395,10 +392,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
     )
     
-    output$single_design_diagnosis <- renderText({
-        diag <- get_diagnosis_for_single_design()
-        diag
-    })
+    # diagnosis table for single design
+    output$single_diagnosands_table <- renderDataTable({
+        diag_res <- get_diagnosis_for_single_design()
+        select(diag_res$diagnosands_df, -c(design_label, n_sims))
+    }, options = list_merge(diagnosis_table_opts, list(paging = FALSE)))
     
     # right: inspection plot configuration
     output$plot_conf <- renderUI({
@@ -409,6 +407,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             nspace <- NS('tab_inspect')
             inp_prefix <- 'plot_conf_'
             boxes <- list()
+            all_fixed <- design_tab_proxy$all_design_args_fixed()
             
             # create the design instance and get its estimates
             d <- design_tab_proxy$design_instance()
@@ -442,14 +441,16 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             boxes <- list_append(boxes, inp_coeff)
             
             # 3. diagnosand (y-axis)
-            inp_diag_param_id <- paste0(inp_prefix, "diag_param")
-            inp_diag_param <- selectInput(nspace(inp_diag_param_id), "Diagnosand (y-axis)",
-                                          choices = available_diagnosands,
-                                          selected = input[[inp_diag_param_id]])
-            boxes <- list_append(boxes, inp_diag_param)
+            if (!all_fixed) {
+                inp_diag_param_id <- paste0(inp_prefix, "diag_param")
+                inp_diag_param <- selectInput(nspace(inp_diag_param_id), "Diagnosand (y-axis)",
+                                              choices = available_diagnosands,
+                                              selected = input[[inp_diag_param_id]])
+                boxes <- list_append(boxes, inp_diag_param)
+            }
             
             # 3b. optional: diagnosand parameter
-            if (length(input[[inp_diag_param_id]]) > 0 && input[[inp_diag_param_id]] == 'power') {
+            if (all_fixed || (length(input[[inp_diag_param_id]]) > 0 && input[[inp_diag_param_id]] == 'power')) {
                 inp_diag_param_param_id <- paste0(inp_prefix, "diag_param_param")
                 if (length(input[[inp_diag_param_param_id]]) > 0) {
                     inp_diag_param_param_default <- input[[inp_diag_param_param_id]]
@@ -462,37 +463,38 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 boxes <- list_append(boxes, inp_diag_param_param)
             }
             
-            
-            # 4. CI check box 
-            inp_con_int_param_id <- paste0(inp_prefix, "confi_int_id")
-            inp_con_int_param <- checkboxInput(nspace(inp_con_int_param_id), label = "Show confidence interval", value = TRUE)
-            boxes <- list_append(boxes, inp_con_int_param)
-            
-            # 5. main inspection parameter (x-axis)
-            insp_args <- get_args_for_inspection(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions, input)
-            insp_args_lengths <- sapply(insp_args, length)
-            variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
-            
-            inp_x_param_id <- paste0(inp_prefix, "x_param")
-            inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
-                                       choices = variable_args,
-                                       selected = input[[inp_x_param_id]])
-            boxes <- list_append(boxes, inp_x_param)
-            
-            # 6. secondary inspection parameter (color)
-            variable_args_optional <- c('(none)', variable_args)
-            inp_color_param_id <- paste0(inp_prefix, "color_param")
-            inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
-                                           choices = variable_args_optional,
-                                           selected = input[[inp_color_param_id]])
-            boxes <- list_append(boxes, inp_color_param)
-            
-            # 7. tertiary inspection parameter (small multiples)
-            inp_facets_param_id <- paste0(inp_prefix, "facets_param")
-            inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
-                                            choices = variable_args_optional,
-                                            selected = input[[inp_facets_param_id]])
-            boxes <- list_append(boxes, inp_facets_param)
+            if (!all_fixed) {
+                # 4. CI check box 
+                inp_con_int_param_id <- paste0(inp_prefix, "confi_int_id")
+                inp_con_int_param <- checkboxInput(nspace(inp_con_int_param_id), label = "Show confidence interval", value = TRUE)
+                boxes <- list_append(boxes, inp_con_int_param)
+                
+                # 5. main inspection parameter (x-axis)
+                insp_args <- get_args_for_inspection(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions, input)
+                insp_args_lengths <- sapply(insp_args, length)
+                variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
+                
+                inp_x_param_id <- paste0(inp_prefix, "x_param")
+                inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
+                                           choices = variable_args,
+                                           selected = input[[inp_x_param_id]])
+                boxes <- list_append(boxes, inp_x_param)
+                
+                # 6. secondary inspection parameter (color)
+                variable_args_optional <- c('(none)', variable_args)
+                inp_color_param_id <- paste0(inp_prefix, "color_param")
+                inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
+                                               choices = variable_args_optional,
+                                               selected = input[[inp_color_param_id]])
+                boxes <- list_append(boxes, inp_color_param)
+                
+                # 7. tertiary inspection parameter (small multiples)
+                inp_facets_param_id <- paste0(inp_prefix, "facets_param")
+                inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
+                                                choices = variable_args_optional,
+                                                selected = input[[inp_facets_param_id]])
+                boxes <- list_append(boxes, inp_facets_param)
+            }
         }
         
         do.call(material_card, c(title="Plot configuration", boxes))
