@@ -22,21 +22,6 @@ designTabUI <- function(id, label = 'Design') {
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
-                                  # selectInput(nspace("choose_design_lib_id"), label = "Choose design name", choices = c("Factorial" = "factorial_designer",
-                                  #                                                                                       "Multi Arm" = "multi_arm_designer",
-                                  #                                                                                       "Binary IV" = "binary_iv_designer", 
-                                  #                                                                                       "Block Cluster Two Arm" = "block_cluster_two_arm_designer",
-                                  #                                                                                       "Cluster Sampling" = "cluster_sampling_designer", 
-                                  #                                                                                       "Mediation Analysis" = "mediation_analysis_designer",
-                                  #                                                                                       "Pretest Posttest" = "pretest_posttest_designer",
-                                  #                                                                                       "Process Tracing" = "process_tracing_designer",
-                                  #                                                                                       "Randomized Response" = "randomized_response_designer",
-                                  #                                                                                       "Regression Discontinuity" = "regression_discontinuity_designer",
-                                  #                                                                                       "Spillover" = "spillover_designer",
-                                  #                                                                                       "Two Arm Attrition" = "two_arm_attrition_designer",
-                                  #                                                                                       "Two Arm" = "two_arm_designer",
-                                  #                                                                                       "Two By Two" = "two_by_two_designer"), 
-                                  #             selected = "two_arm_designer", multiple = F),
                                   actionButton(nspace("import_from_design_lib"), label = "Import")
                               )
                 ),
@@ -69,15 +54,13 @@ designTab <- function(input, output, session) {
    
     options(warn = 1)    # always directly print warnings
     
-    #load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
-    load_design <- reactive(input$import_design_library)
-    
     ### reactive values  ###
     
     react <- reactiveValues(
         design = NULL,                  # parametric designer object (a closure)
         design_id = NULL,               # identifier for current design instance *after* being instantiated
         design_argdefinitions = NULL,   # argument definitions for current design instance
+        design_name_once_changed = FALSE,  # records whether design name was changed after import
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_msgs = NULL            # captured warnings and other messages during design creation
@@ -93,8 +76,13 @@ designTab <- function(input, output, session) {
             args <- formals(react$design)
             arg_defs <- react$design_argdefinitions   # is NULL on first run, otherwise data frame of argument definitions (class, min/max)
             
+            if (is.null(arg_defs)) {
+                return(output_args)    # empty list
+            }
+            
             fixed_args <- c('design_name')   # vector of fixed arguments. design_name is always fixed
-
+            
+            all_default <- TRUE
             for (argname in names(args)) {
                 if (argname %in% args_control_skip_design_args) next()
                 
@@ -105,6 +93,10 @@ designTab <- function(input, output, session) {
                 # convert an input value to a argument value of correct class
                 if (length(argdefinition) != 0){
                 argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
+                
+                if (!is.null(argvalue) && argvalue != '' && argvalue != argdefault) {
+                    all_default <- FALSE
+                }
                 
                 if (!is.null(argvalue)) {  # add the value to the list of designer arguments
                     output_args[[argname]] <- argvalue
@@ -117,10 +109,16 @@ designTab <- function(input, output, session) {
                 }
             }
             
-            #output_args$design_name <- c(input$design_arg_design_name)  # super strange, doesn't work
-            
             # additional designer arguments: design name and vector of fixed arguments
-            output_args$design_name <- load_design()
+            if (is.null(react$design_argdefinitions)) {
+                output_args$design_name <- react$design_id   # should always be a valid R object name
+                updateTextInput(session, 'design_arg_design_name', value = output_args$design_name)
+            } else if (!is.null(input$design_arg_design_name) && (!all_default || react$design_name_once_changed)) {
+                output_args$design_name <- make_valid_r_object_name(input$design_arg_design_name)
+                # updateTextInput(session, 'design_arg_design_name', value = output_args$design_name)
+                react$design_name_once_changed <- TRUE
+            }
+            
             output_args$fixed <- fixed_args
             
             print('design args changed:')
@@ -136,7 +134,7 @@ designTab <- function(input, output, session) {
         
         if (!is.null(react$design)) {  # return NULL if no designer is given
             d_args <- design_args()  # designer arguments
-            
+
             if (length(d_args) == 0) {
                 print('using default arg values')
             }
@@ -151,7 +149,6 @@ designTab <- function(input, output, session) {
                 }, type = 'output')
             }, type = 'message')
             
-            react$design_id <- load_design()
             react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
             print('design instance changed')
         }
@@ -164,15 +161,16 @@ designTab <- function(input, output, session) {
     # input observer for click on design import
     observeEvent(input$import_from_design_lib, {
         # loads a pre-defined designer from the library
-        react$design <- getFromNamespace(load_design(), 'DesignLibrary')
-        react$design_id <- NULL    # set after being instantiated
-        react$design_argdefinitions <- NULL # make sure to reload the argument definitions from new design
+        print(paste('loading designer', input$import_design_library))
+        react$design <- getFromNamespace(input$import_design_library, 'DesignLibrary')
+        react$design_id <- input$import_design_library
+        react$design_argdefinitions <- NULL      # make sure to reload the argument definitions from new design
+        react$design_name_once_changed <- FALSE
         
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
         shinyjs::enable('simdata_redraw')
         shinyjs::enable('simdata_download')
-        print('parametric design loaded')
         
     })
     
@@ -212,13 +210,17 @@ designTab <- function(input, output, session) {
         option_list <- as.list(options_data$names)
         names(option_list) <- options_data$abbr
 
-        selectInput(nspace("import_design_library"), label = "Choose design name", selected = "two_arm_designer", choices = option_list,multiple = FALSE)
+        selectInput(nspace("import_design_library"), label = "Choose design name",
+                    selected = "two_arm_designer", choices = option_list,
+                    multiple = FALSE)
     })
+    
     # center: design code
     output$section_design_code <- renderText({
-        if(!is.null(design_instance()) && !is.null(attr(design_instance(), 'code'))) {
+        d <- design_instance()
+        if(!is.null(d) && !is.null(attr(d, 'code'))) {
             # use the "code" attribute of a design instance and convert it to a single string
-            code_text <- paste(attr(design_instance(), 'code'), collapse = "\n")
+            code_text <- paste(attr(d, 'code'), collapse = "\n")
         } else {
             code_text <- ''
         }
@@ -262,9 +264,10 @@ designTab <- function(input, output, session) {
             paste0(design_name, '.R')
         },
         content = function(file) {
-            if(!is.null(design_instance()) && !is.null(attr(design_instance(), 'code'))) {
+            d <- design_instance()
+            if(!is.null(d) && !is.null(attr(d, 'code'))) {
                 # use the "code" attribute of a design instance and write it to `file`
-                writeLines(attr(design_instance(), 'code'), file)
+                writeLines(attr(d, 'code'), file)
             }
         }
     )
