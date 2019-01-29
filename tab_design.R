@@ -18,15 +18,22 @@ designTabUI <- function(id, label = 'Design') {
         material_row(
             material_column(  # left: input and design parameters
                 width = 3,
-                material_card("Input",
+                material_card("Load design",
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
                                   actionButton(nspace("import_from_design_lib"), label = "Import")
                               )
                 ),
-                uiOutput(nspace("design_parameters")),    # display *all* arguments of an imported design
-                checkboxInput(nspace("fixed_all"), "all fixed", FALSE)
+                # show designer parameters if a design was loaded
+                conditionalPanel(paste0("output['", nspace('design_loaded'), "'] != ''"),
+                    material_card("Set design parameters",
+                        htmlOutput(nspace('design_description')),
+                        textInput(nspace('design_arg_design_name'), 'Design name'),
+                        div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn'))),
+                        uiOutput(nspace("design_parameters"))    # display *all* arguments of an imported design
+                    )
+                )
             ),
             material_column(  # center: design output
                 width = 9,
@@ -61,6 +68,7 @@ designTab <- function(input, output, session) {
         design_id = NULL,               # identifier for current design instance *after* being instantiated
         design_argdefinitions = NULL,   # argument definitions for current design instance
         design_name_once_changed = FALSE,  # records whether design name was changed after import
+        fix_toggle = 'fix',             # toggle for fixing/unfixing all design parameters. must be either "fix" or "unfix"
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_msgs = NULL            # captured warnings and other messages during design creation
@@ -106,6 +114,10 @@ designTab <- function(input, output, session) {
                 arg_is_fixed_value <- input[[paste0('design_arg_', argname, '_fixed')]]
                 if (isTruthy(arg_is_fixed_value)) {
                     fixed_args <- c(fixed_args, argname)
+                    
+                    # if at least one arg. is set to fixed, the toggle button is set to "Unfix all"
+                    react$fix_toggle <- 'unfix'
+                    updateActionButton(session, 'fix_toggle', label = 'Unfix all')
                 }
             }
             
@@ -156,6 +168,24 @@ designTab <- function(input, output, session) {
         d_inst
     })
     
+    # returns TRUE if at least one designer argument was set to "fixed", otherwise FALSE
+    at_least_one_design_arg_fixed <- reactive({
+        req(react$design)
+        
+        args <- formals(react$design)
+        
+        args_fixed <- sapply(names(args), function(argname) {
+            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
+            if (!is.null(input[[inp_elem_name_fixed]])) {
+                input[[inp_elem_name_fixed]]
+            } else {
+                NA
+            }
+        })
+        
+        sum(args_fixed, na.rm = TRUE) > 0
+    })
+    
     ### input observers ###
     
     # input observer for click on design import
@@ -166,12 +196,28 @@ designTab <- function(input, output, session) {
         react$design_id <- input$import_design_library
         react$design_argdefinitions <- NULL      # make sure to reload the argument definitions from new design
         react$design_name_once_changed <- FALSE
+        react$fix_toggle <- 'fix'
+        
+        updateTextInput(session, 'design_arg_design_name', value = react$design_id)
         
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
         shinyjs::enable('simdata_redraw')
-        shinyjs::enable('simdata_download')
-        
+        shinyjs::enable('simdata_download')  
+    })
+    
+    # input observer for click on "Fix/Unfix all" button
+    observeEvent(input$fix_toggle_click, {
+        args <- formals(react$design)
+
+        checkbox_val <- react$fix_toggle == 'fix'
+
+        for (argname in names(args)) {
+            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
+            if (!is.null(input[[inp_elem_name_fixed]])) {
+                updateCheckboxInput(session, inp_elem_name_fixed, value = checkbox_val)
+            }
+        }
     })
     
     # input observer for click on "redraw data" button in "simulated data" section
@@ -183,19 +229,52 @@ designTab <- function(input, output, session) {
     })
     
     ### output elements ###
+    
+    # hidden (for conditional panel): return loaded designer name or empty string if no design loaded
+    output$design_loaded <- reactive({
+        if (!is.null(react$design_id)) {
+            react$design_id
+        } else {
+            ''
+        }
+    })
+    outputOptions(output, 'design_loaded', suspendWhenHidden = FALSE)
+    
+    # left side: designer description
+    output$design_description <- renderUI({
+        req(react$design)
+        HTML(attr(react$design, 'description'))
+    })
+    
     # left side: designer parameters
-    # add one more argument for selecting all the attrs
-    # make this option to be reactive
-    design_all_fixed <- reactive(input$fixed_all)
     output$design_parameters <- renderUI({
-        create_design_parameter_ui(type = 'design', react = react, nspace =  NS('tab_design'), 
-                                   design_instance_fn = design_instance, input = NULL, defaults = NULL,
-                                   all_fixed = design_all_fixed())
+        req(react$design)
+        
+        nspace <- NS('tab_design')
+        
+        create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
+                                   design_instance_fn = design_instance, input = NULL, defaults = NULL)
+    })
+    
+    # left side: "Fix/Unfix all" button
+    output$fix_toggle_btn <- renderUI({
+        nspace <- NS('tab_design')
+        
+        if (at_least_one_design_arg_fixed()) {
+            fix_toggle_label <- 'Unfix all'
+            react$fix_toggle <- 'unfix'
+        } else {
+            fix_toggle_label <- 'Fix all'
+            react$fix_toggle <- 'fix'
+        }
+        
+        actionButton(nspace('fix_toggle_click'), fix_toggle_label)
     })
     
     # left side: choose designers 
     output$import_design_lib_id <- renderUI({
-        nspace =  NS('tab_design')
+        nspace <-  NS('tab_design')
+        
         cached <- str_replace(grep("designer$", ls(as.environment("package:DesignLibrary")), value = TRUE), "_designer", "")
         option <- c()
         for (i in 1:length(cached)){
