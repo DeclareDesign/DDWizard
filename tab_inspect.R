@@ -10,6 +10,7 @@
 
 inspectTabUI <- function(id, label = 'Inspect') {
     nspace <- NS(id)
+    nspace_design <- NS('tab_design')
     
     # "Inspect" tab
     material_tab_content(
@@ -17,8 +18,14 @@ inspectTabUI <- function(id, label = 'Inspect') {
         material_row(
             material_column(   # left: design parameters for comparison
                 width = 3,
-                uiOutput(nspace("compare_design_parameters"))    # display not-fixed parameters of a design / allow to define sequences
-                # for comparison in plots
+                material_card("Compare design parameters",
+                    conditionalPanel(paste0("output['", nspace_design('design_loaded'), "'] != ''"),
+                        uiOutput(nspace("compare_design_parameters"))    # display not-fixed parameters of a design / allow to define sequences
+                    ),
+                    conditionalPanel(paste0("output['", nspace_design('design_loaded'), "'] == ''"),
+                        p('Load a design first')
+                    )
+                )
             ),
             material_column(   # center: inspection output
                 width = 6,
@@ -128,6 +135,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
+        req(design_tab_proxy$react$design)
+        
         d_args <- design_tab_proxy$design_args()
         print(d_args)
         isolate({

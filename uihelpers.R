@@ -98,87 +98,72 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # `input` is the shiny input values list, which is used to determine whether an argument has been set to
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
-create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, input = NULL, defaults = NULL, all_fixed = FALSE) {
+create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, input = NULL, defaults = NULL) {
     boxes <- list()
-    if (is.null(react$design)) {
-        boxes <- list_append(boxes, p('Load a design first'))
+
+    args <- formals(react$design)
+    
+    if (is.null(react$design_argdefinitions)) design_instance_fn()    # create instance with default args in order
+    
+    # to get arg. definitions
+    arg_defs <- react$design_argdefinitions
+    # subset our arg_design, filter the arguments we want
+    args_design_med <- args[!sapply(args, is.null)]
+    args_design <- args_design_med[!sapply(args_design_med, is.character)]
+    if (sum(sapply(args_design, is.logical)) > 0) {
+        args_design <- args_design[!sapply(args_design, is.logical)]
+    } else if (!is.na(args_design["conditions"])){
+        args_design["conditions"] <- NULL
     } else {
+        args_design
+    }
+    
+    for (argname in names(args_design)) {
+        if (argname %in% args_control_skip_design_args)
+            next()
+        argdefault <- args[[argname]]
+        argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
+        inp_elem_complete <- NULL
+        
+        # check whether an element is set to fixed and skip it for "inspect" tab
+        inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
+        if (type != 'design' && isTruthy(input[[inp_elem_name_fixed]])) {
+            next()
+        }
+        
         if (type == 'design') {
-            # design description and name come first in the "design" tab
-            boxes <- list_append(boxes, HTML(attr(react$design, 'description')))
-            boxes <- list_append(boxes, textInput(nspace('design_arg_design_name'), 'Design name', value = react$design_id))
+            # for the "design" tab, create two input elements for each argument:
+            # 1. the argument value input box
+            # 2. the "fixed" checkbox next to it
+            inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%', nspace = nspace, idprefix = type)
+            if (!is.null(inp_elem)) {
+                inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                                       checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%')),
+                                              inp_elem)
+            } else {
+                warning(paste('input element could not be created for argument', argname))
+            }
+        } else {   # type == 'inspect'
+            if (!is.null(defaults) && argname %in% names(defaults)) {
+                argvalue <- as.character(defaults[[argname]])
+            } else {
+                if (typeof(argdefault) %in% c('language', 'symbol')) {
+                    argvalue <- ''
+                } else {
+                    argvalue <- as.character(argdefault)
+                }
+            }
+            
+            # in "inspect" tab, the input is always a text input in order to support input of sequences
+            inp_elem_complete <- textInput(nspace(paste0('inspect_arg_', argname)), argname, value = argvalue)
         }
         
-        args <- formals(react$design)
-        
-        if (is.null(react$design_argdefinitions)) design_instance_fn()    # create instance with default args in order
-        # to get arg. definitions
-        arg_defs <- react$design_argdefinitions
-        # subset our arg_design, fliter the arguments we want
-        args_design_med <- args[!sapply(args, is.null)]
-        args_design <- args_design_med[!sapply(args_design_med, is.character)]
-        if (sum(sapply(args_design, is.logical)) > 0) {
-            args_design <- args_design[!sapply(args_design, is.logical)]
-        } else if (!is.na(args_design["conditions"])){
-            args_design["conditions"] <- NULL
-        } else {
-            args_design
-        }
-        
-      
-       
-       
-        for (argname in names(args_design)) {
-            if (argname %in% args_control_skip_design_args)
-                next()
-            argdefault <- args[[argname]]
-            argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
-            inp_elem_complete <- NULL
-            
-            # check whether an element is set to fixed and skip it for "inspect" tab
-            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
-            if (type != 'design' && isTruthy(input[[inp_elem_name_fixed]])) {
-                next()
-            }
-            
-            if (type == 'design') {
-                # for the "design" tab, create two input elements for each argument:
-                # 1. the argument value input box
-                # 2. the "fixed" checkbox next to it
-                inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%', nspace = nspace, idprefix = type)
-                if (!is.null(inp_elem) & all_fixed == TRUE) {
-                    inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                           checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%', value = T)),
-                                                  inp_elem)
-                } else if (!is.null(inp_elem) & all_fixed == FALSE ){
-                    inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                           checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%')),
-                                                  inp_elem)
-                } else {
-                    warning(paste('input element could not be created for argument', argname))
-                }
-            } else {   # type == 'inspect'
-                if (!is.null(defaults) && argname %in% names(defaults)) {
-                    argvalue <- as.character(defaults[[argname]])
-                } else {
-                    if (typeof(argdefault) %in% c('language', 'symbol')) {
-                        argvalue <- ''
-                    } else {
-                        argvalue <- as.character(argdefault)
-                    }
-                }
-                
-                # in "inspect" tab, the input is always a text input in order to support input of sequences
-                inp_elem_complete <- textInput(nspace(paste0('inspect_arg_', argname)), argname, value = argvalue)
-            }
-            
-            if (!is.null(inp_elem_complete)) {
-                boxes <- list_append(boxes, inp_elem_complete)
-            }
+        if (!is.null(inp_elem_complete)) {
+            boxes <- list_append(boxes, inp_elem_complete)
         }
     }
     
-    return(do.call(material_card, c('Compare design parameters', boxes)))
+    boxes
 }
 
 
