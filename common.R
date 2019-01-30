@@ -75,6 +75,17 @@ parse_sequence_string <- function(s, cls = 'numeric') {
 }
 
 
+# Turn a string `s` into a valid R object name.
+make_valid_r_object_name <- function(s) {
+    # Identifiers consist of a sequence of letters, digits, the period (‘.’) and the underscore.
+    # They must not start with a digit or an underscore, or with a period followed by a digit.
+    # — R Language Definition
+    s <- str_replace_all(s, '[^A-Za-z0-9\\._]', '_')
+    s <- str_replace(s, '^[\\d_]+', '')
+    str_replace(s, '^\\.\\d+', '')
+}
+
+
 # For a given designer `design`, its argument definitions `d_argdefs` and the shiny input values object `input`,
 # parse the sequence string for each designer argument and generate a list of arguments used for inspection.
 # These argument values will define the paremeter space for inspection.

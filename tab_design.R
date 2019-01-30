@@ -18,30 +18,22 @@ designTabUI <- function(id, label = 'Design') {
         material_row(
             material_column(  # left: input and design parameters
                 width = 3,
-                material_card("Input",
+                material_card("Load design",
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
-                                  # selectInput(nspace("choose_design_lib_id"), label = "Choose design name", choices = c("Factorial" = "factorial_designer",
-                                  #                                                                                       "Multi Arm" = "multi_arm_designer",
-                                  #                                                                                       "Binary IV" = "binary_iv_designer", 
-                                  #                                                                                       "Block Cluster Two Arm" = "block_cluster_two_arm_designer",
-                                  #                                                                                       "Cluster Sampling" = "cluster_sampling_designer", 
-                                  #                                                                                       "Mediation Analysis" = "mediation_analysis_designer",
-                                  #                                                                                       "Pretest Posttest" = "pretest_posttest_designer",
-                                  #                                                                                       "Process Tracing" = "process_tracing_designer",
-                                  #                                                                                       "Randomized Response" = "randomized_response_designer",
-                                  #                                                                                       "Regression Discontinuity" = "regression_discontinuity_designer",
-                                  #                                                                                       "Spillover" = "spillover_designer",
-                                  #                                                                                       "Two Arm Attrition" = "two_arm_attrition_designer",
-                                  #                                                                                       "Two Arm" = "two_arm_designer",
-                                  #                                                                                       "Two By Two" = "two_by_two_designer"), 
-                                  #             selected = "two_arm_designer", multiple = F),
                                   actionButton(nspace("import_from_design_lib"), label = "Import")
                               )
                 ),
-                uiOutput(nspace("design_parameters")),    # display *all* arguments of an imported design
-                checkboxInput(nspace("fixed_all"), "all fixed", FALSE)
+                # show designer parameters if a design was loaded
+                conditionalPanel(paste0("output['", nspace('design_loaded'), "'] != ''"),
+                    material_card("Set design parameters",
+                        htmlOutput(nspace('design_description')),
+                        textInput(nspace('design_arg_design_name'), 'Design name'),
+                        div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn'))),
+                        uiOutput(nspace("design_parameters"))    # display *all* arguments of an imported design
+                    )
+                )
             ),
             material_column(  # center: design output
                 width = 9,
@@ -69,15 +61,14 @@ designTab <- function(input, output, session) {
    
     options(warn = 1)    # always directly print warnings
     
-    #load_design <- 'two_arm_designer'     # TODO: so far, design cannot be chosen from lib
-    load_design <- reactive(input$import_design_library)
-    
     ### reactive values  ###
     
     react <- reactiveValues(
         design = NULL,                  # parametric designer object (a closure)
         design_id = NULL,               # identifier for current design instance *after* being instantiated
         design_argdefinitions = NULL,   # argument definitions for current design instance
+        design_name_once_changed = FALSE,  # records whether design name was changed after import
+        fix_toggle = 'fix',             # toggle for fixing/unfixing all design parameters. must be either "fix" or "unfix"
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_msgs = NULL            # captured warnings and other messages during design creation
@@ -93,8 +84,13 @@ designTab <- function(input, output, session) {
             args <- formals(react$design)
             arg_defs <- react$design_argdefinitions   # is NULL on first run, otherwise data frame of argument definitions (class, min/max)
             
+            if (is.null(arg_defs)) {
+                return(output_args)    # empty list
+            }
+            
             fixed_args <- c('design_name')   # vector of fixed arguments. design_name is always fixed
-
+            
+            all_default <- TRUE
             for (argname in names(args)) {
                 if (argname %in% args_control_skip_design_args) next()
                 
@@ -106,6 +102,10 @@ designTab <- function(input, output, session) {
                 if (length(argdefinition) != 0){
                 argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                 
+                if (!is.null(argvalue) && argvalue != '' && argvalue != argdefault) {
+                    all_default <- FALSE
+                }
+                
                 if (!is.null(argvalue)) {  # add the value to the list of designer arguments
                     output_args[[argname]] <- argvalue
                 }}
@@ -114,13 +114,23 @@ designTab <- function(input, output, session) {
                 arg_is_fixed_value <- input[[paste0('design_arg_', argname, '_fixed')]]
                 if (isTruthy(arg_is_fixed_value)) {
                     fixed_args <- c(fixed_args, argname)
+                    
+                    # if at least one arg. is set to fixed, the toggle button is set to "Unfix all"
+                    react$fix_toggle <- 'unfix'
+                    updateActionButton(session, 'fix_toggle', label = 'Unfix all')
                 }
             }
             
-            #output_args$design_name <- c(input$design_arg_design_name)  # super strange, doesn't work
-            
             # additional designer arguments: design name and vector of fixed arguments
-            output_args$design_name <- load_design()
+            if (is.null(react$design_argdefinitions)) {
+                output_args$design_name <- react$design_id   # should always be a valid R object name
+                updateTextInput(session, 'design_arg_design_name', value = output_args$design_name)
+            } else if (!is.null(input$design_arg_design_name) && (!all_default || react$design_name_once_changed)) {
+                output_args$design_name <- make_valid_r_object_name(input$design_arg_design_name)
+                # updateTextInput(session, 'design_arg_design_name', value = output_args$design_name)
+                react$design_name_once_changed <- TRUE
+            }
+            
             output_args$fixed <- fixed_args
             
             print('design args changed:')
@@ -136,7 +146,7 @@ designTab <- function(input, output, session) {
         
         if (!is.null(react$design)) {  # return NULL if no designer is given
             d_args <- design_args()  # designer arguments
-            
+
             if (length(d_args) == 0) {
                 print('using default arg values')
             }
@@ -151,7 +161,6 @@ designTab <- function(input, output, session) {
                 }, type = 'output')
             }, type = 'message')
             
-            react$design_id <- sapply(sub("_designer", "",load_design()), function(x) paste0(x,"_design"))
             react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
             print('design instance changed')
         }
@@ -159,21 +168,75 @@ designTab <- function(input, output, session) {
         d_inst
     })
     
+    # returns TRUE if at least one designer argument was set to "fixed", otherwise FALSE
+    at_least_one_design_arg_fixed <- reactive({
+        req(react$design)
+        
+        args <- formals(react$design)
+        
+        args_fixed <- sapply(names(args), function(argname) {
+            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
+            if (!is.null(input[[inp_elem_name_fixed]])) {
+                input[[inp_elem_name_fixed]]
+            } else {
+                NA
+            }
+        })
+        
+        sum(args_fixed, na.rm = TRUE) > 0
+    })
+    
+    # returns TRUE if all design arguments were set to fixed, otherwise FALSE
+    all_design_args_fixed <- reactive({
+        req(react$design)
+        
+        args <- formals(react$design)
+        
+        args_fixed <- sapply(names(args), function(argname) {
+            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
+            if (!is.null(input[[inp_elem_name_fixed]])) {
+                input[[inp_elem_name_fixed]]
+            } else {
+                NA
+            }
+        })
+        
+        sum(args_fixed, na.rm = TRUE) == sum(!is.na(args_fixed))
+    })
+    
+    
     ### input observers ###
     
     # input observer for click on design import
     observeEvent(input$import_from_design_lib, {
         # loads a pre-defined designer from the library
-        react$design <- getFromNamespace(load_design(), 'DesignLibrary')
-        react$design_id <- NULL    # set after being instantiated
-        react$design_argdefinitions <- NULL # make sure to reload the argument definitions from new design
+        print(paste('loading designer', input$import_design_library))
+        react$design <- getFromNamespace(input$import_design_library, 'DesignLibrary')
+        react$design_id <- input$import_design_library
+        react$design_argdefinitions <- NULL      # make sure to reload the argument definitions from new design
+        react$design_name_once_changed <- FALSE
+        react$fix_toggle <- 'fix'
+        
+        updateTextInput(session, 'design_arg_design_name', value = react$design_id)
         
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
         shinyjs::enable('simdata_redraw')
-        shinyjs::enable('simdata_download')
-        print('parametric design loaded')
-        
+        shinyjs::enable('simdata_download')  
+    })
+    
+    # input observer for click on "Fix/Unfix all" button
+    observeEvent(input$fix_toggle_click, {
+        args <- formals(react$design)
+
+        checkbox_val <- react$fix_toggle == 'fix'
+
+        for (argname in names(args)) {
+            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
+            if (!is.null(input[[inp_elem_name_fixed]])) {
+                updateCheckboxInput(session, inp_elem_name_fixed, value = checkbox_val)
+            }
+        }
     })
     
     # input observer for click on "redraw data" button in "simulated data" section
@@ -185,19 +248,52 @@ designTab <- function(input, output, session) {
     })
     
     ### output elements ###
+    
+    # hidden (for conditional panel): return loaded designer name or empty string if no design loaded
+    output$design_loaded <- reactive({
+        if (!is.null(react$design_id)) {
+            react$design_id
+        } else {
+            ''
+        }
+    })
+    outputOptions(output, 'design_loaded', suspendWhenHidden = FALSE)
+    
+    # left side: designer description
+    output$design_description <- renderUI({
+        req(react$design)
+        HTML(attr(react$design, 'description'))
+    })
+    
     # left side: designer parameters
-    # add one more argument for selecting all the attrs
-    # make this option to be reactive
-    design_all_fixed <- reactive(input$fixed_all)
     output$design_parameters <- renderUI({
-        create_design_parameter_ui(type = 'design', react = react, nspace =  NS('tab_design'), 
-                                   design_instance_fn = design_instance, input = NULL, defaults = NULL,
-                                   all_fixed = design_all_fixed())
+        req(react$design)
+        
+        nspace <- NS('tab_design')
+        
+        create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
+                                   design_instance_fn = design_instance, input = NULL, defaults = NULL)
+    })
+    
+    # left side: "Fix/Unfix all" button
+    output$fix_toggle_btn <- renderUI({
+        nspace <- NS('tab_design')
+        
+        if (at_least_one_design_arg_fixed()) {
+            fix_toggle_label <- 'Unfix all'
+            react$fix_toggle <- 'unfix'
+        } else {
+            fix_toggle_label <- 'Fix all'
+            react$fix_toggle <- 'fix'
+        }
+        
+        actionButton(nspace('fix_toggle_click'), fix_toggle_label)
     })
     
     # left side: choose designers 
     output$import_design_lib_id <- renderUI({
-        nspace =  NS('tab_design')
+        nspace <-  NS('tab_design')
+        
         cached <- str_replace(grep("designer$", ls(as.environment("package:DesignLibrary")), value = TRUE), "_designer", "")
         option <- c()
         for (i in 1:length(cached)){
@@ -212,13 +308,17 @@ designTab <- function(input, output, session) {
         option_list <- as.list(options_data$names)
         names(option_list) <- options_data$abbr
 
-        selectInput(nspace("import_design_library"), label = "Choose design name", selected = "two_arm_designer", choices = option_list,multiple = FALSE)
+        selectInput(nspace("import_design_library"), label = "Choose design name",
+                    selected = "two_arm_designer", choices = option_list,
+                    multiple = FALSE)
     })
+    
     # center: design code
     output$section_design_code <- renderText({
-        if(!is.null(design_instance()) && !is.null(attr(design_instance(), 'code'))) {
+        d <- design_instance()
+        if(!is.null(d) && !is.null(attr(d, 'code'))) {
             # use the "code" attribute of a design instance and convert it to a single string
-            code_text <- paste(attr(design_instance(), 'code'), collapse = "\n")
+            code_text <- paste(attr(d, 'code'), collapse = "\n")
         } else {
             code_text <- ''
         }
@@ -262,9 +362,10 @@ designTab <- function(input, output, session) {
             paste0(design_name, '.R')
         },
         content = function(file) {
-            if(!is.null(design_instance()) && !is.null(attr(design_instance(), 'code'))) {
+            d <- design_instance()
+            if(!is.null(d) && !is.null(attr(d, 'code'))) {
                 # use the "code" attribute of a design instance and write it to `file`
-                writeLines(attr(design_instance(), 'code'), file)
+                writeLines(attr(d, 'code'), file)
             }
         }
     )
@@ -321,7 +422,8 @@ designTab <- function(input, output, session) {
         react = react,
         design_args = design_args,
         design_instance = design_instance,
-        input = input
+        input = input,
+        all_design_args_fixed = all_design_args_fixed
     ))
 }
     
