@@ -85,8 +85,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
 
 inspectTab <- function(input, output, session, design_tab_proxy) {
     react <- reactiveValues(
-        diagnosands = NULL, #diagnosands for current plot in "inspect" tab
-        diagnosands_results = NULL
+        diagnosands = NULL   # diagnosands for current plot in "inspect" tab
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -414,33 +413,16 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d <- design_tab_proxy$design_instance()
             d_estimates <- draw_estimates(d)
             
-            # we need to find out the set of available diagnosands
-            # make sure there is no missing value 
-            # subset the data to filter the No NA labels 
-            colnames_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
-            colnames_diagnosands_se <-unname(sapply(colnames_diagnosands, function(x) paste0("se(", x, ")")))
-            react$diagnosands_results <- get_diagnoses_for_plot()$diagnosands_df
-            available_react_diagnosands_data <- react$diagnosands_results[!is.na(react$diagnosands_results$estimator_label),]
-            available_diagnosands_data <- available_react_diagnosands_data[c(colnames_diagnosands_se,colnames_diagnosands)]
-            
-            names_diagnosands <- c()
-            for (i in 1: length(colnames_diagnosands)){
-                selection_names <- colnames(available_diagnosands_data)[!sapply(available_diagnosands_data, function(x) any(is.na(x)))]
-                if(colnames_diagnosands_se[i] %in%  selection_names &
-                   colnames_diagnosands[i] %in% selection_names){
-                    names_diagnosands <- c(colnames_diagnosands[i], names_diagnosands)
-                }else{
-                    next()
-                }
-            }
-            
-            available_diagnosands <- rev(names_diagnosands)
-            # old version
-            # available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
-            
-            # old approach: run a minimal diagnosis
-            # minimal_diag <- diagnose_design(d, sims = 1, bootstrap_sims = 1)
-            # available_diagnosands <- minimal_diag$diagnosand_names
+            # run a minimal diagnosis in order to find out which diagnosands are available for that design
+            # we need at least 2 simulations
+            # we use only 1 bootstrap sim because we don't need the SEs here
+            suppressWarnings({  # suppress low num. of sims warning
+                minimal_diag <- diagnose_design(d, sims = 2, bootstrap_sims = 1)
+            })
+            available_diagnosands <- minimal_diag$diagnosand_names
+            nonna_diagnosands <- sapply(minimal_diag$diagnosands_df[available_diagnosands],
+                                        function (colvec) sum(is.na(colvec)), USE.NAMES = FALSE) == 0
+            available_diagnosands <- available_diagnosands[nonna_diagnosands]
             
             # 1. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")
