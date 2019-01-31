@@ -113,10 +113,11 @@ get_args_for_inspection <- function(design, d_argdefs, input) {
 
 
 # Run diagnoses on designer `designer` and parameter space `args`. Run `sims` simulations and `bootstrap_sims` bootstraps.
+# `diagnosands_call` is a closure to calculate the diagnosands
 # If `use_cache` is TRUE, check if simulated data already exists for this designer / parameter combinations and use cached
 # data or create newly simulated data for running diagnoses.
 # The simulations are run in parallel if packages `future` and `future.apply` are installed.
-run_diagnoses <- function(designer, args, sims, bootstrap_sims, diag_param_alpha = 0.05, use_cache = TRUE, advance_progressbar = 0) {
+run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call, use_cache = TRUE, advance_progressbar = 0) {
     # generate designs from designer with arguments `args`
     all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
     if (advance_progressbar) incProgress(advance_progressbar)
@@ -159,8 +160,7 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diag_param_alpha
     
     # run diagnoses using the simulated data
     # note: this is not cached
-    def_diag_fns <- function(data) { DeclareDesign:::default_diagnosands(data, alpha = diag_param_alpha) }  # pass alpha parameter for power calc.
-    diag_res <- diagnose_designs(simdata, diagnosands = def_diag_fns, bootstrap_sims = bootstrap_sims)
+    diag_res <- diagnose_designs(simdata, diagnosands = diagnosands_call, bootstrap_sims = bootstrap_sims)
     if (advance_progressbar) incProgress(advance_progressbar)
     
     diag_res
