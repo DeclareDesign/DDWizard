@@ -112,6 +112,19 @@ get_args_for_inspection <- function(design, d_argdefs, input) {
 }
 
 
+# get cache file name unique to cache type `cachetype` (simulation or diagnosis results),
+# parameter space `args`, number of (bootstrap) simulations `sims`, designer name `designer`
+get_diagnosis_cache_filename <- function(cachetype, args, sims, designer) {
+    fingerprint_args <- args
+    fingerprint_args$sims <- sims
+    fingerprint_args$design <- designer
+    fingerprint_args$cache_version <- 1       # increment whenever the simulated data in cache is not compatible anymore (i.e. DD upgrade)
+    fingerprint <- digest(fingerprint_args)   # uses MD5
+    
+    sprintf('.cache/%s_%s.RDS', cachetype, fingerprint)
+}
+
+
 # Run diagnoses on designer `designer` and parameter space `args`. Run `sims` simulations and `bootstrap_sims` bootstraps.
 # If `use_cache` is TRUE, check if simulated data already exists for this designer / parameter combinations and use cached
 # data or create newly simulated data for running diagnoses.
@@ -126,27 +139,21 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diag_param_alpha
     simdata <- NULL
     if (use_cache) {
         # cache fingerprint generated from designer object, simulation config. and parameter space
-        fingerprint_args <- args
-        fingerprint_args$sims <- sims
-        fingerprint_args$design <- designer
-        fingerprint_args$cache_version <- 1       # increment whenever the simulated data in cache is not compatible anymore (i.e. DD upgrade)
-        fingerprint <- digest(fingerprint_args)   # uses MD5
-        
-        cache_file <- paste0('.cache/simdata_', fingerprint, '.RDS')
+        cache_file <- get_diagnosis_cache_filename('simdata', args, sims, designer)
         
         if (file.exists(cache_file)) {   # read and return result object from cache
             if (advance_progressbar) incProgress(advance_progressbar)
             simdata <- readRDS(cache_file)
+            print('loaded simulation data from cache')
         }
     } else {
-        print('caching disabled')
         cache_file <- NULL
     }
     
+    # set up to run in parallel
+    plan('multicore', workers = n_diagnosis_workers)
+    
     if (is.null(simdata)) {  # generate simulations
-        # set up to run in parallel
-        plan('multicore', workers = n_diagnosis_workers)
-        
         # simulate data
         simdata <- simulate_designs(all_designs, sims = sims)
         if (advance_progressbar) incProgress(advance_progressbar)
@@ -157,11 +164,37 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diag_param_alpha
         }
     }
     
-    # run diagnoses using the simulated data
-    # note: this is not cached
-    def_diag_fns <- function(data) { DeclareDesign:::default_diagnosands(data, alpha = diag_param_alpha) }  # pass alpha parameter for power calc.
-    diag_res <- diagnose_designs(simdata, diagnosands = def_diag_fns, bootstrap_sims = bootstrap_sims)
-    if (advance_progressbar) incProgress(advance_progressbar)
+    diag_res <- NULL
+    if (use_cache) {
+        stopifnot(!is.null(cache_file))
+        
+        # make the cache fingerprint dependent on simulated data's fingerprint and on parameters for diagnosands
+        args <- list(
+            'diag_param_alpha' = diag_param_alpha,
+            'from_simdata' = cache_file
+        )
+        
+        diag_cache_file <- get_diagnosis_cache_filename('diagresult', args, bootstrap_sims, designer)
+        
+        if (file.exists(diag_cache_file)) {   # read and return result object from cache
+            if (advance_progressbar) incProgress(advance_progressbar)
+            diag_res <- readRDS(diag_cache_file)
+            print('loaded diagnosis results from cache')
+        }
+    } else {
+        diag_cache_file <- NULL
+    }
     
+    if (is.null(diag_res)) {  # run diagnoses using the simulated data
+        def_diag_fns <- function(data) { DeclareDesign:::default_diagnosands(data, alpha = diag_param_alpha) }  # pass alpha parameter for power calc.
+        diag_res <- diagnose_designs(simdata, diagnosands = def_diag_fns, bootstrap_sims = bootstrap_sims)
+        if (advance_progressbar) incProgress(advance_progressbar)
+        
+        # save diagnosis results to cache if requested
+        if (!is.null(diag_res) && !is.null(diag_cache_file)) {
+            saveRDS(diag_res, diag_cache_file)
+        }
+    }
+
     diag_res
 }
