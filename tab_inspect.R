@@ -219,6 +219,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         if (all(defaults == d_args_charvec) & !is.null(unlist(defaults['N']))) {
             n_int <- as.integer(defaults['N']) 
             defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
+        } else if (all(defaults == d_args_charvec) & !is.null(unlist(defaults['N_blocks']))){
+            min_int <- design_tab_proxy$react$design_argdefinitions[design_tab_proxy$react$design_argdefinitions$names == "N_blocks",]$inspector_min
+            max_int <- design_tab_proxy$react$design_argdefinitions[design_tab_proxy$react$design_argdefinitions$names == "N_blocks",]$inspector_max
+            step_int <- design_tab_proxy$react$design_argdefinitions[design_tab_proxy$react$design_argdefinitions$names == "N_blocks",]$inspector_step
+            defaults['N_blocks'] <- sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int)
+            
+        } else if (all(defaults == d_args_charvec) & !is.null(unlist(defaults['N_groups']))){
+            min_int <- design_tab_proxy$react$design_argdefinitions[design_tab_proxy$react$design_argdefinitions$names == "N_groups",]$inspector_min
+            max_int <- design_tab_proxy$react$design_argdefinitions[design_tab_proxy$react$design_argdefinitions$names == "N_groups",]$inspector_max
+            step_int <- design_tab_proxy$react$design_argdefinitions[design_tab_proxy$react$design_argdefinitions$names == "N_groups",]$inspector_step
+            defaults['N_groups'] <- sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int)
         }
         
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),

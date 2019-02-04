@@ -29,7 +29,7 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
     
-    if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')) {  # "language" constructs (R formula/code)
+    if (argclass %in% c('call', 'name', 'NULL') && argtype %in% c('language', 'symbol', 'NULL')) {  # "language" constructs (R formula/code)
         inp_elem_args$value = ''
     } else {
         inp_elem_args$value = argdefault
