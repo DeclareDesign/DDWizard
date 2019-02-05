@@ -217,7 +217,8 @@ designTab <- function(input, output, session) {
         react$design_name_once_changed <- FALSE
         react$fix_toggle <- 'fix'
         
-        updateTextInput(session, 'design_arg_design_name', value = react$design_id)
+        # replace xx_designer as xx_design
+        updateTextInput(session, 'design_arg_design_name', value = gsub("designer","design",react$design_id))
         
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
