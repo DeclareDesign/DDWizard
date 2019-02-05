@@ -217,7 +217,8 @@ designTab <- function(input, output, session) {
         react$design_name_once_changed <- FALSE
         react$fix_toggle <- 'fix'
         
-        updateTextInput(session, 'design_arg_design_name', value = react$design_id)
+        # replace xx_designer as xx_design
+        updateTextInput(session, 'design_arg_design_name', value = gsub("designer","design",react$design_id))
         
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
@@ -303,7 +304,7 @@ designTab <- function(input, output, session) {
                 option[i] <- paste(cached[i], sep = "_", "designer")
             }
         }
-        test <- sub("_", " ",sub("_", " ", sub("_", " ", sub("_designer", " ", option[!is.na(option)]))))
+        test <- sub("_", " ",sub("_", " ", sub("_", " ", sub("_designer", "", option[!is.na(option)]))))
         options_data <- data.frame(names = option[!is.na(option)],abbr = stri_trans_totitle(test), stringsAsFactors = FALSE)
         option_list <- as.list(options_data$names)
         names(option_list) <- options_data$abbr
