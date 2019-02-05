@@ -85,7 +85,8 @@ inspectTabUI <- function(id, label = 'Inspect') {
 
 inspectTab <- function(input, output, session, design_tab_proxy) {
     react <- reactiveValues(
-        diagnosands = NULL              # diagnosands for current plot in "inspect" tab
+        diagnosands = NULL,      # diagnosands for current plot in "inspect" tab
+        diagnosands_call = NULL  # a closure that actually calculates the diagnosands, valid for current design
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -100,7 +101,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             diagn <- run_diagnoses(design_tab_proxy$react$design, insp_args,
                                    sims = input$simconf_sim_num,
                                    bootstrap_sims = input$simconf_bootstrap_num,
-                                   diag_param_alpha = diag_param_alpha,
+                                   diagnosands_call = react$diagnosands_call(diag_param_alpha),
                                    use_cache = !input$simconf_force_rerun,
                                    advance_progressbar = advance_progressbar)
         })
@@ -413,12 +414,24 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d <- design_tab_proxy$design_instance()
             d_estimates <- draw_estimates(d)
             
-            # we need to find out the set of available diagnosands
-            available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
-            
-            # old approach: run a minimal diagnosis
-            # minimal_diag <- diagnose_design(d, sims = 1, bootstrap_sims = 1)
-            # available_diagnosands <- minimal_diag$diagnosand_names
+            # get available diagnosands
+            diag_call <- attr(d, 'diagnosands')
+            if (is.null(diag_call)) {
+                react$diagnosands_call <- function(diag_param_alpha) {  # here we can pass alpha
+                    function(data) {
+                        DeclareDesign:::default_diagnosands(data, alpha = diag_param_alpha)
+                    }
+                }
+                
+                available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
+            } else {
+                react$diagnosands_call <- function(diag_param_alpha) {  # here we ignore alpha
+                    attr(diag_call, 'call')
+                }
+                
+                available_diagnosands <- names(call_args(attr(diag_call, 'call')))
+                available_diagnosands <- setdiff(available_diagnosands, c("keep_defaults", "label"))
+            }
             
             # 1. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")
