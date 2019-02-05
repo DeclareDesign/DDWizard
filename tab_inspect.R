@@ -217,7 +217,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         first_arg <- names(d_args)[1]
         if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
         if (first_arg == 'N') {
-            n_int <- as.integer(defaults['N']) 
+            n_int <- as.integer(d_args[[first_arg]])
             defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
         } else {
             defs <- design_tab_proxy$react$design_argdefinitions
