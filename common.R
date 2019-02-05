@@ -169,11 +169,18 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
     if (use_cache) {
         stopifnot(!is.null(cache_file))
         # make the cache fingerprint dependent on simulated data's fingerprint and on parameters for diagnosands
+        diag_call_src <- deparse(diagnosands_call)
         diag_call_env <- environment(diagnosands_call)
-        diag_call_objnames <- ls(diag_call_env)
-        diag_call_objvals <- get(diag_call_objnames, diag_call_env)
+        if (is.null(diag_call_env)) {
+            diag_call_objnames <- NULL
+            diag_call_objvals <- NULL
+        } else {
+            diag_call_objnames <- ls(diag_call_env)
+            diag_call_objvals <- get(diag_call_objnames, diag_call_env)
+        }
         
         args <- list(
+            'diag_call_src' = diag_call_src,
             'diag_call_objnames' = diag_call_objnames,
             'diag_call_objvals' = diag_call_objvals,
             'from_simdata' = cache_file
