@@ -214,12 +214,18 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         })
         
         # set a default value for "N" the first time
-        # but there are some design without N argument 
-        d_args_charvec <- as.character(d_args)
-        names(d_args_charvec) <- names(d_args)
-        if (all(defaults == d_args_charvec) & !is.null(unlist(defaults['N']))) {
-            n_int <- as.integer(defaults['N']) 
+        # but there are some design without N argument
+        first_arg <- names(d_args)[1]
+        if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
+        if (first_arg == 'N') {
+            n_int <- as.integer(d_args[[first_arg]])
             defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
+        } else {
+            defs <- design_tab_proxy$react$design_argdefinitions
+            min_int <- defs$inspector_min[defs$names == first_arg]
+            max_int <- defs$inspector_max[defs$names == first_arg]
+            step_int <- defs$inspector_step[defs$names == first_arg]
+            defaults[first_arg] <- sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int)
         }
         
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
