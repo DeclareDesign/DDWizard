@@ -26,14 +26,14 @@ designTabUI <- function(id, label = 'Design') {
                               )
                 ),
                 # show designer parameters if a design was loaded
-                conditionalPanel(paste0("output['", nspace('design_loaded'), "'] != ''"),
+                hidden(div(id = nspace('design_params_panel_wrapper'),
                     material_card("Set design parameters",
                         htmlOutput(nspace('design_description')),
                         textInput(nspace('design_arg_design_name'), 'Design name'),
                         div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn'))),
                         uiOutput(nspace("design_parameters"))    # display *all* arguments of an imported design
                     )
-                )
+                ))
             ),
             material_column(  # center: design output
                 width = 9,
@@ -58,7 +58,6 @@ designTabUI <- function(id, label = 'Design') {
 ### Server ###
 
 designTab <- function(input, output, session) {
-   
     options(warn = 1)    # always directly print warnings
     
     ### reactive values  ###
@@ -211,19 +210,22 @@ designTab <- function(input, output, session) {
     observeEvent(input$import_from_design_lib, {
         # loads a pre-defined designer from the library
         print(paste('loading designer', input$import_design_library))
+        
+        shinyjs::show('design_params_panel_wrapper')
+        
         react$design <- getFromNamespace(input$import_design_library, 'DesignLibrary')
         react$design_id <- input$import_design_library
         react$design_argdefinitions <- NULL      # make sure to reload the argument definitions from new design
         react$design_name_once_changed <- FALSE
         react$fix_toggle <- 'fix'
         
-        # replace xx_designer as xx_design
-        updateTextInput(session, 'design_arg_design_name', value = gsub("designer","design",react$design_id))
-        
         shinyjs::enable('download_r_script')
         shinyjs::enable('download_rds_obj')
         shinyjs::enable('simdata_redraw')
-        shinyjs::enable('simdata_download')  
+        shinyjs::enable('simdata_download')
+        
+        # replace xx_designer as xx_design
+        updateTextInput(session, 'design_arg_design_name', value = gsub("designer","design",react$design_id))
     })
     
     # input observer for click on "Fix/Unfix all" button
@@ -249,17 +251,7 @@ designTab <- function(input, output, session) {
     })
     
     ### output elements ###
-    
-    # hidden (for conditional panel): return loaded designer name or empty string if no design loaded
-    output$design_loaded <- reactive({
-        if (!is.null(react$design_id)) {
-            react$design_id
-        } else {
-            ''
-        }
-    })
-    outputOptions(output, 'design_loaded', suspendWhenHidden = FALSE)
-    
+
     # left side: designer description
     output$design_description <- renderUI({
         req(react$design)
