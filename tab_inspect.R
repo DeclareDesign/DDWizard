@@ -186,7 +186,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     results_cached_message <- reactive({
         if (react$diagnosands_cached) {
-            return(p('Results were loaded from cache. You can disable caching in the upper "Configure simulations" panel.'))
+            return(p('Results loaded from cached diagnoses. You can disable caching in the top panel "Configure simulations".'))
         } else {
             return('')
         }
@@ -326,7 +326,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return(HTML('<p><b>Top panel:</b> Specify the number of simulations
                         in your diagnosis.</p> 
                         <p><b>Left panel:</b> Specify which design arguments to
-                        vary in the diagnosis of your design. You can input numeric 
+                        vary with each design diagnosis. You can input numeric 
                         values separated by a comma (e.g., 10, 20, 30) or provide 
                         ranges of values with one step to create an arithmetic
                         sequence of values (e.g., 10, 20, ..., 100 generates a sequence 
@@ -393,7 +393,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # center below plot: diagnosands table message
     output$section_diagnosands_message <- renderUI({
         if (is.null(react$diagnosands)) {
-            return(p('Not data yet. Set comparison parameters and generate a plot first.'))
+            return(p('Missing simulations data. Vary design parameters on the left and click "Run diagnoses".'))
         } else {
             results_cached_message()
         }
