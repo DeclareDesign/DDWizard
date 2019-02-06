@@ -2,13 +2,11 @@
 
 A [Shiny app](http://shiny.rstudio.com/) for creating, editing and inspecting designs.
 
-Contact: 
+Authors: 
 
-- Markus Konrad <markus.konrad@wzb.eu>
+- Clara Bicalho <clara.bicalho@wzb.eu>
 - Sisi Huang <sisi.huang@wzb.eu>
-
-
-**A work in progress.**
+- Markus Konrad <markus.konrad@wzb.eu>
 
 
 ## Dependencies
