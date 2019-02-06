@@ -51,13 +51,13 @@ inspectTabUI <- function(id, label = 'Inspect') {
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
                     material_card("Diagnostic plots",
                                   uiOutput(nspace('plot_message')),
-                                  actionButton(nspace('update_plot'), 'Update plot'),
-                                  plotOutput(nspace('plot_output')),
+                                  div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"),
+                                  uiOutput(nspace('plot_output')),
                                   downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
                     ),
                     bsCollapse(id='inspect_sections_container',
                                bsCollapsePanel('Diagnosands',
-                                               textOutput(nspace("section_diagnosands_message")),
+                                               uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
                                                               label = "Download above table", disabled = "disabled"),
@@ -69,6 +69,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                     material_card("Diagnostic plots",
                         HTML('<p>Diagnosis plot not available since all parameters were set to <i>fixed</i>.</p>'),
                         actionButton(nspace('update_plot_all_fixed'), 'Run single design diagnosis'),
+                        uiOutput(nspace("single_diagnosands_message")),
                         dataTableOutput(nspace("single_diagnosands_table"))
                     )
                 )
@@ -85,8 +86,9 @@ inspectTabUI <- function(id, label = 'Inspect') {
 
 inspectTab <- function(input, output, session, design_tab_proxy) {
     react <- reactiveValues(
-        diagnosands = NULL,      # diagnosands for current plot in "inspect" tab
-        diagnosands_call = NULL  # a closure that actually calculates the diagnosands, valid for current design
+        diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
+        diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
+        diagnosands_call = NULL     # a closure that actually calculates the diagnosands, valid for current design
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -98,15 +100,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 diag_param_alpha <- input$plot_conf_diag_param_param
             }
             
-            diagn <- run_diagnoses(design_tab_proxy$react$design, insp_args,
-                                   sims = input$simconf_sim_num,
-                                   bootstrap_sims = input$simconf_bootstrap_num,
-                                   diagnosands_call = react$diagnosands_call(diag_param_alpha),
-                                   use_cache = !input$simconf_force_rerun,
-                                   advance_progressbar = advance_progressbar)
+            diag_res <- run_diagnoses(design_tab_proxy$react$design, insp_args,
+                                      sims = input$simconf_sim_num,
+                                      bootstrap_sims = input$simconf_bootstrap_num,
+                                      diagnosands_call = react$diagnosands_call(diag_param_alpha),
+                                      use_cache = !input$simconf_force_rerun,
+                                      advance_progressbar = advance_progressbar)
         })
         
-        diagn
+        diag_res
     }
     
     # reactive function to run diagnoses and return the results once "Update plot" is clicked
@@ -129,8 +131,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
-        
-        plotdf <- diag_results$diagnosands_df
+        react$diagnosands_cached <- diag_results$from_cache
+        plotdf <- diag_results$results$diagnosands_df
         
         # when the coefficients are empty 
         if (isTruthy(input$plot_conf_coefficient)) {
@@ -140,7 +142,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         react$diagnosands <- plotdf
-        diag_results$diagnosands_df_for_plot <- plotdf
+        diag_results$results$diagnosands_df_for_plot <- plotdf
         
         diag_results
     })
@@ -182,6 +184,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         react$diagnosands[cols]
     })
     
+    results_cached_message <- reactive({
+        if (react$diagnosands_cached) {
+            return(p('Results loaded from cached diagnoses. You can disable caching in the top panel "Configure simulations".'))
+        } else {
+            return('')
+        }
+    })
+    
     
     ### output elements ###
     
@@ -191,7 +201,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         design_tab_proxy$all_design_args_fixed()
     })
     outputOptions(output, 'all_design_args_fixed', suspendWhenHidden = FALSE)
-    
     
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
@@ -236,21 +245,24 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     })
     
     # make the plot reactive
-    plotinput <- reactive({
+    generate_plot <- reactive({
         n_steps = 6
         withProgress(message = 'Simulating data and generating plot...', value = 0, {
             incProgress(1/n_steps)
             diag_res <- get_diagnoses_for_plot()
-            req(diag_res)
-            plotdf <- diag_res$diagnosands_df_for_plot
             
-            # the bound value of confidence interval: diagnosand values +/-SE*1.96
-            # don't isolate this, because we can change the diagnosand on the fly (no reevaluation necessary)
-            plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
-            plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
+            if (is.null(diag_res)) {
+                return(NULL)
+            }
             
-            # base aesthetics for line plot
+            plotdf <- diag_res$results$diagnosands_df_for_plot
+            
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
+                # the bound value of confidence interval: diagnosand values +/-SE*1.96
+                plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
+                plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
+            
+                # base aesthetics for line plot
                 aes_args <- list(
                     'x' = input$plot_conf_x_param,   
                     'y' = input$plot_conf_diag_param,
@@ -302,8 +314,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 shinyjs::enable('section_diagnosands_download_subset')
                 shinyjs::enable('section_diagnosands_download_full')
                 
-                print(p)
-                
+                p
             })
         })
     })
@@ -315,7 +326,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return(HTML('<p><b>Top panel:</b> Specify the number of simulations
                         in your diagnosis.</p> 
                         <p><b>Left panel:</b> Specify which design arguments to
-                        vary in the diagnosis of your design. You can input numeric 
+                        vary with each design diagnosis. You can input numeric 
                         values separated by a comma (e.g., 10, 20, 30) or provide 
                         ranges of values with one step to create an arithmetic
                         sequence of values (e.g., 10, 20, ..., 100 generates a sequence 
@@ -323,19 +334,42 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                         <p><b>Right panel:</b> Choose which arguments should
                         be mapped to which visual property of the diagnosis plot
                         and which diagnosand should be displayed.</p>
-                        <p>Click <b>"Update plot"</b> to run the diagnoses and
+                        <p>Click <b>"Run diagnoses"</b> to run the diagnoses and
                         display the updated plot.<br><br></p>'))
         } else {
-            return('')
+            results_cached_message()
         }
     })
     
     
     # -------------- center: plot output --------------
     
-    output$plot_output <- renderPlot({
-        print(plotinput())
-        shinyjs::enable('download_plot')
+    # all the following hassle because Shiny would neither:
+    # - accept "auto" as plot height
+    # - allow to show/hide the plot inside a conditional panel (the "Run diagnoses" button would not work anymore)
+    # - allow to show/hide the plot using shinyjs (same as above)
+    
+    output$plot_output <- renderUI({
+        if (is.null(react$diagnosands)) {
+            h <- 1
+        } else {
+            h <- 400
+        }
+        
+        nspace <- NS('tab_inspect')
+        plotOutput(nspace('actual_plot_output'), height = h)
+    })
+    
+    output$actual_plot_output <- renderPlot({
+        p <- generate_plot()
+        
+        if (!is.null(p)) {
+            shinyjs::enable('download_plot')
+        } else {
+            shinyjs::disable('download_plot')
+        }
+        
+        p
     })
     
     # -------- download the plot --------
@@ -351,15 +385,25 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         },
         content = function(file) {
             png(file, width = 1200, height = 900)
-            print(plotinput())
+            print(generate_plot())
             dev.off()
         }
     )
     
     # center below plot: diagnosands table message
-    output$section_diagnosands_message <- renderText({
+    output$section_diagnosands_message <- renderUI({
         if (is.null(react$diagnosands)) {
-            return('Not data yet. Set comparison parameters and generate a plot first.')
+            return(p('Missing simulations data. Vary design parameters on the left and click "Run diagnoses".'))
+        } else {
+            results_cached_message()
+        }
+    })
+    
+    output$single_diagnosands_message <- renderUI({
+        if (is.null(react$diagnosands)) {
+            return(p('Not data yet. Set comparison parameters and generate a plot first.'))
+        } else {
+            results_cached_message()
         }
     })
     
@@ -402,7 +446,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # diagnosis table for single design
     output$single_diagnosands_table <- renderDataTable({
         diag_res <- get_diagnosis_for_single_design()
-        select(diag_res$diagnosands_df, -c(design_label, n_sims))
+        react$diagnosands_cached <- diag_results$from_cache
+        select(diag_res$results$diagnosands_df, -c(design_label, n_sims))
     }, options = list_merge(diagnosis_table_opts, list(paging = FALSE)))
     
     # right: inspection plot configuration

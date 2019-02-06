@@ -136,6 +136,7 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
     if (advance_progressbar) incProgress(advance_progressbar)
     
     # get simulated data either from cache or generate it
+    from_cache <- FALSE   # records if some data was loaded from cache
     
     simdata <- NULL
     if (use_cache) {
@@ -146,6 +147,7 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
             if (advance_progressbar) incProgress(advance_progressbar)
             simdata <- readRDS(cache_file)
             print('loaded simulation data from cache')
+            from_cache <- TRUE
         }
     } else {
         cache_file <- NULL
@@ -192,6 +194,7 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
             if (advance_progressbar) incProgress(advance_progressbar)
             diag_res <- readRDS(diag_cache_file)
             print('loaded diagnosis results from cache')
+            from_cache <- TRUE
         }
     } else {
         diag_cache_file <- NULL
@@ -207,5 +210,5 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
         }
     }
 
-    diag_res
+    list(results = diag_res, from_cache = from_cache)
 }
