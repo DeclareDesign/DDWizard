@@ -132,7 +132,9 @@ designTab <- function(input, output, session) {
                 react$design_name_once_changed <- TRUE
             }
             
-            output_args$fixed <- fixed_args
+            if (design_supports_fixed_arg()) {
+                output_args$fixed <- fixed_args
+            }
             
             print('design args changed:')
             print(output_args)
