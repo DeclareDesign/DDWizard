@@ -94,34 +94,20 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "Design" tab, otherwise it's the design parameters for comparison UI for the "Inspect" tab.
 # `react` is a list of reactive values (designer object and arg. definitions are needed).
 # `nspace` is the namespace prefix function
-# `design_instance_fn` is the function to generate a design (`design_instance` from app.R).
+# `design_instance_fn` is the function to generate a design (`design_instance` from tab_design.R).
 # `input` is the shiny input values list, which is used to determine whether an argument has been set to
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
-create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, input = NULL, defaults = NULL) {
+create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL) {
     boxes <- list()
-
-    args <- formals(react$design)
     
-    if (is.null(react$design_argdefinitions)) design_instance_fn()    # create instance with default args in order
-    
-    # to get arg. definitions
+    args_design <- get_designer_args(react$design)
     arg_defs <- react$design_argdefinitions
-    # subset our arg_design, filter the arguments we want
-    args_design_med <- args[!sapply(args, is.null)]
-    args_design <- args_design_med[!sapply(args_design_med, is.character)]
-    if (sum(sapply(args_design, is.logical)) > 0) {
-        args_design <- args_design[!sapply(args_design, is.logical)]
-    } else if (!is.na(args_design["conditions"])){
-        args_design["conditions"] <- NULL
-    } else {
-        args_design
-    }
     
     for (argname in names(args_design)) {
         if (argname %in% args_control_skip_design_args)
             next()
-        argdefault <- args[[argname]]
+        argdefault <- args_design[[argname]]
         argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
         inp_elem_complete <- NULL
         
