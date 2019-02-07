@@ -98,7 +98,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # `input` is the shiny input values list, which is used to determine whether an argument has been set to
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
-create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL) {
+# `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
+create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE) {
     boxes <- list()
     
     args_design <- get_designer_args(react$design)
@@ -121,11 +122,24 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             # for the "design" tab, create two input elements for each argument:
             # 1. the argument value input box
             # 2. the "fixed" checkbox next to it
-            inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition, width = '70%', nspace = nspace, idprefix = type)
+            if (create_fixed_checkboxes) {
+                inp_elem_width <- '70%'
+            } else {
+                inp_elem_width <- '100%'
+            }
+            
+            inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition,
+                                                  width = inp_elem_width, nspace = nspace, idprefix = type)
+            
             if (!is.null(inp_elem)) {
-                inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                       checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%')),
-                                              inp_elem)
+                if (create_fixed_checkboxes) {
+                    inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                                           checkboxInput(nspace(inp_elem_name_fixed),
+                                                                         label = 'fixed', width = '30%')),
+                                                  inp_elem)
+                } else {
+                    inp_elem_complete <- inp_elem
+                }
             } else {
                 warning(paste('input element could not be created for argument', argname))
             }
