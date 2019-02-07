@@ -160,7 +160,6 @@ designTab <- function(input, output, session) {
                 }, type = 'output')
             }, type = 'message')
             
-            react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
             print('design instance changed')
         }
         
@@ -215,7 +214,7 @@ designTab <- function(input, output, session) {
         
         react$design <- getFromNamespace(input$import_design_library, 'DesignLibrary')
         react$design_id <- input$import_design_library
-        react$design_argdefinitions <- NULL      # make sure to reload the argument definitions from new design
+        react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
         react$design_name_once_changed <- FALSE
         react$fix_toggle <- 'fix'
         
@@ -265,7 +264,7 @@ designTab <- function(input, output, session) {
         nspace <- NS('tab_design')
         
         create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
-                                   design_instance_fn = design_instance, input = NULL, defaults = NULL)
+                                   input = NULL, defaults = NULL)
     })
     
     # left side: "Fix/Unfix all" button

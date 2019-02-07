@@ -86,11 +86,30 @@ make_valid_r_object_name <- function(s) {
 }
 
 
+# Return a list of valid designer parameters
+get_designer_args <- function(designer) {
+    args <- formals(designer)
+    
+    # subset our arg_design, filter the arguments we want
+    args_design_med <- args[!sapply(args, is.null)]
+    args_design <- args_design_med[!sapply(args_design_med, is.character)]
+    if (sum(sapply(args_design, is.logical)) > 0) {
+        args_design <- args_design[!sapply(args_design, is.logical)]
+    } else if (!is.na(args_design["conditions"])){
+        args_design["conditions"] <- NULL
+    } else {
+        args_design
+    }
+    
+    args_design
+}
+
+
 # For a given designer `design`, its argument definitions `d_argdefs` and the shiny input values object `input`,
 # parse the sequence string for each designer argument and generate a list of arguments used for inspection.
 # These argument values will define the paremeter space for inspection.
 get_args_for_inspection <- function(design, d_argdefs, input) {
-    d_args <- formals(design)
+    d_args <- get_designer_args(design)
     
     insp_args <- list()
     
