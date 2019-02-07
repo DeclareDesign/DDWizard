@@ -105,24 +105,30 @@ get_designer_args <- function(designer) {
 }
 
 
-# For a given designer `design`, its argument definitions `d_argdefs` and the shiny input values object `input`,
+# For a given designer `design`, its argument definitions `d_argdefs`, the inspector tab input values object `inspect_input`,
+# a character vector of fixed design arguments `fixed_args`, and the design tab input values object `design_input`,
 # parse the sequence string for each designer argument and generate a list of arguments used for inspection.
 # These argument values will define the paremeter space for inspection.
-get_args_for_inspection <- function(design, d_argdefs, input) {
+get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input) {
     d_args <- get_designer_args(design)
     
     insp_args <- list()
     
     for (d_argname in names(d_args)) {
-        d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
-        inp_name <- paste0('inspect_arg_', d_argname)
+        if (d_argname %in% fixed_args) {   # for a fixed argument, use the design tab input value
+            inp_name <- paste0('design_arg_', d_argname)
+            inp_value <- design_input[[inp_name]]
+        } else {                           # else use the value from the inspect tab
+            inp_name <- paste0('inspect_arg_', d_argname)
+            inp_value <- inspect_input[[inp_name]]
+        }
         
-        inp_value <- input[[inp_name]]
+        d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
         d_argclass <- d_argdef$class
         
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
-        if (isTruthy(inp_value) && !isTruthy(input[[inp_elem_name_fixed]])) {
+        if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
         }
     }

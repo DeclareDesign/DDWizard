@@ -80,7 +80,7 @@ designTab <- function(input, output, session) {
         output_args <- list()
         
         if (!is.null(react$design)) {   # return empty list if no designer given
-            args <- formals(react$design)
+            args <- get_designer_args(react$design)
             arg_defs <- react$design_argdefinitions   # is NULL on first run, otherwise data frame of argument definitions (class, min/max)
             
             if (is.null(arg_defs)) {
@@ -166,11 +166,11 @@ designTab <- function(input, output, session) {
         d_inst
     })
     
-    # returns TRUE if at least one designer argument was set to "fixed", otherwise FALSE
-    at_least_one_design_arg_fixed <- reactive({
+    # return a character vector that lists the arguments set as "fixed"
+    get_fixed_design_args <- reactive({
         req(react$design)
         
-        args <- formals(react$design)
+        args <- get_designer_args(react$design)
         
         args_fixed <- sapply(names(args), function(argname) {
             inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
@@ -181,25 +181,20 @@ designTab <- function(input, output, session) {
             }
         })
         
-        sum(args_fixed, na.rm = TRUE) > 0
+        args_fixed <- args_fixed[!is.na(args_fixed)]
+        names(args_fixed)[args_fixed]
+    })
+    
+    # returns TRUE if at least one designer argument was set to "fixed", otherwise FALSE
+    at_least_one_design_arg_fixed <- reactive({
+        length(get_fixed_design_args()) > 0
     })
     
     # returns TRUE if all design arguments were set to fixed, otherwise FALSE
     all_design_args_fixed <- reactive({
-        req(react$design)
-        
-        args <- formals(react$design)
-        
-        args_fixed <- sapply(names(args), function(argname) {
-            inp_elem_name_fixed <- paste0('design_arg_', argname, '_fixed')
-            if (!is.null(input[[inp_elem_name_fixed]])) {
-                input[[inp_elem_name_fixed]]
-            } else {
-                NA
-            }
-        })
-        
-        sum(args_fixed, na.rm = TRUE) == sum(!is.na(args_fixed))
+        all_args <- get_designer_args(react$design)
+        args_fixed <- get_fixed_design_args()
+        length(args_fixed) == length(all_args)
     })
     
     
@@ -229,7 +224,7 @@ designTab <- function(input, output, session) {
     
     # input observer for click on "Fix/Unfix all" button
     observeEvent(input$fix_toggle_click, {
-        args <- formals(react$design)
+        args <- get_designer_args(react$design)
 
         checkbox_val <- react$fix_toggle == 'fix'
 
@@ -415,7 +410,8 @@ designTab <- function(input, output, session) {
         design_args = design_args,
         design_instance = design_instance,
         input = input,
-        all_design_args_fixed = all_design_args_fixed
+        all_design_args_fixed = all_design_args_fixed,
+        get_fixed_design_args = get_fixed_design_args
     ))
 }
     
