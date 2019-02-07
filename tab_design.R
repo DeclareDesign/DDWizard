@@ -30,7 +30,9 @@ designTabUI <- function(id, label = 'Design') {
                     material_card("Set design parameters",
                         htmlOutput(nspace('design_description')),
                         textInput(nspace('design_arg_design_name'), 'Design name'),
-                        div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn'))),
+                        conditionalPanel(paste0("output['", nspace('design_supports_fixed_arg'), "'] != ''"),
+                            div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn')))
+                        ),
                         uiOutput(nspace("design_parameters"))    # display *all* arguments of an imported design
                     )
                 ))
@@ -166,9 +168,20 @@ designTab <- function(input, output, session) {
         d_inst
     })
     
+    # return TRUE if designer supports "fixed" argument, else FALSE
+    design_supports_fixed_arg <- reactive({
+        req(react$design)
+        #return(FALSE)  # for testing
+        'fixed' %in% names(formals(react$design))
+    })
+    
     # return a character vector that lists the arguments set as "fixed"
     get_fixed_design_args <- reactive({
         req(react$design)
+        
+        if (!design_supports_fixed_arg()) {
+            return(character())   # empty char vector
+        }
         
         args <- get_designer_args(react$design)
         
@@ -245,6 +258,10 @@ designTab <- function(input, output, session) {
     })
     
     ### output elements ###
+    
+    # hidden (for conditional panel)
+    output$design_supports_fixed_arg <- design_supports_fixed_arg
+    outputOptions(output, 'design_supports_fixed_arg', suspendWhenHidden = FALSE)
 
     # left side: designer description
     output$design_description <- renderUI({
@@ -259,7 +276,8 @@ designTab <- function(input, output, session) {
         nspace <- NS('tab_design')
         
         create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
-                                   input = NULL, defaults = NULL)
+                                   input = NULL, defaults = NULL,
+                                   create_fixed_checkboxes = design_supports_fixed_arg())
     })
     
     # left side: "Fix/Unfix all" button
