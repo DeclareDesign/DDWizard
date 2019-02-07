@@ -119,7 +119,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         # get all arguments from the left side pane in the "Inspect" tab
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                              design_tab_proxy$react$design_argdefinitions,
-                                             input)
+                                             input,
+                                             design_tab_proxy$get_fixed_design_args(),
+                                             design_tab_proxy$input)
         
         if (max(sapply(insp_args, length)) == 0) {
             # only if at least one argument is a sequence (i.e. its length is > 1) for comparison,
@@ -458,7 +460,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # diagnosis table for single design
     output$single_diagnosands_table <- renderDataTable({
         diag_res <- get_diagnosis_for_single_design()
-        react$diagnosands_cached <- diag_results$from_cache
+        react$diagnosands_cached <- diag_res$from_cache
         select(diag_res$results$diagnosands_df, -c(design_label, n_sims))
     }, options = list_merge(diagnosis_table_opts, list(paging = FALSE)))
     
@@ -471,6 +473,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             nspace <- NS('tab_inspect')
             inp_prefix <- 'plot_conf_'
             boxes <- list()
+            args_fixed <- design_tab_proxy$get_fixed_design_args()
             all_fixed <- design_tab_proxy$all_design_args_fixed()
             
             # create the design instance and get its estimates
@@ -546,9 +549,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 boxes <- list_append(boxes, inp_con_int_param)
                 
                 # 5. main inspection parameter (x-axis)
-                insp_args <- get_args_for_inspection(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions, input)
+                insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                     design_tab_proxy$react$design_argdefinitions,
+                                                     input,
+                                                     design_tab_proxy$get_fixed_design_args(),
+                                                     design_tab_proxy$input)
+                
                 insp_args_lengths <- sapply(insp_args, length)
                 variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
+                variable_args <- setdiff(variable_args, args_fixed)
                 
                 inp_x_param_id <- paste0(inp_prefix, "x_param")
                 inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
