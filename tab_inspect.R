@@ -86,6 +86,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
 
 inspectTab <- function(input, output, session, design_tab_proxy) {
     react <- reactiveValues(
+        cur_design_id = NULL,       # current design name used in inspection (coming from design tab)
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
         diagnosands_call = NULL     # a closure that actually calculates the diagnosands, valid for current design
@@ -201,6 +202,18 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         design_tab_proxy$all_design_args_fixed()
     })
     outputOptions(output, 'all_design_args_fixed', suspendWhenHidden = FALSE)
+    
+    output$cur_design_id <- reactive({
+        if (!is.null(react$cur_design_id) && react$cur_design_id != design_tab_proxy$react$design_id) {
+            react$diagnosands <- NULL
+            react$diagnosands_cached <- FALSE
+            react$diagnosands_call <- NULL
+        }
+        
+        react$cur_design_id <- design_tab_proxy$react$design_id
+        react$cur_design_id
+    })
+    outputOptions(output, 'cur_design_id', suspendWhenHidden = FALSE)
     
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
@@ -363,7 +376,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     output$actual_plot_output <- renderPlot({
         p <- generate_plot()
         
-        if (!is.null(p)) {
+        if (!is.null(p) && !is.null(react$diagnosands)) {
             shinyjs::enable('download_plot')
         } else {
             shinyjs::disable('download_plot')
