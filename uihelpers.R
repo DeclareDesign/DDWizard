@@ -94,7 +94,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
         if (length(inp_value) > 0 && !is.na(inp_value) && !is.null(argdefinition)) {
             # if there is a input value for an R formula field, convert it to the requested class
             if (argdefinition$class %in% c('numeric', 'integer')) {
-                arg_value <- as.numeric(inp_value)
+                # arg_value <- as.numeric(inp_value)
+                arg_value <- c(sapply(strsplit(gsub(",","",inp_value), " "), as.numeric))
             } else if (argdefinition$class == 'character') {
                 arg_value <- as.character(inp_value)
             } else {
@@ -106,8 +107,13 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
     } else {
         return(NULL)
     }
-    
-    return(ifelse(length(inp_value) > 0, arg_value, argdefault))
+    # ifelse cannot return vector
+    if(length(inp_value) > 0){
+        return(arg_value)
+    }else{
+        return(argdefault) 
+    }
+   
 }
 
 
