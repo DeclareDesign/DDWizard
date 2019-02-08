@@ -61,7 +61,7 @@ designTabUI <- function(id, label = 'Design') {
 
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
-    
+    shinyjs::disable("import_from_design_lib")
     ### reactive values  ###
     
     react <- reactiveValues(
@@ -237,6 +237,9 @@ designTab <- function(input, output, session) {
         updateTextInput(session, 'design_arg_design_name', value = gsub("designer","design",react$design_id))
     })
     
+    Sys.sleep(2)
+    shinyjs::enable("import_from_design_lib")
+    
     # input observer for click on "Fix/Unfix all" button
     observeEvent(input$fix_toggle_click, {
         args <- get_designer_args(react$design)
@@ -310,7 +313,9 @@ designTab <- function(input, output, session) {
                 option[i] <- paste(cached[i], sep = "_", "designer")
             }
         }
-        test <- sub("_", " ",sub("_", " ", sub("_", " ", sub("_designer", "", option[!is.na(option)]))))
+        
+        test <- gsub("_", " ",gsub("_designer","", option[!is.na(option)]))
+            #sub("_", " ",sub("_", " ", sub("_", " ", sub("_designer", "", option[!is.na(option)]))))
         options_data <- data.frame(names = option[!is.na(option)],abbr = stri_trans_totitle(test), stringsAsFactors = FALSE)
         option_list <- as.list(options_data$names)
         names(option_list) <- options_data$abbr
