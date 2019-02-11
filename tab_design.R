@@ -22,7 +22,7 @@ designTabUI <- function(id, label = 'Design') {
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
-                                  actionButton(nspace("import_from_design_lib"), label = "Import")
+                                  actionButton(nspace("import_from_design_lib"), label = "Import", disabled = "disabled")
                               )
                 ),
                 # show designer parameters if a design was loaded
@@ -61,7 +61,7 @@ designTabUI <- function(id, label = 'Design') {
 
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
-    shinyjs::disable("import_from_design_lib")
+    
     ### reactive values  ###
     
     react <- reactiveValues(
@@ -237,9 +237,6 @@ designTab <- function(input, output, session) {
         updateTextInput(session, 'design_arg_design_name', value = gsub("designer","design",react$design_id))
     })
     
-    Sys.sleep(2)
-    shinyjs::enable("import_from_design_lib")
-    
     # input observer for click on "Fix/Unfix all" button
     observeEvent(input$fix_toggle_click, {
         args <- get_designer_args(react$design)
@@ -319,6 +316,8 @@ designTab <- function(input, output, session) {
         options_data <- data.frame(names = option[!is.na(option)],abbr = stri_trans_totitle(test), stringsAsFactors = FALSE)
         option_list <- as.list(options_data$names)
         names(option_list) <- options_data$abbr
+        
+        shinyjs::enable("import_from_design_lib")
 
         selectInput(nspace("import_design_library"), label = "Choose design name",
                     selected = "two_arm_designer", choices = option_list,
