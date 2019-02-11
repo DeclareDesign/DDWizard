@@ -30,6 +30,14 @@ source('tab_inspect.R')
 # Frontend: User interface definition #
 #######################################
 
+piwik_code_file <- 'www/piwik.txt'
+if (file.exists(piwik_code_file)) {
+    piwik_code <- readChar(piwik_code_file, file.info(piwik_code_file)$size)
+    print('using PiWik code')
+} else {
+    piwik_code <- ''
+}
+
 ui <- material_page(
     # title
     title = app_title,
@@ -40,7 +48,8 @@ ui <- material_page(
     bootstrapLib(),
     withMathJax(),
     tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
+        HTML(piwik_code)
     ),
     shinyjs::useShinyjs(),
     

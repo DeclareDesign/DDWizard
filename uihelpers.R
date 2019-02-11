@@ -121,34 +121,21 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "Design" tab, otherwise it's the design parameters for comparison UI for the "Inspect" tab.
 # `react` is a list of reactive values (designer object and arg. definitions are needed).
 # `nspace` is the namespace prefix function
-# `design_instance_fn` is the function to generate a design (`design_instance` from app.R).
+# `design_instance_fn` is the function to generate a design (`design_instance` from tab_design.R).
 # `input` is the shiny input values list, which is used to determine whether an argument has been set to
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
-create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, input = NULL, defaults = NULL) {
+# `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
+create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE) {
     boxes <- list()
-
-    args <- formals(react$design)
     
-    if (is.null(react$design_argdefinitions)) design_instance_fn()    # create instance with default args in order
-    
-    # to get arg. definitions
+    args_design <- get_designer_args(react$design)
     arg_defs <- react$design_argdefinitions
-    # subset our arg_design, filter the arguments we want
-    args_design_med <- args[!sapply(args, is.null)]
-    args_design <- args_design_med[!sapply(args_design_med, is.character)]
-    if (sum(sapply(args_design, is.logical)) > 0) {
-        args_design <- args_design[!sapply(args_design, is.logical)]
-    } else if (!is.na(args_design["conditions"])){
-        args_design["conditions"] <- NULL
-    } else {
-        args_design
-    }
     
     for (argname in names(args_design)) {
         if (argname %in% args_control_skip_design_args)
             next()
-        argdefault <- args[[argname]]
+        argdefault <- args_design[[argname]]
         argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
         inp_elem_complete <- NULL
         
@@ -162,11 +149,24 @@ create_design_parameter_ui <- function(type, react, nspace, design_instance_fn, 
             # for the "design" tab, create two input elements for each argument:
             # 1. the argument value input box
             # 2. the "fixed" checkbox next to it
-            inp_elem <- input_elem_for_design_arg(react, argname, argdefault, argdefinition, width = '70%', nspace = nspace, idprefix = type)
+            if (create_fixed_checkboxes) {
+                inp_elem_width <- '70%'
+            } else {
+                inp_elem_width <- '100%'
+            }
+            
+            inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition,
+                                                  width = inp_elem_width, nspace = nspace, idprefix = type)
+
             if (!is.null(inp_elem)) {
-                inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                       checkboxInput(nspace(inp_elem_name_fixed), label = 'fixed', width = '30%')),
-                                              inp_elem)
+                if (create_fixed_checkboxes) {
+                    inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                                           checkboxInput(nspace(inp_elem_name_fixed),
+                                                                         label = 'fixed', width = '30%')),
+                                                  inp_elem)
+                } else {
+                    inp_elem_complete <- inp_elem
+                }
             } else {
                 warning(paste('input element could not be created for argument', argname))
             }
