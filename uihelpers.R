@@ -13,9 +13,8 @@ library(ggplot2)
 # Use min/max and class definition from `argdefinition` (comes from designer "definitions" attrib.).
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
 # Returns NULL if argument class is not supported.
-input_elem_for_design_arg <- function(react, argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
-    
-    args <- formals(react$design) # need to evaluate design defaults in cases when input is language
+input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
+    args <- formals(design) # need to evaluate design defaults in cases when input is language
     
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
     
@@ -155,7 +154,7 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 inp_elem_width <- '100%'
             }
             
-            inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition,
+            inp_elem <- input_elem_for_design_arg(react$design, argname, argdefault, argdefinition,
                                                   width = inp_elem_width, nspace = nspace, idprefix = type)
 
             if (!is.null(inp_elem)) {
