@@ -226,16 +226,33 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         d_args <- design_tab_proxy$design_args()
-        print(d_args)
+        d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
+        
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
             defaults <- sapply(names(d_args), function(argname) {
-                ifelse(is.null(input[[paste0('inspect_arg_', argname)]]) || length(parse_sequence_string(input[[paste0('inspect_arg_', argname)]])) < 2,
-                       as.character(d_args[[argname]]),
-                       input[[paste0('inspect_arg_', argname)]])
+                arg_inspect_input <- input[[paste0('inspect_arg_', argname)]]
+                if (is.null(arg_inspect_input) || length(parse_sequence_string(arg_inspect_input)) < 2) {
+                    arg_char <- as.character(d_args[[argname]])
+                    if (d_args_vecinput[argname]) {  # vector of vectors input
+                        return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
+                    } else {
+                        return(arg_char)
+                    }
+                } else {
+                    return(arg_inspect_input)
+                }
             }, simplify = FALSE)
         })
+        
+        print('D_ARGS/')
+        print(d_args)
+        print('/D_ARGS')
+        
+        print('DEFAULTS/')
+        print(defaults)
+        print('/DEFAULTS')
         
         # set a default value for "N" the first time
         # but there are some design without N argument
@@ -254,7 +271,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
                                                   input = design_tab_proxy$input,
-                                                  defaults = defaults)
+                                                  defaults = defaults,
+                                                  textarea_inputs = names(d_args_vecinput)[d_args_vecinput])
         tags$div(param_boxes)
     })
     

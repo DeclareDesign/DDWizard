@@ -128,7 +128,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
-create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE) {
+create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE,
+                                       textarea_inputs = character()) {
     boxes <- list()
     
     args_design <- get_designer_args(react$design)
@@ -184,7 +185,12 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             }
             
             # in "inspect" tab, the input is always a text input in order to support input of sequences
-            inp_elem_complete <- textInput(nspace(paste0('inspect_arg_', argname)), argname, value = argvalue)
+            inp_id <- nspace(paste0('inspect_arg_', argname))
+            if (argname %in% textarea_inputs) {
+                inp_elem_complete <- textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical')
+            } else {
+                inp_elem_complete <- textInput(inp_id, argname, value = argvalue, width = '100%')
+            }
         }
         
         if (!is.null(inp_elem_complete)) {
