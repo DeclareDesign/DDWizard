@@ -137,11 +137,12 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
 }
 
 
-# get cache file name unique to cache type `cachetype` (simulation or diagnosis results),
+# get cache file name unique to cache type `cachetype` (designs, simulation or diagnosis results),
 # parameter space `args`, number of (bootstrap) simulations `sims`, designer name `designer`
-get_diagnosis_cache_filename <- function(cachetype, args, sims, designer) {
+get_diagnosis_cache_filename <- function(cachetype, args, sims, bs_sims, designer) {
     fingerprint_args <- args
     fingerprint_args$sims <- sims
+    fingerprint_args$bs_sims <- bs_sims
     fingerprint_args$design <- designer
     fingerprint_args$cache_version <- 1       # increment whenever the simulated data in cache is not compatible anymore (i.e. DD upgrade)
     fingerprint <- digest(fingerprint_args)   # uses MD5
@@ -156,17 +157,39 @@ get_diagnosis_cache_filename <- function(cachetype, args, sims, designer) {
 # data or create newly simulated data for running diagnoses.
 # The simulations are run in parallel if packages `future` and `future.apply` are installed.
 run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call, use_cache = TRUE, advance_progressbar = 0) {
-    # generate designs from designer with arguments `args`
-    all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
-    if (advance_progressbar) incProgress(advance_progressbar)
+    # set up to run in parallel
+    plan('multicore', workers = n_diagnosis_workers)
     
-    # get simulated data either from cache or generate it
+    all_designs <- NULL
+    if (use_cache) {
+        # cache fingerprint generated from designer object, simulation config. and parameter space
+        designs_cache_file <- get_diagnosis_cache_filename('designs', args, NULL, NULL, designer)
+        
+        if (file.exists(designs_cache_file)) {   # read and return result object from cache
+            if (advance_progressbar) incProgress(advance_progressbar)
+            all_designs <- readRDS(designs_cache_file)
+            print('loaded generated designs from cache')
+        }
+    } else {
+        designs_cache_file <- NULL
+    }
+
+    if (is.null(all_designs)) {  # generate designs
+        # generate designs from designer with arguments `args`
+        all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
+        if (advance_progressbar) incProgress(advance_progressbar)
+        
+        # save designs to cache if requested
+        if (!is.null(all_designs) && !is.null(designs_cache_file)) {
+            saveRDS(all_designs, designs_cache_file)
+        }
+    }
+    
     from_cache <- FALSE   # records if some data was loaded from cache
-    
     simdata <- NULL
     if (use_cache) {
         # cache fingerprint generated from designer object, simulation config. and parameter space
-        cache_file <- get_diagnosis_cache_filename('simdata', args, sims, designer)
+        cache_file <- get_diagnosis_cache_filename('simdata', args, sims, NULL, designer)
         
         if (file.exists(cache_file)) {   # read and return result object from cache
             if (advance_progressbar) incProgress(advance_progressbar)
@@ -177,9 +200,7 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
     } else {
         cache_file <- NULL
     }
-    
-    # set up to run in parallel
-    plan('multicore', workers = n_diagnosis_workers)
+
     
     if (is.null(simdata)) {  # generate simulations
         # simulate data
@@ -213,7 +234,7 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
             'from_simdata' = cache_file
         )
         
-        diag_cache_file <- get_diagnosis_cache_filename('diagresult', args, bootstrap_sims, designer)
+        diag_cache_file <- get_diagnosis_cache_filename('diagresult', args, sims, bootstrap_sims, designer)
         
         if (file.exists(diag_cache_file)) {   # read and return result object from cache
             if (advance_progressbar) incProgress(advance_progressbar)
