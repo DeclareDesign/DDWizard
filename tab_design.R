@@ -89,7 +89,7 @@ designTab <- function(input, output, session) {
                 return(output_args)    # empty list
             }
             
-            fixed_args <- c('design_name')   # vector of fixed arguments. design_name is always fixed
+            fixed_args <- NULL #c('design_name')   # vector of fixed arguments. design_name is always fixed
             
             all_default <- TRUE
             for (argname in names(args)) {
@@ -122,10 +122,10 @@ designTab <- function(input, output, session) {
             
             # additional designer arguments: design name and vector of fixed arguments
             if (is.null(react$design_argdefinitions)) {
-                output_args$design_name <- react$design_id   # should always be a valid R object name
-                updateTextInput(session, 'design_arg_design_name', value = output_args$design_name)
+                # output_args$design_name <- react$design_id   # should always be a valid R object name
+                updateTextInput(session, 'design_arg_design_name', value = react$design_id)
             } else if (!is.null(input$design_arg_design_name) && (!all_default || react$design_name_once_changed)) {
-                output_args$design_name <- make_valid_r_object_name(input$design_arg_design_name)
+                # output_args$design_name <- make_valid_r_object_name(input$design_arg_design_name)
                 # updateTextInput(session, 'design_arg_design_name', value = output_args$design_name)
                 react$design_name_once_changed <- TRUE
             }
@@ -328,6 +328,8 @@ designTab <- function(input, output, session) {
         if(!is.null(d) && !is.null(attr(d, 'code'))) {
             # use the "code" attribute of a design instance and convert it to a single string
             code_text <- paste(attr(d, 'code'), collapse = "\n")
+            default_designer_name <- gsub("designer","design",react$design_id)
+            code_text <- gsub(default_designer_name, make_valid_r_object_name(input$design_arg_design_name), code_text)
         } else {
             code_text <- ''
         }
