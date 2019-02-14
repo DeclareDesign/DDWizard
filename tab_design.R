@@ -330,6 +330,8 @@ designTab <- function(input, output, session) {
         if(!is.null(d) && !is.null(attr(d, 'code'))) {
             # use the "code" attribute of a design instance and convert it to a single string
             code_text <- paste(attr(d, 'code'), collapse = "\n")
+            default_designer_name <- gsub("designer","design",react$design_id)
+            code_text <- gsub(default_designer_name, input$design_arg_design_name, code_text)
         } else {
             code_text <- ''
         }
