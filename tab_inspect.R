@@ -56,7 +56,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                   downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
                     ),
                     bsCollapse(id='inspect_sections_container',
-                               bsCollapsePanel('Diagnosands',
+                               bsCollapsePanel('Diagnosis',
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
