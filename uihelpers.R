@@ -106,13 +106,15 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
         } else {
             return(NULL)
         }
+    } else if (argclass == 'character' || argdefinition$class == 'character') {
+        arg_value <- trimws(strsplit(inp_value, ",")[[1]])
     } else {
         return(NULL)
     }
-    # ifelse cannot return vector
-    if(length(inp_value) > 0){
+
+    if (length(arg_value) > 0) {
         return(arg_value)
-    }else{
+    } else {
         return(argdefault) 
     }
    
@@ -133,6 +135,7 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
     boxes <- list()
     
     args_design <- get_designer_args(react$design)
+    print(args_design)
     arg_defs <- react$design_argdefinitions
     
     for (argname in names(args_design)) {
