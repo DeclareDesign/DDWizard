@@ -103,9 +103,6 @@ designTab <- function(input, output, session) {
                 if (length(argdefinition) != 0) {
                     argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                     
-                    print(argname)
-                    print(argdefault)
-                    
                     if ((!is.null(argvalue) && is.null(argdefault))
                         || (!is.null(argvalue) && argvalue != ''
                             && (length(argvalue) != length(argdefault) || argvalue != argdefault)))

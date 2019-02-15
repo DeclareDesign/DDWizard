@@ -137,22 +137,7 @@ make_valid_r_object_name <- function(s) {
 
 # Return a list of valid designer parameters
 get_designer_args <- function(designer) {
-    args <- formals(designer)
-    
-    # subset our arg_design, filter the arguments we want
-    # args_design_med <- args[!sapply(args, is.null)]
-    # args_design <- args_design_med[!sapply(args_design_med, is.character)]
-    # if (sum(sapply(args_design, is.logical)) > 0) {
-    #     args_design <- args_design[!sapply(args_design, is.logical)]
-    # } else if (!is.na(args_design["conditions"])){
-    #     args_design["conditions"] <- NULL
-    # } else {
-    #     args_design
-    # }
-    #
-    # args_design
-    
-    args
+    formals(designer)
 }
 
 

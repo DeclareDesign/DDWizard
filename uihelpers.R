@@ -89,7 +89,7 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
 design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, argclass, argtype) {
     if (argclass %in% c('numeric', 'integer')) {
         arg_value <- as.numeric(inp_value)
-    } else if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')) { # "language" constructs (R formula/code)
+    } else if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') && argdefinition$class != 'character') { # "language" constructs (R formula/code)
         if (length(inp_value) > 0 && !is.na(inp_value) && !is.null(argdefinition)) {
             # if there is a input value for an R formula field, convert it to the requested class
             if (argdefinition$class %in% c('numeric', 'integer')) {
@@ -135,7 +135,6 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
     boxes <- list()
     
     args_design <- get_designer_args(react$design)
-    print(args_design)
     arg_defs <- react$design_argdefinitions
     
     for (argname in names(args_design)) {
