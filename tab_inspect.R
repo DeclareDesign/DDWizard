@@ -51,7 +51,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
                     material_card("Diagnostic plots",
                                   uiOutput(nspace('plot_message')),
-                                  div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"),
+                                  div(uiOutput(nspace("update_plot")), style = "margin-bottom:10px"),
                                   uiOutput(nspace('plot_output')),
                                   downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
                     ),
@@ -89,7 +89,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         cur_design_id = NULL,       # current design name used in inspection (coming from design tab)
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
-        diagnosands_call = NULL     # a closure that actually calculates the diagnosands, valid for current design
+        diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
+        insp_args_used_in_plot = NULL  # last used design parameters used in plot
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -132,6 +133,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         print('will run diagnoses with arguments:')
         print(insp_args)
         
+        # save the current state of the inspection parameters
+        react$insp_args_used_in_plot <- insp_args
+        
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
         react$diagnosands_cached <- diag_results$from_cache
@@ -162,7 +166,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         run_diagnoses_using_inspection_args(insp_args)
     })
     
-    # get subset data frame of diagnosands for display and download
+    # get subset data frame of diagnosands for display and download once "Update plot" is clicked
     get_diagnosands_for_display <- reactive({
         req(react$diagnosands)
         
@@ -194,7 +198,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return('')
         }
     })
-    
+
     
     ### output elements ###
     
@@ -205,11 +209,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     })
     outputOptions(output, 'all_design_args_fixed', suspendWhenHidden = FALSE)
     
+    # hidden output that records current design ID (i.e. designer name) in order to detect changes of the
+    # designer and then reset the state of the inspect tab
     output$cur_design_id <- reactive({
         if (!is.null(react$cur_design_id) && react$cur_design_id != design_tab_proxy$react$design_id) {
+            # if the designer was changed, reset the reactive values
             react$diagnosands <- NULL
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
+            react$design_params_used_in_plot <- NULL
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
@@ -358,6 +366,28 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # -------------- center: plot output --------------
     
+    # dynamic "Update plot" button
+    output$update_plot <- renderUI({
+        if (is.null(react$insp_args_used_in_plot)) {
+            btn_label <- 'Run diagnoses and update plot'
+        } else {
+            insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_argdefinitions,
+                                                 input,
+                                                 design_tab_proxy$get_fixed_design_args(),
+                                                 design_tab_proxy$input)
+            
+            if (lists_equal_shallow(react$insp_args_used_in_plot, insp_args)) {
+                btn_label <- 'Update plot'
+            } else {
+                btn_label <- 'Run diagnoses and update plot'
+            }
+        }
+        
+        nspace <- NS('tab_inspect')
+        actionButton(nspace('update_plot'), btn_label)
+    })
+    
     # all the following hassle because Shiny would neither:
     # - accept "auto" as plot height
     # - allow to show/hide the plot inside a conditional panel (the "Run diagnoses" button would not work anymore)
@@ -382,6 +412,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             shinyjs::disable('download_plot')
         }
+        
+        print('PRINT PLOT')
         
         p
     })

@@ -33,6 +33,19 @@ list_merge <- function(l1, l2) {
     l_out
 }
 
+# Check if lists `a` and `b` have equal elements in a "shallow" way, i.e. *not* traversing recursively
+# through nested lists.
+lists_equal_shallow <- function(a, b) {
+    if (!setequal(names(a), names(b))) {
+        return(FALSE)
+    }
+    
+    all(sapply(names(a), function (e) {
+        all(a[[e]] == b[[e]])
+    }))
+}
+
+
 # Round numeric values in a data frame to `digits`.
 # Copied from "wizard_shiny" repository.
 round_df <- function(df, digits){
