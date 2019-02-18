@@ -74,6 +74,55 @@ parse_sequence_string <- function(s, cls = 'numeric') {
     }
 }
 
+# Parse a string `s` that denotes a sequence of sequences of class `cls` such as:
+#
+# '(1, 2, 3), (4, 5, 6), (7,8, 9)'
+# or
+# '(1, 2, 3),
+# (4, 5, 6),
+# (7,8, 9)'
+# or
+# (1, 2) (3) (4, 5 ,6)
+#
+# Note the inner sequences must be denoted as "(a, b, ... z)", i.e. there must be a comma to
+# split the values. However, to split the sequences themselves no comma is needed.
+# 
+# If `require_rectangular` is TRUE, all sequences in `s` must be of the same length, i.e. they
+# must form a regular, rectangular matrix (like the first two examples). The output will then
+# be a matrix of size NxM, where N is the number of sequences and M is the number of items in
+# each sequence. If `s` does not form a regular matrix, NULL will be returned.
+# If `require_rectangular` is TRUE, the sequences in `s` can be of any length > 0. The output will
+# then be a list of length N, where N is the number of sequences. Each list item is then a numeric
+# vector of variable length.
+#
+# If the input cannot be parsed, NULL will be returned.
+parse_sequence_of_sequences_string <- function(s, cls = 'numeric', require_rectangular = FALSE) {
+    m <- gregexpr('\\(([^\\(\\)]*)\\)', s)
+    vecs <- regmatches(s, m)
+    
+    if (length(vecs[[1]]) == 0) {
+        return(NULL)
+    }
+    
+    parsed <- sapply(vecs[[1]], function(v) {
+        v <- gsub('[\\(\\)]', '', v)
+        if (cls == 'character') {
+            v <- gsub('["\']', '', v)
+        }
+        parse_sequence_string(v, cls = cls)
+    }, USE.NAMES = FALSE, simplify = require_rectangular)
+    
+    if (require_rectangular) {
+        if (class(parsed) != 'list') {
+            return(t(parsed))
+        } else {
+            return(NULL)
+        }
+    } else {
+        return(parsed)
+    }
+}
+
 
 # Turn a string `s` into a valid R object name.
 make_valid_r_object_name <- function(s) {
@@ -88,20 +137,7 @@ make_valid_r_object_name <- function(s) {
 
 # Return a list of valid designer parameters
 get_designer_args <- function(designer) {
-    args <- formals(designer)
-    
-    # subset our arg_design, filter the arguments we want
-    args_design_med <- args[!sapply(args, is.null)]
-    args_design <- args_design_med[!sapply(args_design_med, is.character)]
-    if (sum(sapply(args_design, is.logical)) > 0) {
-        args_design <- args_design[!sapply(args_design, is.logical)]
-    } else if (!is.na(args_design["conditions"])){
-        args_design["conditions"] <- NULL
-    } else {
-        args_design
-    }
-    
-    args_design
+    formals(designer)
 }
 
 
@@ -109,7 +145,7 @@ get_designer_args <- function(designer) {
 # a character vector of fixed design arguments `fixed_args`, and the design tab input values object `design_input`,
 # parse the sequence string for each designer argument and generate a list of arguments used for inspection.
 # These argument values will define the paremeter space for inspection.
-get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input) {
+get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input, vecinput_args) {
     d_args <- get_designer_args(design)
     
     insp_args <- list()
@@ -129,7 +165,11 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
-            insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
+            if (d_argname %in% vecinput_args) {
+                insp_args[[d_argname]] <- parse_sequence_of_sequences_string(inp_value, d_argclass)
+            } else {
+                insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
+            }
         }
     }
     
@@ -138,13 +178,17 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
 
 
 # get cache file name unique to cache type `cachetype` (simulation or diagnosis results),
-# parameter space `args`, number of (bootstrap) simulations `sims`, designer name `designer`
+# parameter space `args`, number of (bootstrap) simulations `sims`, designer object `designer`
 get_diagnosis_cache_filename <- function(cachetype, args, sims, designer) {
     fingerprint_args <- args
     fingerprint_args$sims <- sims
-    fingerprint_args$design <- designer
+    fingerprint_args$designer_src <- attr(designer, 'srcref')
     fingerprint_args$cache_version <- 1       # increment whenever the simulated data in cache is not compatible anymore (i.e. DD upgrade)
     fingerprint <- digest(fingerprint_args)   # uses MD5
+    
+    # print('CACHE FINGERPRINT ARGS/')
+    # print(fingerprint_args)
+    # print('/CACHE FINGERPRINT ARGS')
     
     sprintf('.cache/%s_%s.RDS', cachetype, fingerprint)
 }

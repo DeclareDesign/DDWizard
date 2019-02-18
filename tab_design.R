@@ -89,7 +89,7 @@ designTab <- function(input, output, session) {
                 return(output_args)    # empty list
             }
             
-            fixed_args <- NULL #c('design_name')   # vector of fixed arguments. design_name is always fixed
+            fixed_args <- NULL
             
             all_default <- TRUE
             for (argname in names(args)) {
@@ -100,16 +100,20 @@ designTab <- function(input, output, session) {
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
                 # convert an input value to a argument value of correct class
-                if (length(argdefinition) != 0){
-                argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
-                
-                if (!is.null(argvalue) && argvalue != '' && argvalue != argdefault) {
-                    all_default <- FALSE
+                if (length(argdefinition) != 0) {
+                    argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
+                    
+                    if ((!is.null(argvalue) && is.null(argdefault))
+                        || (!is.null(argvalue) && argvalue != ''
+                            && (length(argvalue) != length(argdefault) || argvalue != argdefault)))
+                    {
+                        all_default <- FALSE
+                    }
+                    
+                    if (!is.null(argvalue)) {  # add the value to the list of designer arguments
+                        output_args[[argname]] <- argvalue
+                    }
                 }
-                
-                if (!is.null(argvalue)) {  # add the value to the list of designer arguments
-                    output_args[[argname]] <- argvalue
-                }}
                 
                 # determine whether argument was set to "fixed"
                 arg_is_fixed_value <- input[[paste0('design_arg_', argname, '_fixed')]]
