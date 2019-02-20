@@ -120,7 +120,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         # get all arguments from the left side pane in the "Inspect" tab
         d_args <- design_tab_proxy$design_args()
         d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
-        
+
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                              design_tab_proxy$react$design_argdefinitions,
                                              input,
@@ -380,27 +380,38 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # -------------- center: plot output --------------
     
-    # dynamic "Update plot" button
+    # Static action button as default
     output$update_plot <- renderUI({
+        nspace <- NS('tab_inspect')
+        actionButton(nspace('update_plot'), 'Run diagnoses and update plot')
+    })
+    
+    # Reactive button label
+    btn_label <- reactive({
         if (is.null(react$insp_args_used_in_plot)) {
-            btn_label <- 'Run diagnoses and update plot'
+            btn <- 'Run diagnoses and update plot'
         } else {
+            d_args <- design_tab_proxy$design_args()
+            d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
+            
             insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                                  design_tab_proxy$react$design_argdefinitions,
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
-                                                 design_tab_proxy$input)
-            
+                                                 design_tab_proxy$input,
+                                                 names(d_args_vecinput)[d_args_vecinput])
+
             if (lists_equal_shallow(react$insp_args_used_in_plot, insp_args)) {
-                btn_label <- 'Update plot'
+                btn <- 'Update plot'
             } else {
-                btn_label <- 'Run diagnoses and update plot'
+                btn <- 'Run diagnoses and update plot'
             }
         }
-        
-        nspace <- NS('tab_inspect')
-        actionButton(nspace('update_plot'), btn_label)
+        btn
     })
+    
+    # Action button label gets updated only when reactive inspector values don't change
+    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
     
     # all the following hassle because Shiny would neither:
     # - accept "auto" as plot height
