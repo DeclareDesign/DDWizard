@@ -509,8 +509,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     attr(diag_call, 'call')
                 }
                 
-                available_diagnosands <- names(call_args(attr(diag_call, 'call')))
-                available_diagnosands <- setdiff(available_diagnosands, c("keep_defaults", "label"))
+                quick_diagnosis <- suppressWarnings(diagnose_design(d, sims = 2, bootstrap_sims = 0)$diagnosands_df)
+                available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
+                                                                           "term", "n_sims"))
             }
             
             # 1. estimator
