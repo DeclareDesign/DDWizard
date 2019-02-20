@@ -260,8 +260,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             defs <- design_tab_proxy$react$design_argdefinitions
             min_int <- defs$inspector_min[defs$names == first_arg]
-            max_int <- defs$inspector_max[defs$names == first_arg]
             step_int <- defs$inspector_step[defs$names == first_arg]
+            max_int <- min_int + 4*step_int
             defaults[first_arg] <- sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int)
         }
         
