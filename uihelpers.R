@@ -13,7 +13,9 @@ library(ggplot2)
 # Use min/max and class definition from `argdefinition` (comes from designer "definitions" attrib.).
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
 # Returns NULL if argument class is not supported.
-input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
+input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
+    args <- formals(design) # need to evaluate design defaults in cases when input is language
+    
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
     
     argclass <- class(argdefault)
@@ -26,10 +28,26 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
         width = width
     )
     
+    #evaluate arguments in separate environment
+    #this allows us to evaluate 'language' class default arguments and convert resulting vectors to string inputs
+    eval_envir <- new.env()
+    
+    args_eval <- lapply(1:length(args), function(a){
+        evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
+        invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
+        hold <- invisible(get(names(args)[a], envir = eval_envir))
+        if(length(hold) > 1) hold <- paste0(hold, collapse = ", ")
+        return(hold)
+    })
+    
+    names(args_eval) <- names(args)
+    
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
     
-    if (argclass %in% c('call', 'name', 'NULL') && argtype %in% c('language', 'symbol', 'NULL')) {  # "language" constructs (R formula/code)
+    if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')) {  # "language" constructs (R formula/code)
+        inp_elem_args$value = args_eval[[argname]]
+    } else if (argclass == 'NULL' && argtype == 'NULL') {
         inp_elem_args$value = ''
     } else {
         inp_elem_args$value = argdefault
@@ -38,7 +56,7 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
     if ('class' %in% names(argdefinition)) {
         if (argdefinition$class == 'character') {
             inp_elem_constructor <- textInput
-        } else if (argdefinition$class %in% c('numeric', 'integer')) {
+        } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) %in% c('numeric', 'integer')) {
             inp_elem_constructor <- numericInput
             inp_elem_args$min = argmin
             inp_elem_args$max = argmax
@@ -49,6 +67,8 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
             } else if (argdefinition$class == 'integer') {
                 inp_elem_args$step = 1
             }
+        } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) == 'character') {
+            inp_elem_constructor <- textInput
         }
     }
     
@@ -69,11 +89,15 @@ input_elem_for_design_arg <- function(argname, argdefault, argdefinition, nspace
 design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, argclass, argtype) {
     if (argclass %in% c('numeric', 'integer')) {
         arg_value <- as.numeric(inp_value)
-    } else if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')) { # "language" constructs (R formula/code)
+    } else if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') && argdefinition$class != 'character') { # "language" constructs (R formula/code)
         if (length(inp_value) > 0 && !is.na(inp_value) && !is.null(argdefinition)) {
             # if there is a input value for an R formula field, convert it to the requested class
             if (argdefinition$class %in% c('numeric', 'integer')) {
-                arg_value <- as.numeric(inp_value)
+                if (is.character(inp_value)) {
+                    arg_value <- as.numeric(trimws(strsplit(inp_value, ",")[[1]]))
+                } else {
+                    arg_value <- as.numeric(inp_value)
+                }
             } else if (argdefinition$class == 'character') {
                 arg_value <- as.character(inp_value)
             } else {
@@ -82,11 +106,18 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
         } else {
             return(NULL)
         }
+    } else if (argclass == 'character' || argdefinition$class == 'character') {
+        arg_value <- trimws(strsplit(inp_value, ",")[[1]])
     } else {
         return(NULL)
     }
-    
-    return(ifelse(length(inp_value) > 0, arg_value, argdefault))
+
+    if (length(arg_value) > 0) {
+        return(arg_value)
+    } else {
+        return(argdefault) 
+    }
+   
 }
 
 
@@ -99,7 +130,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
-create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE) {
+create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE,
+                                       textarea_inputs = character()) {
     boxes <- list()
     
     args_design <- get_designer_args(react$design)
@@ -128,9 +160,9 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 inp_elem_width <- '100%'
             }
             
-            inp_elem <- input_elem_for_design_arg(argname, argdefault, argdefinition,
+            inp_elem <- input_elem_for_design_arg(react$design, argname, argdefault, argdefinition,
                                                   width = inp_elem_width, nspace = nspace, idprefix = type)
-            
+
             if (!is.null(inp_elem)) {
                 if (create_fixed_checkboxes) {
                     inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
@@ -155,7 +187,12 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             }
             
             # in "inspect" tab, the input is always a text input in order to support input of sequences
-            inp_elem_complete <- textInput(nspace(paste0('inspect_arg_', argname)), argname, value = argvalue)
+            inp_id <- nspace(paste0('inspect_arg_', argname))
+            if (argname %in% textarea_inputs) {
+                inp_elem_complete <- textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical')
+            } else {
+                inp_elem_complete <- textInput(inp_id, argname, value = argvalue, width = '100%')
+            }
         }
         
         if (!is.null(inp_elem_complete)) {
