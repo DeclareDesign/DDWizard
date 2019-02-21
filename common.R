@@ -54,7 +54,7 @@ lists_equal_shallow <- function(a, b, na.rm = FALSE) {
             b_elem <- b_elem[!is.na(b_elem)]
         }
         
-        length(a_elem) == length(b_elem) && all(a_elem == b_elem)
+        is.numeric(a_elem) && is.numeric(b_elem) && length(a_elem) == length(b_elem) && all(a_elem == b_elem)
     }))
 }
 
