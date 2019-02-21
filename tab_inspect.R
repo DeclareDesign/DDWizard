@@ -51,7 +51,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
                     material_card("Diagnostic plots",
                                   uiOutput(nspace('plot_message')),
-                                  div(uiOutput(nspace("update_plot")), style = "margin-bottom:10px"),
+                                  div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"),
                                   uiOutput(nspace('plot_output')),
                                   downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
                     ),
@@ -116,6 +116,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # reactive function to run diagnoses and return the results once "Update plot" is clicked
     get_diagnoses_for_plot <- eventReactive(input$update_plot, {
         req(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions)
+        
+        # in case re-running the diagnoses is not required, directly return the result from the
+        # previous diagnoses saved to "react"
+        if (!rerun_diagnoses_required()) {
+            return(list(
+                results = list(
+                    diagnosands_df_for_plot = react$diagnosands
+                ),
+                from_cache = react$diagnosands_cached
+            ))
+        }
         
         # get all arguments from the left side pane in the "Inspect" tab
         d_args <- design_tab_proxy$design_args()
@@ -193,6 +204,26 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # return data frame subset
         react$diagnosands[cols]
+    })
+    
+    # determines whether it is necessary to re-run the diagnoses (i.e. when also the comparison parameters
+    # on the left have been changed and not only the plot config. parameters)
+    rerun_diagnoses_required <- reactive({
+        if (is.null(react$insp_args_used_in_plot)) {
+            return(TRUE)
+        } else {
+            d_args <- design_tab_proxy$design_args()
+            d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
+            
+            insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_argdefinitions,
+                                                 input,
+                                                 design_tab_proxy$get_fixed_design_args(),
+                                                 design_tab_proxy$input,
+                                                 names(d_args_vecinput)[d_args_vecinput])
+            
+            return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args))
+        }
     })
     
     results_cached_message <- reactive({
@@ -380,34 +411,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # -------------- center: plot output --------------
     
-    # Static action button as default
-    output$update_plot <- renderUI({
-        nspace <- NS('tab_inspect')
-        actionButton(nspace('update_plot'), 'Run diagnoses and update plot')
-    })
-    
     # Reactive button label
     btn_label <- reactive({
-        if (is.null(react$insp_args_used_in_plot)) {
-            btn <- 'Run diagnoses and update plot'
+        if (rerun_diagnoses_required()) {
+            return('Run diagnoses and update plot')
         } else {
-            d_args <- design_tab_proxy$design_args()
-            d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
-            
-            insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
-                                                 design_tab_proxy$react$design_argdefinitions,
-                                                 input,
-                                                 design_tab_proxy$get_fixed_design_args(),
-                                                 design_tab_proxy$input,
-                                                 names(d_args_vecinput)[d_args_vecinput])
-
-            if (lists_equal_shallow(react$insp_args_used_in_plot, insp_args)) {
-                btn <- 'Update plot'
-            } else {
-                btn <- 'Run diagnoses and update plot'
-            }
+            return('Update plot')
         }
-        btn
     })
     
     # Action button label gets updated only when reactive inspector values don't change
@@ -437,8 +447,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             shinyjs::disable('download_plot')
         }
-        
-        print('PRINT PLOT')
         
         p
     })
