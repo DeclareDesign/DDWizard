@@ -205,6 +205,9 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 
                 # in "inspect" tab, the input is always a text input in order to support input of sequences
                 inp_id <- nspace(paste0('inspect_arg_', argname))
+                if (arg_defs$vector[arg_defs$names == argname]) tips[[argname]] <- 
+                    paste0(tips[[argname]], ". Vary by enclosing values within parameters, separated by a space.")
+                
                 if (argname %in% textarea_inputs) {
                     inp_elem_complete <- list(
                         textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
