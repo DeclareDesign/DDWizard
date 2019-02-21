@@ -222,7 +222,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                  design_tab_proxy$input,
                                                  names(d_args_vecinput)[d_args_vecinput])
             
-            return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args))
+            return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
         }
     })
     

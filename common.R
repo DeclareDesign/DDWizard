@@ -35,13 +35,26 @@ list_merge <- function(l1, l2) {
 
 # Check if lists `a` and `b` have equal elements in a "shallow" way, i.e. *not* traversing recursively
 # through nested lists.
-lists_equal_shallow <- function(a, b) {
+lists_equal_shallow <- function(a, b, na.rm = FALSE) {
+    if (na.rm) {
+        a <- a[!is.na(a)]
+        b <- b[!is.na(b)]
+    }
+    
     if (!setequal(names(a), names(b))) {
         return(FALSE)
     }
     
     all(sapply(names(a), function (e) {
-        all(a[[e]] == b[[e]])
+        a_elem <- a[[e]]
+        b_elem <- b[[e]]
+        
+        if (na.rm) {  # doing this here already because we need to remove NAs before checking length()
+            a_elem <- a_elem[!is.na(a_elem)]
+            b_elem <- b_elem[!is.na(b_elem)]
+        }
+        
+        length(a_elem) == length(b_elem) && all(a_elem == b_elem)
     }))
 }
 
