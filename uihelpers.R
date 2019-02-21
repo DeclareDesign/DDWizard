@@ -74,7 +74,7 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
     }
     
     # create the input element and return it
-    if (!is.null(inp_elem_constructor)& !is.null(tips[[argname]])) {
+    if (is.function(inp_elem_constructor) && is.character(tips[[argname]])) {
         return(
             #do.call(inp_elem_constructor, inp_elem_args)
             list(
