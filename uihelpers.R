@@ -79,8 +79,8 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
             #do.call(inp_elem_constructor, inp_elem_args)
             list(
                 do.call(inp_elem_constructor, inp_elem_args),
-                # hover in the right side of args
-                bsPopover(id =inp_id , title = tips[[argname]], content = "", placement = "right", trigger = "hover", options = NULL)
+                # hover on the top of args
+                bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover")
                 )
             )
         
@@ -145,7 +145,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE,
                                        textarea_inputs = character()) {
     boxes <- list()
-    
+    # extract the tips from library
+    tips <- get_tips(react$design)
     args_design <- get_designer_args(react$design)
     arg_defs <- react$design_argdefinitions
     
@@ -183,8 +184,6 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                                                            checkboxInput(nspace(inp_elem_name_fixed),
                                                                          label = 'fixed',
                                                                          width = '30%')),inp_elem)
-                
-                  
                 } else {
                     inp_elem_complete <- inp_elem
                 }
@@ -205,9 +204,15 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             # in "inspect" tab, the input is always a text input in order to support input of sequences
             inp_id <- nspace(paste0('inspect_arg_', argname))
             if (argname %in% textarea_inputs) {
-                inp_elem_complete <- textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical')
+                inp_elem_complete <- list(
+                    textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
+                    bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover"))
             } else {
-                inp_elem_complete <- textInput(inp_id, argname, value = argvalue, width = '100%')
+                inp_elem_complete <- list(
+                    textInput(inp_id, argname, value = argvalue, width = '100%'),
+                    bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover")
+                )
+                   
             }
         }
         
