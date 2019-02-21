@@ -89,7 +89,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         cur_design_id = NULL,       # current design name used in inspection (coming from design tab)
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
-        diagnosands_call = NULL     # a closure that actually calculates the diagnosands, valid for current design
+        diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
+        insp_args_used_in_plot = NULL  # last used design parameters used in plot
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -116,10 +117,21 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     get_diagnoses_for_plot <- eventReactive(input$update_plot, {
         req(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions)
         
+        # in case re-running the diagnoses is not required, directly return the result from the
+        # previous diagnoses saved to "react"
+        if (!rerun_diagnoses_required()) {
+            return(list(
+                results = list(
+                    diagnosands_df_for_plot = react$diagnosands
+                ),
+                from_cache = react$diagnosands_cached
+            ))
+        }
+        
         # get all arguments from the left side pane in the "Inspect" tab
         d_args <- design_tab_proxy$design_args()
         d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
-        
+
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                              design_tab_proxy$react$design_argdefinitions,
                                              input,
@@ -135,6 +147,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         print('will run diagnoses with arguments:')
         print(insp_args)
+        
+        # save the current state of the inspection parameters
+        react$insp_args_used_in_plot <- insp_args
         
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
@@ -166,7 +181,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         run_diagnoses_using_inspection_args(insp_args)
     })
     
-    # get subset data frame of diagnosands for display and download
+    # get subset data frame of diagnosands for display and download once "Update plot" is clicked
     get_diagnosands_for_display <- reactive({
         req(react$diagnosands)
         
@@ -191,6 +206,26 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         react$diagnosands[cols]
     })
     
+    # determines whether it is necessary to re-run the diagnoses (i.e. when also the comparison parameters
+    # on the left have been changed and not only the plot config. parameters)
+    rerun_diagnoses_required <- reactive({
+        if (is.null(react$insp_args_used_in_plot)) {
+            return(TRUE)
+        } else {
+            d_args <- design_tab_proxy$design_args()
+            d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
+            
+            insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_argdefinitions,
+                                                 input,
+                                                 design_tab_proxy$get_fixed_design_args(),
+                                                 design_tab_proxy$input,
+                                                 names(d_args_vecinput)[d_args_vecinput])
+            
+            return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
+        }
+    })
+    
     results_cached_message <- reactive({
         if (react$diagnosands_cached) {
             return(p('Results loaded from cached diagnoses. You can disable caching in the top panel "Configure simulations".'))
@@ -198,7 +233,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return('')
         }
     })
-    
+
     
     ### output elements ###
     
@@ -209,11 +244,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     })
     outputOptions(output, 'all_design_args_fixed', suspendWhenHidden = FALSE)
     
+    # hidden output that records current design ID (i.e. designer name) in order to detect changes of the
+    # designer and then reset the state of the inspect tab
     output$cur_design_id <- reactive({
         if (!is.null(react$cur_design_id) && react$cur_design_id != design_tab_proxy$react$design_id) {
+            # if the designer was changed, reset the reactive values
             react$diagnosands <- NULL
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
+            react$design_params_used_in_plot <- NULL
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
@@ -260,8 +299,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             defs <- design_tab_proxy$react$design_argdefinitions
             min_int <- defs$inspector_min[defs$names == first_arg]
-            max_int <- defs$inspector_max[defs$names == first_arg]
             step_int <- defs$inspector_step[defs$names == first_arg]
+            max_int <- min_int + 4*step_int
             defaults[first_arg] <- sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int)
         }
         
@@ -371,6 +410,18 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     
     # -------------- center: plot output --------------
+    
+    # Reactive button label
+    btn_label <- reactive({
+        if (rerun_diagnoses_required()) {
+            return('Run diagnoses and update plot')
+        } else {
+            return('Update plot')
+        }
+    })
+    
+    # Action button label gets updated only when reactive inspector values don't change
+    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
     
     # all the following hassle because Shiny would neither:
     # - accept "auto" as plot height
@@ -509,8 +560,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     attr(diag_call, 'call')
                 }
                 
-                available_diagnosands <- names(call_args(attr(diag_call, 'call')))
-                available_diagnosands <- setdiff(available_diagnosands, c("keep_defaults", "label"))
+                quick_diagnosis <- suppressWarnings(diagnose_design(d, sims = 2, bootstrap_sims = 0)$diagnosands_df)
+                available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
+                                                                           "term", "n_sims"))
             }
             
             # 1. estimator
