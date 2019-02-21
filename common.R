@@ -151,12 +151,15 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
     insp_args <- list()
     
     for (d_argname in names(d_args)) {
-        if (d_argname %in% fixed_args) {   # for a fixed argument, use the design tab input value
-            inp_name <- paste0('design_arg_', d_argname)
-            inp_value <- design_input[[inp_name]]
+        inp_name_design <- paste0('design_arg_', d_argname)
+        inp_name_inspect <- paste0('inspect_arg_', d_argname)
+        
+        # for a fixed argument or if no input is given in the inspect tab (character arguments),
+        # use the design tab input value
+        if (d_argname %in% fixed_args || is.null(inspect_input[[inp_name_inspect]])) {
+            inp_value <- design_input[[inp_name_design]]
         } else {                           # else use the value from the inspect tab
-            inp_name <- paste0('inspect_arg_', d_argname)
-            inp_value <- inspect_input[[inp_name]]
+            inp_value <- inspect_input[[inp_name_inspect]]
         }
         
         d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
