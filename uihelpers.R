@@ -191,13 +191,24 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 warning(paste('input element could not be created for argument', argname))
             }
         } else {   # type == 'inspect'
-            if (!is.null(defaults) && argname %in% names(defaults)) {
-                argvalue <- as.character(defaults[[argname]])
-            } else {
-                if (typeof(argdefault) %in% c('language', 'symbol')) {
-                    argvalue <- ''
+            # omit character arguments as they only determine label names so they're useless for inspection
+            if (argdefinition$class != 'character') {
+                if (!is.null(defaults) && argname %in% names(defaults)) {
+                    argvalue <- as.character(defaults[[argname]])
                 } else {
-                    argvalue <- as.character(argdefault)
+                    if (typeof(argdefault) %in% c('language', 'symbol')) {
+                        argvalue <- ''
+                    } else {
+                        argvalue <- as.character(argdefault)
+                    }
+                }
+                
+                # in "inspect" tab, the input is always a text input in order to support input of sequences
+                inp_id <- nspace(paste0('inspect_arg_', argname))
+                if (argname %in% textarea_inputs) {
+                    inp_elem_complete <- textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical')
+                } else {
+                    inp_elem_complete <- textInput(inp_id, argname, value = argvalue, width = '100%')
                 }
             }
             
