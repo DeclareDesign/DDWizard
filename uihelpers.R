@@ -206,25 +206,19 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 # in "inspect" tab, the input is always a text input in order to support input of sequences
                 inp_id <- nspace(paste0('inspect_arg_', argname))
                 if (argname %in% textarea_inputs) {
-                    inp_elem_complete <- textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical')
+                    inp_elem_complete <- list(
+                        textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
+                        bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover"))
                 } else {
-                    inp_elem_complete <- textInput(inp_id, argname, value = argvalue, width = '100%')
+                    inp_elem_complete <- list(
+                        textInput(inp_id, argname, value = argvalue, width = '100%'),
+                        bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover")
+                    )
+                    
                 }
             }
             
-            # in "inspect" tab, the input is always a text input in order to support input of sequences
-            inp_id <- nspace(paste0('inspect_arg_', argname))
-            if (argname %in% textarea_inputs) {
-                inp_elem_complete <- list(
-                    textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
-                    bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover"))
-            } else {
-                inp_elem_complete <- list(
-                    textInput(inp_id, argname, value = argvalue, width = '100%'),
-                    bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover")
-                )
-                   
-            }
+            
         }
         
         if (!is.null(inp_elem_complete)) {
