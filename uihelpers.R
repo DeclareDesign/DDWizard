@@ -15,7 +15,8 @@ library(ggplot2)
 # Returns NULL if argument class is not supported.
 input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
     args <- formals(design) # need to evaluate design defaults in cases when input is language
-    
+    # extract the tips from library
+    tips <- attr(design, "tips")
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
     
     argclass <- class(argdefault)
@@ -73,12 +74,23 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
     }
     
     # create the input element and return it
-    if (!is.null(inp_elem_constructor)) {
+    if (!is.null(inp_elem_constructor)& !is.null(tips[[argname]])) {
+        return(
+            #do.call(inp_elem_constructor, inp_elem_args)
+            list(
+                do.call(inp_elem_constructor, inp_elem_args),
+                # hover in the right side of args
+                bsPopover(id =inp_id , title = tips[[argname]], content = "", placement = "right", trigger = "hover", options = NULL)
+                )
+            )
+        
+    }else if (!is.null(inp_elem_constructor)){
         return(do.call(inp_elem_constructor, inp_elem_args))
+    } else{
+        # return NULL if argument class is not supported
+        NULL
     }
-    
-    # return NULL if argument class is not supported
-    NULL
+   
 }
 
 
@@ -162,13 +174,17 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             
             inp_elem <- input_elem_for_design_arg(react$design, argname, argdefault, argdefinition,
                                                   width = inp_elem_width, nspace = nspace, idprefix = type)
+            
 
             if (!is.null(inp_elem)) {
                 if (create_fixed_checkboxes) {
+                    
                     inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
                                                            checkboxInput(nspace(inp_elem_name_fixed),
-                                                                         label = 'fixed', width = '30%')),
-                                                  inp_elem)
+                                                                         label = 'fixed',
+                                                                         width = '30%')),inp_elem)
+                
+                  
                 } else {
                     inp_elem_complete <- inp_elem
                 }
