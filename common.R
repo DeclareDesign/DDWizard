@@ -33,6 +33,12 @@ list_merge <- function(l1, l2) {
     l_out
 }
 
+# Get "tips" from `definitions` attribute of designer
+get_tips <- function(designer){
+    def <- attr(designer, "definitions")
+    sapply(def$names, function(parameter) def$tips[def$names == parameter])
+}
+    
 # Check if lists `a` and `b` have equal elements in a "shallow" way, i.e. *not* traversing recursively
 # through nested lists.
 lists_equal_shallow <- function(a, b, na.rm = FALSE) {

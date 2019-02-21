@@ -16,7 +16,7 @@ library(ggplot2)
 input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
     args <- formals(design) # need to evaluate design defaults in cases when input is language
     # extract the tips from library
-    tips <- attr(design, "tips")
+    tips <- get_tips(design)
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
     
     argclass <- class(argdefault)
