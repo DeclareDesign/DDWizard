@@ -74,23 +74,16 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
     }
     
     # create the input element and return it
-    if (is.function(inp_elem_constructor) && is.character(tips[[argname]])) {
-        return(
-            #do.call(inp_elem_constructor, inp_elem_args)
-            list(
-                do.call(inp_elem_constructor, inp_elem_args),
-                # hover on the top of args
-                bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover")
-                )
-            )
+    if (is.function(inp_elem_constructor)) {
+        ret <- do.call(inp_elem_constructor, inp_elem_args)
+        if(is.character(tips[[argname]])) 
+            ret <- list(ret, dd_tipify(inp_id, argname, tips[[argname]]))
         
-    }else if (!is.null(inp_elem_constructor)){
-        return(do.call(inp_elem_constructor, inp_elem_args))
-    } else{
+    } else { 
         # return NULL if argument class is not supported
-        NULL
+        ret <- NULL
     }
-   
+    ret
 }
 
 
@@ -163,15 +156,13 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             next()
         }
         
+        inp_id <- nspace(paste0('inspect_arg_', argname))
+        
         if (type == 'design') {
             # for the "design" tab, create two input elements for each argument:
             # 1. the argument value input box
             # 2. the "fixed" checkbox next to it
-            if (create_fixed_checkboxes) {
-                inp_elem_width <- '70%'
-            } else {
-                inp_elem_width <- '100%'
-            }
+            inp_elem_width <- ifelse(create_fixed_checkboxes, '70%', '100%')
             
             inp_elem <- input_elem_for_design_arg(react$design, argname, argdefault, argdefinition,
                                                   width = inp_elem_width, nspace = nspace, idprefix = type)
@@ -180,10 +171,12 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             if (!is.null(inp_elem)) {
                 if (create_fixed_checkboxes) {
                     
-                    inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                           checkboxInput(nspace(inp_elem_name_fixed),
-                                                                         label = 'fixed',
-                                                                         width = '30%')),inp_elem)
+                    inp_elem_complete <-
+                        tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                          checkboxInput(nspace(inp_elem_name_fixed),
+                                                        label = 'fixed',
+                                                        width = '30%')), inp_elem)
+
                 } else {
                     inp_elem_complete <- inp_elem
                 }
@@ -202,20 +195,20 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                         argvalue <- as.character(argdefault)
                     }
                 }
-                
                 # in "inspect" tab, the input is always a text input in order to support input of sequences
-                inp_id <- nspace(paste0('inspect_arg_', argname))
+                # add input instruction to vector argument tips in inspector
                 if (arg_defs$vector[arg_defs$names == argname]) tips[[argname]] <- 
-                    paste0(tips[[argname]], ". Vary by enclosing values within parameters, separated by a space.")
+                        paste0(tips[[argname]], ". Vary by enclosing values within parameters, separated by a space.")
                 
                 if (argname %in% textarea_inputs) {
                     inp_elem_complete <- list(
                         textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
-                        bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover"))
+                        dd_tipify(inp_id, argname, tips[[argname]])
+                    )
                 } else {
                     inp_elem_complete <- list(
                         textInput(inp_id, argname, value = argvalue, width = '100%'),
-                        bsPopover(id =inp_id , title = argname, content = tips[[argname]], placement = "top", trigger = "hover")
+                        dd_tipify(inp_id, argname, tips[[argname]])
                     )
                     
                 }
