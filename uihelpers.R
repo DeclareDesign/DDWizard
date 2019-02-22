@@ -73,6 +73,9 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
         }
     }
     
+    # escape the single quotes in the tips for Javascript
+    if(str_detect(tips[[argname]], '\'')) tips[[argname]] <- gsub('\'', "\"", tips[[argname]])
+    
     # create the input element and return it
     if (is.function(inp_elem_constructor)) {
         ret <- do.call(inp_elem_constructor, inp_elem_args)
@@ -199,6 +202,9 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 # add input instruction to vector argument tips in inspector
                 if (arg_defs$vector[arg_defs$names == argname]) tips[[argname]] <- 
                         paste0(tips[[argname]], ". Vary by enclosing values within parameters, separated by a space.")
+                
+                # escape the single quotes in the tips for Javascript
+                if(str_detect(tips[[argname]], '\'')) tips[[argname]] <- gsub('\'', "\"", tips[[argname]])
                 
                 if (argname %in% textarea_inputs) {
                     inp_elem_complete <- list(

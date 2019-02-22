@@ -309,6 +309,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                   defaults = defaults,
                                                   textarea_inputs = names(d_args_vecinput)[d_args_vecinput])
         tags$div(param_boxes)
+       
     })
     
     # make the plot reactive
