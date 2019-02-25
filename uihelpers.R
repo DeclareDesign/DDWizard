@@ -87,6 +87,14 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
 # "definitions" attrib.). `argclass` and `argtype` are usually `class(argdefault)` and
 # `typeof(argtype)`.
 design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, argclass, argtype) {
+    if (argclass == 'NULL') {
+        argclass <- argdefinition$class
+    }
+    
+    if (argtype == 'NULL') {
+        argtype <- argdefinition$class
+    }
+    
     if (argclass %in% c('numeric', 'integer')) {
         arg_value <- as.numeric(inp_value)
     } else if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') && argdefinition$class != 'character') { # "language" constructs (R formula/code)
@@ -112,7 +120,7 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
         return(NULL)
     }
 
-    if (length(arg_value) > 0) {
+    if (length(arg_value) > 0 && !any(is.na(arg_value))) {
         return(arg_value)
     } else {
         return(argdefault) 
