@@ -187,8 +187,8 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 warning(paste('input element could not be created for argument', argname))
             }
         } else {   # type == 'inspect'
-            # omit character arguments as they only determine label names so they're useless for inspection
-            if (argdefinition$class != 'character') {
+            # omit character or logical arguments as they only determine label names or options that are useless for inspection
+            if (!(argdefinition$class %in% c('character', 'logical'))) {
                 if (!is.null(defaults) && argname %in% names(defaults)) {
                     argvalue <- as.character(defaults[[argname]])
                 } else {
