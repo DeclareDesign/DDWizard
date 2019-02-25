@@ -56,7 +56,7 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
     if ('class' %in% names(argdefinition)) {
         if (argdefinition$class == 'character') {
             inp_elem_constructor <- textInput
-        } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) %in% c('numeric', 'integer')) {
+        } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) %in% c('numeric', 'integer', 'NULL')) {
             inp_elem_constructor <- numericInput
             inp_elem_args$min = argmin
             inp_elem_args$max = argmax
