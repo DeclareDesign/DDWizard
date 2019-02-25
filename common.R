@@ -33,6 +33,17 @@ list_merge <- function(l1, l2) {
     l_out
 }
 
+# Get "tips" from `definitions` attribute of designer
+get_tips <- function(designer){
+    def <- attr(designer, "definitions")
+    split(def$tips, def$names)
+}
+
+# Wrapper for tipifying function
+dd_tipify <- function(id, title, content){
+    bsPopover(id = id, title = title, content = content, placement = "top", trigger = "hover")
+}
+    
 # Check if lists `a` and `b` have equal elements in a "shallow" way, i.e. *not* traversing recursively
 # through nested lists.
 lists_equal_shallow <- function(a, b, na.rm = FALSE) {
@@ -171,7 +182,7 @@ get_designer_args <- function(designer) {
 # a character vector of fixed design arguments `fixed_args`, and the design tab input values object `design_input`,
 # parse the sequence string for each designer argument and generate a list of arguments used for inspection.
 # These argument values will define the paremeter space for inspection.
-get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input, vecinput_args) {
+get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input) {
     d_args <- get_designer_args(design)
     
     insp_args <- list()
@@ -195,7 +206,7 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- tryCatch({
-                if (d_argname %in% vecinput_args) {
+                if (d_argdef$vector) {
                     parse_sequence_of_sequences_string(inp_value, d_argclass)
                 } else {
                     parse_sequence_string(inp_value, d_argclass)

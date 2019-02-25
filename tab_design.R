@@ -22,7 +22,9 @@ designTabUI <- function(id, label = 'Design') {
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
-                                  actionButton(nspace("import_from_design_lib"), label = "Import", disabled = "disabled")
+                                  actionButton(nspace("import_from_design_lib"), 
+                                               label = "Import", 
+                                               disabled = "disabled")
                               )
                 ),
                 # show designer parameters if a design was loaded
@@ -103,11 +105,11 @@ designTab <- function(input, output, session) {
                 # convert an input value to a argument value of correct class
                 if (length(argdefinition) != 0) {
                     argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
-                    
+
                     if (!is.null(argvalue) && sum(is.na(argvalue)) > 0) {
                         stop(paste('invalid value for argument', argname))
                     }
-                    
+
                     if ((!is.null(argvalue) && is.null(argdefault))
                         || (!is.null(argvalue) && argvalue != ''
                             && (length(argvalue) != length(argdefault) || argvalue != argdefault)))
@@ -337,12 +339,16 @@ designTab <- function(input, output, session) {
         names(option_list) <- options_data$abbr
         
         shinyjs::enable("import_from_design_lib")
-
-        selectInput(nspace("import_design_library"), label = "Choose design name",
+        selectInput(nspace("import_design_library"), 
+                    label = "Choose design name",
                     selected = "two_arm_designer", choices = option_list,
                     multiple = FALSE)
+        
+       
+        
     })
     
+   
     # center: design code
     output$section_design_code <- renderUI({
         d <- design_instance()

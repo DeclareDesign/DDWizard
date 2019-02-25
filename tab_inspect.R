@@ -131,15 +131,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # get all arguments from the left side pane in the "Inspect" tab
         d_args <- design_tab_proxy$design_args()
-        d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
 
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                              design_tab_proxy$react$design_argdefinitions,
                                              input,
                                              design_tab_proxy$get_fixed_design_args(),
-                                             design_tab_proxy$input,
-                                             names(d_args_vecinput)[d_args_vecinput])
-
+                                             design_tab_proxy$input)
+        
         if (max(sapply(insp_args, length)) == 0) {
             # only if at least one argument is a sequence (i.e. its length is > 1) for comparison,
             # run the diagnoses and return a result
@@ -214,14 +212,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return(TRUE)
         } else {
             d_args <- design_tab_proxy$design_args()
-            d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
             
             insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                                  design_tab_proxy$react$design_argdefinitions,
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
-                                                 design_tab_proxy$input,
-                                                 names(d_args_vecinput)[d_args_vecinput])
+                                                 design_tab_proxy$input)
             
             return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
         }
@@ -270,7 +266,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         d_args <- design_tab_proxy$design_args()
-        d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
+        defs <- design_tab_proxy$react$design_argdefinitions
         
         first_arg <- names(d_args)[1]
         if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
@@ -280,7 +276,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             # was defined in inspect tab
             defaults <- sapply(names(d_args), function(argname) {
                 arg_inspect_input <- input[[paste0('inspect_arg_', argname)]]
-                
+                argdef <- as.list(defs[defs$names == argname,])
+        
                 parsed_arg_inspect_input <- tryCatch(parse_sequence_string(arg_inspect_input),
                                                      warning = function(cond) { NA },
                                                      error = function(cond) { NA })
@@ -293,15 +290,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                             n_int <- as.integer(d_args[[first_arg]])
                             return(sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100))
                         } else {
-                            defs <- design_tab_proxy$react$design_argdefinitions
-                            min_int <- defs$inspector_min[defs$names == first_arg]
-                            step_int <- defs$inspector_step[defs$names == first_arg]
+                            min_int <- argdef$inspector_min
+                            step_int <- argdef$inspector_step
                             max_int <- min_int + 4*step_int
                             return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
                         }
                     } else {
                         arg_char <- as.character(d_args[[argname]])
-                        if (d_args_vecinput[argname]) {  # vector of vectors input
+                        if (argdef$vector) {  # vector of vectors input
                             return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
                         } else {
                             return(arg_char)
@@ -312,11 +308,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 }
             }, simplify = FALSE)
         })
-        
+       
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
                                                   input = design_tab_proxy$input,
-                                                  defaults = defaults,
-                                                  textarea_inputs = names(d_args_vecinput)[d_args_vecinput])
+                                                  defaults = defaults)
         if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
             list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(param_boxes))
         } else {
@@ -629,14 +624,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 
                 # 5. main inspection parameter (x-axis)
                 d_args <- design_tab_proxy$design_args()
-                d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
                 
                 insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                                      design_tab_proxy$react$design_argdefinitions,
                                                      input,
                                                      design_tab_proxy$get_fixed_design_args(),
-                                                     design_tab_proxy$input,
-                                                     names(d_args_vecinput)[d_args_vecinput])
+                                                     design_tab_proxy$input)
                 
                 insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
                 if (sum(insp_args_NAs) > 0) {
