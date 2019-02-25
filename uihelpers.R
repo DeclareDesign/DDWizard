@@ -93,7 +93,7 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
         if (length(inp_value) > 0 && !is.na(inp_value) && !is.null(argdefinition)) {
             # if there is a input value for an R formula field, convert it to the requested class
             if (argdefinition$class %in% c('numeric', 'integer')) {
-                if (is.character(inp_value)) {
+                if (is.character(inp_value)) {  #if (is.character(inp_value) && argdefinition$vector) {
                     arg_value <- as.numeric(trimws(strsplit(inp_value, ",")[[1]]))
                 } else {
                     arg_value <- as.numeric(inp_value)
@@ -107,7 +107,11 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
             return(NULL)
         }
     } else if (argclass == 'character' || argdefinition$class == 'character') {
-        arg_value <- trimws(strsplit(inp_value, ",")[[1]])
+        # if (argdefinition$vector) {
+            arg_value <- trimws(strsplit(inp_value, ",")[[1]])
+        # } else {
+        #     arg_value <- inp_value
+        # }
     } else {
         return(NULL)
     }
@@ -130,8 +134,7 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
-create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE,
-                                       textarea_inputs = character()) {
+create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE) {
     boxes <- list()
     
     args_design <- get_designer_args(react$design)
@@ -190,7 +193,7 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 
                 # in "inspect" tab, the input is always a text input in order to support input of sequences
                 inp_id <- nspace(paste0('inspect_arg_', argname))
-                if (argname %in% textarea_inputs) {
+                if (argdefinition$vector) {
                     inp_elem_complete <- textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical')
                 } else {
                     inp_elem_complete <- textInput(inp_id, argname, value = argvalue, width = '100%')
