@@ -171,7 +171,7 @@ get_designer_args <- function(designer) {
 # a character vector of fixed design arguments `fixed_args`, and the design tab input values object `design_input`,
 # parse the sequence string for each designer argument and generate a list of arguments used for inspection.
 # These argument values will define the paremeter space for inspection.
-get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input, vecinput_args) {
+get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input) {
     d_args <- get_designer_args(design)
     
     insp_args <- list()
@@ -194,7 +194,7 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
-            if (d_argname %in% vecinput_args) {
+            if (d_argdef$vector) {
                 insp_args[[d_argname]] <- parse_sequence_of_sequences_string(inp_value, d_argclass)
             } else {
                 insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)

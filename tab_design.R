@@ -102,7 +102,11 @@ designTab <- function(input, output, session) {
                 # convert an input value to a argument value of correct class
                 if (length(argdefinition) != 0) {
                     argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
-                    
+                    print('---')
+                    print(argname)
+                    print(argvalue)
+                    print(argdefault)
+                    print('---')
                     if ((!is.null(argvalue) && is.null(argdefault))
                         || (!is.null(argvalue) && argvalue != ''
                             && (length(argvalue) != length(argdefault) || argvalue != argdefault)))

@@ -130,14 +130,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # get all arguments from the left side pane in the "Inspect" tab
         d_args <- design_tab_proxy$design_args()
-        d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
 
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                              design_tab_proxy$react$design_argdefinitions,
                                              input,
                                              design_tab_proxy$get_fixed_design_args(),
-                                             design_tab_proxy$input,
-                                             names(d_args_vecinput)[d_args_vecinput])
+                                             design_tab_proxy$input)
         
         if (max(sapply(insp_args, length)) == 0) {
             # only if at least one argument is a sequence (i.e. its length is > 1) for comparison,
@@ -213,14 +211,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return(TRUE)
         } else {
             d_args <- design_tab_proxy$design_args()
-            d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
             
             insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                                  design_tab_proxy$react$design_argdefinitions,
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
-                                                 design_tab_proxy$input,
-                                                 names(d_args_vecinput)[d_args_vecinput])
+                                                 design_tab_proxy$input)
             
             return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
         }
@@ -614,14 +610,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 
                 # 5. main inspection parameter (x-axis)
                 d_args <- design_tab_proxy$design_args()
-                d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
                 
                 insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                                      design_tab_proxy$react$design_argdefinitions,
                                                      input,
                                                      design_tab_proxy$get_fixed_design_args(),
-                                                     design_tab_proxy$input,
-                                                     names(d_args_vecinput)[d_args_vecinput])
+                                                     design_tab_proxy$input)
                 
                 insp_args_lengths <- sapply(insp_args, length)
                 variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
