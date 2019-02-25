@@ -22,7 +22,9 @@ designTabUI <- function(id, label = 'Design') {
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
-                                  actionButton(nspace("import_from_design_lib"), label = "Import", disabled = "disabled")
+                                  actionButton(nspace("import_from_design_lib"), 
+                                               label = "Import", 
+                                               disabled = "disabled")
                               )
                 ),
                 # show designer parameters if a design was loaded
@@ -321,12 +323,16 @@ designTab <- function(input, output, session) {
         names(option_list) <- options_data$abbr
         
         shinyjs::enable("import_from_design_lib")
-
-        selectInput(nspace("import_design_library"), label = "Choose design name",
+        selectInput(nspace("import_design_library"), 
+                    label = "Choose design name",
                     selected = "two_arm_designer", choices = option_list,
                     multiple = FALSE)
+        
+       
+        
     })
     
+   
     # center: design code
     output$section_design_code <- renderText({
         d <- design_instance()

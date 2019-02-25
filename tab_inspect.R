@@ -303,6 +303,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                   input = design_tab_proxy$input,
                                                   defaults = defaults)
         tags$div(param_boxes)
+       
     })
     
     # make the plot reactive

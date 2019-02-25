@@ -15,7 +15,8 @@ library(ggplot2)
 # Returns NULL if argument class is not supported.
 input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
     args <- formals(design) # need to evaluate design defaults in cases when input is language
-    
+    # extract the tips from library
+    tips <- get_tips(design)
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
     
     argclass <- class(argdefault)
@@ -56,7 +57,7 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
     if ('class' %in% names(argdefinition)) {
         if (argdefinition$class == 'character') {
             inp_elem_constructor <- textInput
-        } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) %in% c('numeric', 'integer')) {
+        } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) %in% c('numeric', 'integer', 'NULL')) {
             inp_elem_constructor <- numericInput
             inp_elem_args$min = argmin
             inp_elem_args$max = argmax
@@ -72,13 +73,20 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
         }
     }
     
-    # create the input element and return it
-    if (!is.null(inp_elem_constructor)) {
-        return(do.call(inp_elem_constructor, inp_elem_args))
-    }
+    # escape the single quotes in the tips for Javascript
+    if(str_detect(tips[[argname]], '\'')) tips[[argname]] <- gsub('\'', "\"", tips[[argname]])
     
-    # return NULL if argument class is not supported
-    NULL
+    # create the input element and return it
+    if (is.function(inp_elem_constructor)) {
+        ret <- do.call(inp_elem_constructor, inp_elem_args)
+        if(is.character(tips[[argname]])) 
+            ret <- list(ret, dd_tipify(inp_id, argname, tips[[argname]]))
+        
+    } else { 
+        # return NULL if argument class is not supported
+        ret <- NULL
+    }
+    ret
 }
 
 
@@ -87,6 +95,14 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
 # "definitions" attrib.). `argclass` and `argtype` are usually `class(argdefault)` and
 # `typeof(argtype)`.
 design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, argclass, argtype) {
+    if (argclass == 'NULL') {
+        argclass <- argdefinition$class
+    }
+    
+    if (argtype == 'NULL') {
+        argtype <- argdefinition$class
+    }
+    
     if (argclass %in% c('numeric', 'integer')) {
         arg_value <- as.numeric(inp_value)
     } else if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') && argdefinition$class != 'character') { # "language" constructs (R formula/code)
@@ -111,8 +127,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
     } else {
         return(NULL)
     }
-    
-    if (length(arg_value) > 0) {
+
+    if (length(arg_value) > 0 && !any(is.na(arg_value))) {
         return(arg_value)
     } else {
         return(argdefault) 
@@ -131,7 +147,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
 create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE) {
     boxes <- list()
-    
+    # extract the tips from library
+    tips <- get_tips(react$design)
     args_design <- get_designer_args(react$design)
     arg_defs <- react$design_argdefinitions
     
@@ -148,25 +165,27 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             next()
         }
         
+        inp_id <- nspace(paste0('inspect_arg_', argname))
+        
         if (type == 'design') {
             # for the "design" tab, create two input elements for each argument:
             # 1. the argument value input box
             # 2. the "fixed" checkbox next to it
-            if (create_fixed_checkboxes) {
-                inp_elem_width <- '70%'
-            } else {
-                inp_elem_width <- '100%'
-            }
+            inp_elem_width <- ifelse(create_fixed_checkboxes, '70%', '100%')
             
             inp_elem <- input_elem_for_design_arg(react$design, argname, argdefault, argdefinition,
                                                   width = inp_elem_width, nspace = nspace, idprefix = type)
+            
 
             if (!is.null(inp_elem)) {
                 if (create_fixed_checkboxes) {
-                    inp_elem_complete <- tags$div(tags$div(style = 'float:right;padding-top:23px',
-                                                           checkboxInput(nspace(inp_elem_name_fixed),
-                                                                         label = 'fixed', width = '30%')),
-                                                  inp_elem)
+                    
+                    inp_elem_complete <-
+                        tags$div(tags$div(style = 'float:right;padding-top:23px',
+                                          checkboxInput(nspace(inp_elem_name_fixed),
+                                                        label = 'fixed',
+                                                        width = '30%')), inp_elem)
+
                 } else {
                     inp_elem_complete <- inp_elem
                 }
@@ -174,8 +193,8 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                 warning(paste('input element could not be created for argument', argname))
             }
         } else {   # type == 'inspect'
-            # omit character arguments as they only determine label names so they're useless for inspection
-            if (argdefinition$class != 'character') {
+            # omit character or logical arguments as they only determine label names or options that are useless for inspection
+            if (!(argdefinition$class %in% c('character', 'logical'))) {
                 if (!is.null(defaults) && argname %in% names(defaults)) {
                     argvalue <- as.character(defaults[[argname]])
                 } else {
@@ -185,13 +204,27 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
                         argvalue <- as.character(argdefault)
                     }
                 }
-                
                 # in "inspect" tab, the input is always a text input in order to support input of sequences
                 inp_id <- nspace(paste0('inspect_arg_', argname))
+
+                                # add input instruction to vector argument tips in inspector
+                if (arg_defs$vector[arg_defs$names == argname]) tips[[argname]] <- 
+                        paste0(tips[[argname]], ". Vary by enclosing values within parameters, separated by a space.")
+                
+                # escape the single quotes in the tips for Javascript
+                if(str_detect(tips[[argname]], '\'')) tips[[argname]] <- gsub('\'', "\"", tips[[argname]])
+                
                 if (argdefinition$vector) {
-                    inp_elem_complete <- textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical')
+                    inp_elem_complete <- list(
+                        textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
+                        dd_tipify(inp_id, argname, tips[[argname]])
+                    )
                 } else {
-                    inp_elem_complete <- textInput(inp_id, argname, value = argvalue, width = '100%')
+                    inp_elem_complete <- list(
+                        textInput(inp_id, argname, value = argvalue, width = '100%'),
+                        dd_tipify(inp_id, argname, tips[[argname]])
+                    )
+                    
                 }
             }
         }
