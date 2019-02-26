@@ -55,7 +55,7 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
     }
     
     if ('class' %in% names(argdefinition)) {
-        if (argdefinition$class == 'character') {
+        if (argdefinition$class == 'character' || argdefinition$vector) {
             inp_elem_constructor <- textInput
         } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) %in% c('numeric', 'integer', 'NULL')) {
             inp_elem_constructor <- numericInput
@@ -68,8 +68,6 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
             } else if (argdefinition$class == 'integer') {
                 inp_elem_args$step = 1
             }
-        } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) == 'character') {
-            inp_elem_constructor <- textInput
         }
     }
     
@@ -103,9 +101,9 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
         argtype <- argdefinition$class
     }
     
-    if (argclass %in% c('numeric', 'integer')) {
+    if (argclass %in% c('numeric', 'integer') && !argdefinition$vector) {
         arg_value <- as.numeric(inp_value)
-    } else if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') && argdefinition$class != 'character') { # "language" constructs (R formula/code)
+    } else if ((argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') || argdefinition$vector) && argdefinition$class != 'character') { # "language" constructs (R formula/code)
         if (length(inp_value) > 0 && !is.na(inp_value) && !is.null(argdefinition)) {
             # if there is a input value for an R formula field, convert it to the requested class
             if (argdefinition$class %in% c('numeric', 'integer')) {
@@ -114,8 +112,6 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
                 } else {
                     arg_value <- as.numeric(inp_value)
                 }
-            } else if (argdefinition$class == 'character') {
-                arg_value <- as.character(inp_value)
             } else {
                 return(NULL)
             }
