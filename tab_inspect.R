@@ -166,9 +166,32 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         run_diagnoses_using_inspection_args(insp_args)
     })
     
+   
     # get subset data frame of diagnosands for display and download
     get_diagnosands_for_display <- reactive({
         req(react$diagnosands)
+        
+        # reshape the data
+        data <- react$diagnosands
+        # coefficients
+        coef_var <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
+        # standrad errors of coefficients
+        se_var <- paste0("se(", coef_var, ")")
+        # remove all the NA in the diagnosands
+        if(any(is.na(data))) data <- data[complete.cases(data[coef_var]),]
+        # melt data to the long shape
+        newdata <- melt(data, id = colnames(data)[!colnames(data) %in% c(coef_var, se_var)])
+        # round the data as 2- digital 
+        newdata$value <- format(round(newdata$value, 2), nsmall = 2)
+        # remove the space, if the value is negative, other positive values would produce empty space
+        newdata$value <- gsub(" ", "", newdata$value)
+        # add bracket on the values of se
+        newdata$value[grepl("^se", newdata$variable)] <- paste0("(",newdata$value[grepl("^se", newdata$variable)],")")
+        # remove "se()" in the variable name 
+        newdata$variable <- gsub("^se\\(|\\)", "", newdata$variable)
+        # spread single columns into mutiple columns  
+        reshape_data <- as.data.frame(newdata %>% group_by(variable) %>% mutate(i = row_number()) %>% spread(variable, value) %>% select(-i))
+        
         
         # set columns to show
         cols <- c(input$plot_conf_x_param)
@@ -179,16 +202,18 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
             cols <- c(cols, input$plot_conf_facets_param)
         }
-       
-        if ("term" %in% colnames(react$diagnosands)){
-            cols <- c(cols, 'estimator_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+      
+        
+        if ("term" %in% colnames(reshape_data)){
+            cols <- c(cols, 'estimator_label', 'term', input$plot_conf_diag_param)
         } else {
-            cols <- c(cols, 'estimator_label', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+            cols <- c(cols, 'estimator_label', input$plot_conf_diag_param)
         }
         
         
         # return data frame subset
-        react$diagnosands[cols]
+        reshape_data[cols]
+        
     })
     
     results_cached_message <- reactive({
