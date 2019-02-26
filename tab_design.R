@@ -75,6 +75,7 @@ designTab <- function(input, output, session) {
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_errors = NULL,         # captured errors and warnings during design creation
+        input_errors = NULL,            # errors related to invalid inputs
         captured_msgs = NULL            # captured messages during design creation
     )
     
@@ -105,19 +106,16 @@ designTab <- function(input, output, session) {
                 # convert an input value to a argument value of correct class
                 if (length(argdefinition) != 0) {
                     argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
+                    has_NAs <- !is.null(argvalue) && any(is.na(argvalue))   # may contain NAs where invalid input was supplied
 
-                    if (!is.null(argvalue) && sum(is.na(argvalue)) > 0) {
-                        stop(paste('invalid value for argument', argname))
-                    }
-
-                    if ((!is.null(argvalue) && is.null(argdefault))
+                    if (!has_NAs && ((!is.null(argvalue) && is.null(argdefault))
                         || (!is.null(argvalue) && argvalue != ''
-                            && (length(argvalue) != length(argdefault) || argvalue != argdefault)))
+                            && (length(argvalue) != length(argdefault) || argvalue != argdefault))))
                     {
                         all_default <- FALSE
                     }
                     
-                    if (!is.null(argvalue)) {  # add the value to the list of designer arguments
+                    if (has_NAs || !is.null(argvalue)) {  # add the value to the list of designer arguments
                         output_args[[argname]] <- argvalue
                     }
                 }
@@ -157,26 +155,36 @@ designTab <- function(input, output, session) {
     # specific design instance generated from above react$design with specific parameter values `design_args()`
     design_instance <- reactive({
         d_inst <- NULL  # design instance
+        react$input_errors <- NULL
+        react$captured_errors <- NULL
         
         if (!is.null(react$design)) {  # return NULL if no designer is given
             msgs <- character()
             
-            conditions <- tryCatch({
-                d_args <- design_args()  # designer arguments
-                msgs <- capture.output({
-                    d_inst <- do.call(react$design, d_args)
-                }, type = 'message')
-            }, error = function(cond) {
-                cond$message
-            })
+            d_args <- design_args()  # designer arguments
             
-            # create a design instance from the designer using the current arguments `d_args`
-            react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
-                print(d_inst)   # to create summary output
-            }, type = 'output')
-            
-            react$captured_errors <- conditions
-            react$captured_msgs <- msgs
+            d_args_NAs <- sapply(d_args, function(arg) { any(is.na(arg)) })
+            if (sum(d_args_NAs) > 0) {
+                react$input_errors <- paste('Invalid values supplied to the following arguments:',
+                                            paste(names(d_args_NAs)[d_args_NAs], collapse = ', '))
+                react$captured_errors <- 'Please correct the errors in the argument values first.'
+            } else {
+                conditions <- tryCatch({
+                    msgs <- capture.output({
+                        d_inst <- do.call(react$design, d_args)
+                    }, type = 'message')
+                }, error = function(cond) {
+                    cond$message
+                })
+                
+                # create a design instance from the designer using the current arguments `d_args`
+                react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
+                    print(d_inst)   # to create summary output
+                }, type = 'output')
+                
+                react$captured_errors <- conditions
+                react$captured_msgs <- msgs
+            }
             
             print('design instance changed')
         }
@@ -298,9 +306,17 @@ designTab <- function(input, output, session) {
         
         nspace <- NS('tab_design')
         
-        create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
-                                   input = NULL, defaults = NULL,
-                                   create_fixed_checkboxes = design_supports_fixed_arg())
+        defaults <- isolate({ design_args() })
+        
+        param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
+                                                  input = input, defaults = defaults,
+                                                  create_fixed_checkboxes = design_supports_fixed_arg())
+        
+        if (!is.null(react$input_errors) && length(react$input_errors) > 0) {
+            list(tags$div(class = 'error_msgs', paste(react$input_errors, collapse = "\n")), tags$div(param_boxes))
+        } else {
+            list(tags$div(param_boxes))
+        }
     })
     
     # left side: "Fix/Unfix all" button
