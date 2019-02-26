@@ -90,7 +90,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
         diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
-        insp_args_used_in_plot = NULL  # last used design parameters used in plot
+        insp_args_used_in_plot = NULL,  # last used design parameters used in plot
+        captured_errors = NULL      # errors to display
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -267,43 +268,55 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         d_args <- design_tab_proxy$design_args()
         defs <- design_tab_proxy$react$design_argdefinitions
         
+        first_arg <- names(d_args)[1]
+        if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
+        
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
             defaults <- sapply(names(d_args), function(argname) {
                 arg_inspect_input <- input[[paste0('inspect_arg_', argname)]]
-                if (is.null(arg_inspect_input) || length(parse_sequence_string(arg_inspect_input)) < 2) {
-                    arg_char <- as.character(d_args[[argname]])
-                    if (defs[defs$names == argname, 'vector']) {  # vector of vectors input
-                        return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
+                argdef <- as.list(defs[defs$names == argname,])
+        
+                parsed_arg_inspect_input <- tryCatch(parse_sequence_string(arg_inspect_input),
+                                                     warning = function(cond) { NA },
+                                                     error = function(cond) { NA })
+                
+                if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
+                    if (argname == first_arg) {
+                        # set a default value for "N" the first time
+                        # but there are some design without N argument
+                        if (first_arg == 'N') {
+                            n_int <- as.integer(d_args[[first_arg]])
+                            return(sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100))
+                        } else {
+                            min_int <- argdef$inspector_min
+                            step_int <- argdef$inspector_step
+                            max_int <- min_int + 4*step_int
+                            return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
+                        }
                     } else {
-                        return(arg_char)
+                        arg_char <- as.character(d_args[[argname]])
+                        if (argdef$vector) {  # vector of vectors input
+                            return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
+                        } else {
+                            return(arg_char)
+                        }
                     }
                 } else {
                     return(arg_inspect_input)
                 }
             }, simplify = FALSE)
         })
-        
-        # set a default value for "N" the first time
-        # but there are some design without N argument
-        first_arg <- names(d_args)[1]
-        if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
-        if (first_arg == 'N') {
-            n_int <- as.integer(d_args[[first_arg]])
-            defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
-        } else {
-            min_int <- defs$inspector_min[defs$names == first_arg]
-            step_int <- defs$inspector_step[defs$names == first_arg]
-            max_int <- min_int + 4*step_int
-            defaults[first_arg] <- sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int)
-        }
-        
+       
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
                                                   input = design_tab_proxy$input,
                                                   defaults = defaults)
-        tags$div(param_boxes)
-       
+        if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
+            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(param_boxes))
+        } else {
+            list(tags$div(param_boxes))
+        }
     })
     
     # make the plot reactive
@@ -617,6 +630,16 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                      input,
                                                      design_tab_proxy$get_fixed_design_args(),
                                                      design_tab_proxy$input)
+                
+                insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
+                if (sum(insp_args_NAs) > 0) {
+                    react$captured_errors <- paste('Invalid values supplied to the following arguments:',
+                                                   paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', ')) 
+                    shinyjs::disable('update_plot')
+                } else {
+                    react$captured_errors <- NULL
+                    shinyjs::enable('update_plot')
+                }
                 
                 insp_args_lengths <- sapply(insp_args, length)
                 variable_args <- names(insp_args_lengths[insp_args_lengths > 1])

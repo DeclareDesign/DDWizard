@@ -205,11 +205,17 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
-            if (d_argdef$vector) {
-                insp_args[[d_argname]] <- parse_sequence_of_sequences_string(inp_value, d_argclass)
-            } else {
-                insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
-            }
+            insp_args[[d_argname]] <- tryCatch({
+                if (d_argdef$vector) {
+                    parse_sequence_of_sequences_string(inp_value, d_argclass)
+                } else {
+                    parse_sequence_string(inp_value, d_argclass)
+                }
+            }, warning = function(cond) {
+                NA
+            }, error = function(cond) {
+                NA
+            })
         }
     }
     

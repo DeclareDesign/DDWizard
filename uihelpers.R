@@ -13,7 +13,7 @@ library(ggplot2)
 # Use min/max and class definition from `argdefinition` (comes from designer "definitions" attrib.).
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
 # Returns NULL if argument class is not supported.
-input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
+input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
     args <- formals(design) # need to evaluate design defaults in cases when input is language
     # extract the tips from library
     tips <- get_tips(design)
@@ -46,12 +46,16 @@ input_elem_for_design_arg <- function(design, argname, argdefault, argdefinition
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
     
-    if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')) {  # "language" constructs (R formula/code)
-        inp_elem_args$value = args_eval[[argname]]
-    } else if (argclass == 'NULL' && argtype == 'NULL') {
-        inp_elem_args$value = ''
+    if (argdefinition$vector && !is.null(argvalue_parsed) && any(is.na(argvalue_parsed))) {
+        inp_elem_args$value <- argvalue
     } else {
-        inp_elem_args$value = argdefault
+        if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')) {  # "language" constructs (R formula/code)
+            inp_elem_args$value <- args_eval[[argname]]
+        } else if (argclass == 'NULL' && argtype == 'NULL') {
+            inp_elem_args$value <- ''
+        } else {
+            inp_elem_args$value <- argdefault
+        }
     }
     
     if ('class' %in% names(argdefinition)) {
@@ -118,13 +122,13 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
         } else {
             return(NULL)
         }
-    } else if (argclass == 'character' || argdefinition$class == 'character') {
+    } else if ((argclass == 'character' || argdefinition$class == 'character') && is.character(inp_value)) {
         arg_value <- trimws(strsplit(inp_value, ",")[[1]])
     } else {
         return(NULL)
     }
 
-    if (length(arg_value) > 0 && !any(is.na(arg_value))) {
+    if (length(arg_value) > 0 && !(!argdefinition$vector && sum(is.na(arg_value)) == length(arg_value) && is.null(argdefault))) {
         return(arg_value)
     } else {
         return(argdefault) 
@@ -141,7 +145,7 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
-create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaults = NULL, create_fixed_checkboxes = TRUE) {
+create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE) {
     boxes <- list()
     # extract the tips from library
     tips <- get_tips(react$design)
@@ -169,7 +173,8 @@ create_design_parameter_ui <- function(type, react, nspace, input = NULL, defaul
             # 2. the "fixed" checkbox next to it
             inp_elem_width <- ifelse(create_fixed_checkboxes, '70%', '100%')
             
-            inp_elem <- input_elem_for_design_arg(react$design, argname, argdefault, argdefinition,
+            inp_elem <- input_elem_for_design_arg(react$design, argname, input[[paste0('design_arg_', argname)]],
+                                                  defaults[[argname]], argdefault, argdefinition,
                                                   width = inp_elem_width, nspace = nspace, idprefix = type)
             
 

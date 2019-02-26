@@ -45,9 +45,9 @@ designTabUI <- function(id, label = 'Design') {
                               downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                               downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
                 bsCollapse(id=nspace('sections_container'),
-                           bsCollapsePanel('Messages', verbatimTextOutput(nspace("section_messages"))),
-                           bsCollapsePanel('Summary', verbatimTextOutput(nspace("section_summary"))),
-                           bsCollapsePanel('Code output', verbatimTextOutput(nspace("section_design_code"))),
+                           bsCollapsePanel('Messages', uiOutput(nspace("section_messages"))),
+                           bsCollapsePanel('Summary', uiOutput(nspace("section_summary"))),
+                           bsCollapsePanel('Code output', uiOutput(nspace('section_design_code'))),
                            bsCollapsePanel('Simulated data',
                                            p("The following table shows a single draw of the data."),
                                            actionButton(nspace("simdata_redraw"), label = "Redraw data", disabled = "disabled"),
@@ -74,7 +74,9 @@ designTab <- function(input, output, session) {
         fix_toggle = 'fix',             # toggle for fixing/unfixing all design parameters. must be either "fix" or "unfix"
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
-        captured_msgs = NULL            # captured warnings and other messages during design creation
+        captured_errors = NULL,         # captured errors and warnings during design creation
+        input_errors = NULL,            # errors related to invalid inputs
+        captured_msgs = NULL            # captured messages during design creation
     )
     
     ### reactive expressions ###
@@ -104,14 +106,16 @@ designTab <- function(input, output, session) {
                 # convert an input value to a argument value of correct class
                 if (length(argdefinition) != 0) {
                     argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
-                    if ((!is.null(argvalue) && is.null(argdefault))
+                    has_NAs <- !is.null(argvalue) && any(is.na(argvalue))   # may contain NAs where invalid input was supplied
+
+                    if (!has_NAs && ((!is.null(argvalue) && is.null(argdefault))
                         || (!is.null(argvalue) && argvalue != ''
-                            && (length(argvalue) != length(argdefault) || argvalue != argdefault)))
+                            && (length(argvalue) != length(argdefault) || argvalue != argdefault))))
                     {
                         all_default <- FALSE
                     }
                     
-                    if (!is.null(argvalue)) {  # add the value to the list of designer arguments
+                    if (has_NAs || !is.null(argvalue)) {  # add the value to the list of designer arguments
                         output_args[[argname]] <- argvalue
                     }
                 }
@@ -151,23 +155,36 @@ designTab <- function(input, output, session) {
     # specific design instance generated from above react$design with specific parameter values `design_args()`
     design_instance <- reactive({
         d_inst <- NULL  # design instance
+        react$input_errors <- NULL
+        react$captured_errors <- NULL
         
         if (!is.null(react$design)) {  # return NULL if no designer is given
-            d_args <- design_args()  # designer arguments
-
-            if (length(d_args) == 0) {
-                print('using default arg values')
-            }
+            msgs <- character()
             
-            # create a design instance from the designer using the current arguments `d_args`
-            # nested capture.output expressions:
-            react$captured_msgs <- capture.output({  # capture any messages/warnings generated during design creation
+            d_args <- design_args()  # designer arguments
+            
+            d_args_NAs <- sapply(d_args, function(arg) { any(is.na(arg)) })
+            if (sum(d_args_NAs) > 0) {
+                react$input_errors <- paste('Invalid values supplied to the following arguments:',
+                                            paste(names(d_args_NAs)[d_args_NAs], collapse = ', '))
+                react$captured_errors <- 'Please correct the errors in the argument values first.'
+            } else {
+                conditions <- tryCatch({
+                    msgs <- capture.output({
+                        d_inst <- do.call(react$design, d_args)
+                    }, type = 'message')
+                }, error = function(cond) {
+                    cond$message
+                })
+                
+                # create a design instance from the designer using the current arguments `d_args`
                 react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
-                    #e <- environment()  # note: seems to work without
-                    d_inst <- do.call(react$design, d_args) #, envir = parent.env(e))    # also, the documentation says parent.env() is evil
                     print(d_inst)   # to create summary output
                 }, type = 'output')
-            }, type = 'message')
+                
+                react$captured_errors <- conditions
+                react$captured_msgs <- msgs
+            }
             
             print('design instance changed')
         }
@@ -217,6 +234,13 @@ designTab <- function(input, output, session) {
         length(args_fixed) == length(all_args)
     })
     
+    wrap_errors <- function(output) {
+        if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
+            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")))
+        } else {
+            list(output)
+        }
+    }
     
     ### input observers ###
     
@@ -282,9 +306,17 @@ designTab <- function(input, output, session) {
         
         nspace <- NS('tab_design')
         
-        create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
-                                   input = NULL, defaults = NULL,
-                                   create_fixed_checkboxes = design_supports_fixed_arg())
+        defaults <- isolate({ design_args() })
+        
+        param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
+                                                  input = input, defaults = defaults,
+                                                  create_fixed_checkboxes = design_supports_fixed_arg())
+        
+        if (!is.null(react$input_errors) && length(react$input_errors) > 0) {
+            list(tags$div(class = 'error_msgs', paste(react$input_errors, collapse = "\n")), tags$div(param_boxes))
+        } else {
+            list(tags$div(param_boxes))
+        }
     })
     
     # left side: "Fix/Unfix all" button
@@ -334,7 +366,7 @@ designTab <- function(input, output, session) {
     
    
     # center: design code
-    output$section_design_code <- renderText({
+    output$section_design_code <- renderUI({
         d <- design_instance()
         if(!is.null(d) && !is.null(attr(d, 'code'))) {
             # use the "code" attribute of a design instance and convert it to a single string
@@ -345,31 +377,31 @@ designTab <- function(input, output, session) {
             code_text <- ''
         }
         
-        code_text
+        wrap_errors(tags$pre(renderText(code_text)))
     })
     
     # center: design summary
-    output$section_summary <- renderText({
+    output$section_summary <- renderUI({
         if(!is.null(design_instance()) && !is.null(react$captured_stdout)) {   # call design_instance() will also create design
-            # show caputured print() output
+            # show captured print() output
             txt <- paste(react$captured_stdout, collapse = "\n")
         } else {
             txt <- 'No summary.'
         }
         
-        txt
+        wrap_errors(tags$pre(renderText(txt)))
     })
     
     # center: design messages
-    output$section_messages <- renderText({
-        if(!is.null(design_instance()) && !is.null(react$captured_msgs)) {   # call design_instance() will also create design
-            # show caputured messages/warnings
+    output$section_messages <- renderUI({
+        if(!is.null(design_instance()) && !is.null(react$captured_msgs) && length(react$captured_msgs) > 0) {   # call design_instance() will also create design
+            # show captured messages
             txt <- paste(react$captured_msgs, collapse = "\n")
         } else {
             txt <- 'No messages.'
         }
         
-        txt
+        wrap_errors(renderText(txt))
     })
     
     # center: download generated R code
