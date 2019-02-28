@@ -89,7 +89,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         cur_design_id = NULL,       # current design name used in inspection (coming from design tab)
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
-        diagnosands_call = NULL     # a closure that actually calculates the diagnosands, valid for current design
+        diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
+        insp_args_used_in_plot = NULL,  # last used design parameters used in plot
+        captured_errors = NULL      # errors to display
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -116,16 +118,25 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     get_diagnoses_for_plot <- eventReactive(input$update_plot, {
         req(design_tab_proxy$react$design, design_tab_proxy$react$design_argdefinitions)
         
+        # in case re-running the diagnoses is not required, directly return the result from the
+        # previous diagnoses saved to "react"
+        if (!rerun_diagnoses_required()) {
+            return(list(
+                results = list(
+                    diagnosands_df_for_plot = react$diagnosands
+                ),
+                from_cache = react$diagnosands_cached
+            ))
+        }
+        
         # get all arguments from the left side pane in the "Inspect" tab
         d_args <- design_tab_proxy$design_args()
-        d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
-        
+
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                              design_tab_proxy$react$design_argdefinitions,
                                              input,
                                              design_tab_proxy$get_fixed_design_args(),
-                                             design_tab_proxy$input,
-                                             names(d_args_vecinput)[d_args_vecinput])
+                                             design_tab_proxy$input)
         
         if (max(sapply(insp_args, length)) == 0) {
             # only if at least one argument is a sequence (i.e. its length is > 1) for comparison,
@@ -135,6 +146,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         print('will run diagnoses with arguments:')
         print(insp_args)
+        
+        # save the current state of the inspection parameters
+        react$insp_args_used_in_plot <- insp_args
         
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
@@ -165,14 +179,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         run_diagnoses_using_inspection_args(insp_args)
     })
-    
    
-    # get subset data frame of diagnosands for display and download
+    # get subset data frame of diagnosands for display and download once "Update plot" is clicked
+  
     get_diagnosands_for_display <- reactive({
         req(react$diagnosands)
         
-        
-        reshaped_data <- reshape_data(react$diagnosands)
+      reshaped_data <- reshape_data(react$diagnosands)
         
         # set columns to show
         cols <- c(input$plot_conf_x_param)
@@ -196,6 +209,24 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
     })
     
+    # determines whether it is necessary to re-run the diagnoses (i.e. when also the comparison parameters
+    # on the left have been changed and not only the plot config. parameters)
+    rerun_diagnoses_required <- reactive({
+        if (is.null(react$insp_args_used_in_plot)) {
+            return(TRUE)
+        } else {
+            d_args <- design_tab_proxy$design_args()
+            
+            insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_argdefinitions,
+                                                 input,
+                                                 design_tab_proxy$get_fixed_design_args(),
+                                                 design_tab_proxy$input)
+            
+            return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
+        }
+    })
+    
     results_cached_message <- reactive({
         if (react$diagnosands_cached) {
             return(p('Results loaded from cached diagnoses. You can disable caching in the top panel "Configure simulations".'))
@@ -203,7 +234,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return('')
         }
     })
-    
+
     
     ### output elements ###
     
@@ -214,11 +245,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     })
     outputOptions(output, 'all_design_args_fixed', suspendWhenHidden = FALSE)
     
+    # hidden output that records current design ID (i.e. designer name) in order to detect changes of the
+    # designer and then reset the state of the inspect tab
     output$cur_design_id <- reactive({
         if (!is.null(react$cur_design_id) && react$cur_design_id != design_tab_proxy$react$design_id) {
+            # if the designer was changed, reset the reactive values
             react$diagnosands <- NULL
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
+            react$design_params_used_in_plot <- NULL
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
@@ -235,46 +270,57 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         d_args <- design_tab_proxy$design_args()
-        d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
+        defs <- design_tab_proxy$react$design_argdefinitions
+        
+        first_arg <- names(d_args)[1]
+        if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
         
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
             defaults <- sapply(names(d_args), function(argname) {
                 arg_inspect_input <- input[[paste0('inspect_arg_', argname)]]
-                if (is.null(arg_inspect_input) || length(parse_sequence_string(arg_inspect_input)) < 2) {
-                    arg_char <- as.character(d_args[[argname]])
-                    if (d_args_vecinput[argname]) {  # vector of vectors input
-                        return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
+                argdef <- as.list(defs[defs$names == argname,])
+        
+                parsed_arg_inspect_input <- tryCatch(parse_sequence_string(arg_inspect_input),
+                                                     warning = function(cond) { NA },
+                                                     error = function(cond) { NA })
+                
+                if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
+                    if (argname == first_arg) {
+                        # set a default value for "N" the first time
+                        # but there are some design without N argument
+                        if (first_arg == 'N') {
+                            n_int <- as.integer(d_args[[first_arg]])
+                            return(sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100))
+                        } else {
+                            min_int <- argdef$inspector_min
+                            step_int <- argdef$inspector_step
+                            max_int <- min_int + 4*step_int
+                            return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
+                        }
                     } else {
-                        return(arg_char)
+                        arg_char <- as.character(d_args[[argname]])
+                        if (argdef$vector) {  # vector of vectors input
+                            return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
+                        } else {
+                            return(arg_char)
+                        }
                     }
                 } else {
                     return(arg_inspect_input)
                 }
             }, simplify = FALSE)
         })
-        
-        # set a default value for "N" the first time
-        # but there are some design without N argument
-        first_arg <- names(d_args)[1]
-        if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
-        if (first_arg == 'N') {
-            n_int <- as.integer(d_args[[first_arg]])
-            defaults['N'] <- sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100)
-        } else {
-            defs <- design_tab_proxy$react$design_argdefinitions
-            min_int <- defs$inspector_min[defs$names == first_arg]
-            step_int <- defs$inspector_step[defs$names == first_arg]
-            max_int <- min_int + 4*step_int
-            defaults[first_arg] <- sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int)
-        }
-        
+       
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
                                                   input = design_tab_proxy$input,
-                                                  defaults = defaults,
-                                                  textarea_inputs = names(d_args_vecinput)[d_args_vecinput])
-        tags$div(param_boxes)
+                                                  defaults = defaults)
+        if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
+            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(param_boxes))
+        } else {
+            list(tags$div(param_boxes))
+        }
     })
     
     # make the plot reactive
@@ -376,6 +422,18 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     
     # -------------- center: plot output --------------
+    
+    # Reactive button label
+    btn_label <- reactive({
+        if (rerun_diagnoses_required()) {
+            return('Run diagnoses and update plot')
+        } else {
+            return('Update plot')
+        }
+    })
+    
+    # Action button label gets updated only when reactive inspector values don't change
+    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
     
     # all the following hassle because Shiny would neither:
     # - accept "auto" as plot height
@@ -570,14 +628,22 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 
                 # 5. main inspection parameter (x-axis)
                 d_args <- design_tab_proxy$design_args()
-                d_args_vecinput <- sapply(d_args, function(x) { length(x) > 1 })
                 
                 insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                                      design_tab_proxy$react$design_argdefinitions,
                                                      input,
                                                      design_tab_proxy$get_fixed_design_args(),
-                                                     design_tab_proxy$input,
-                                                     names(d_args_vecinput)[d_args_vecinput])
+                                                     design_tab_proxy$input)
+                
+                insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
+                if (sum(insp_args_NAs) > 0) {
+                    react$captured_errors <- paste('Invalid values supplied to the following arguments:',
+                                                   paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', ')) 
+                    shinyjs::disable('update_plot')
+                } else {
+                    react$captured_errors <- NULL
+                    shinyjs::enable('update_plot')
+                }
                 
                 insp_args_lengths <- sapply(insp_args, length)
                 variable_args <- names(insp_args_lengths[insp_args_lengths > 1])

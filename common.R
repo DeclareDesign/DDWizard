@@ -35,6 +35,43 @@ list_merge <- function(l1, l2) {
     l_out
 }
 
+# Get "tips" from `definitions` attribute of designer
+get_tips <- function(designer){
+    def <- attr(designer, "definitions")
+    split(def$tips, def$names)
+}
+
+# Wrapper for tipifying function
+dd_tipify <- function(id, title, content){
+    bsPopover(id = id, title = title, content = content, placement = "top", trigger = "hover")
+}
+    
+# Check if lists `a` and `b` have equal elements in a "shallow" way, i.e. *not* traversing recursively
+# through nested lists.
+lists_equal_shallow <- function(a, b, na.rm = FALSE) {
+    if (na.rm) {
+        a <- a[!is.na(a)]
+        b <- b[!is.na(b)]
+    }
+    
+    if (!setequal(names(a), names(b))) {
+        return(FALSE)
+    }
+    
+    all(sapply(names(a), function (e) {
+        a_elem <- a[[e]]
+        b_elem <- b[[e]]
+        
+        if (na.rm) {  # doing this here already because we need to remove NAs before checking length()
+            a_elem <- a_elem[!is.na(a_elem)]
+            b_elem <- b_elem[!is.na(b_elem)]
+        }
+        
+        is.numeric(a_elem) && is.numeric(b_elem) && length(a_elem) == length(b_elem) && all(a_elem == b_elem)
+    }))
+}
+
+
 # Round numeric values in a data frame to `digits`.
 # Copied from "wizard_shiny" repository.
 round_df <- function(df, digits){
@@ -170,18 +207,21 @@ get_designer_args <- function(designer) {
 # a character vector of fixed design arguments `fixed_args`, and the design tab input values object `design_input`,
 # parse the sequence string for each designer argument and generate a list of arguments used for inspection.
 # These argument values will define the paremeter space for inspection.
-get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input, vecinput_args) {
+get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input) {
     d_args <- get_designer_args(design)
     
     insp_args <- list()
     
     for (d_argname in names(d_args)) {
-        if (d_argname %in% fixed_args) {   # for a fixed argument, use the design tab input value
-            inp_name <- paste0('design_arg_', d_argname)
-            inp_value <- design_input[[inp_name]]
+        inp_name_design <- paste0('design_arg_', d_argname)
+        inp_name_inspect <- paste0('inspect_arg_', d_argname)
+        
+        # for a fixed argument or if no input is given in the inspect tab (character arguments),
+        # use the design tab input value
+        if (d_argname %in% fixed_args || is.null(inspect_input[[inp_name_inspect]])) {
+            inp_value <- design_input[[inp_name_design]]
         } else {                           # else use the value from the inspect tab
-            inp_name <- paste0('inspect_arg_', d_argname)
-            inp_value <- inspect_input[[inp_name]]
+            inp_value <- inspect_input[[inp_name_inspect]]
         }
         
         d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
@@ -190,11 +230,17 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
-            if (d_argname %in% vecinput_args) {
-                insp_args[[d_argname]] <- parse_sequence_of_sequences_string(inp_value, d_argclass)
-            } else {
-                insp_args[[d_argname]] <- parse_sequence_string(inp_value, d_argclass)
-            }
+            insp_args[[d_argname]] <- tryCatch({
+                if (d_argdef$vector) {
+                    parse_sequence_of_sequences_string(inp_value, d_argclass)
+                } else {
+                    parse_sequence_string(inp_value, d_argclass)
+                }
+            }, warning = function(cond) {
+                NA
+            }, error = function(cond) {
+                NA
+            })
         }
     }
     
