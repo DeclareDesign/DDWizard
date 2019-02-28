@@ -191,9 +191,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             cols <- c(cols, 'estimator_label', input$plot_conf_diag_param)
         }
         
-        print("!!")
-        print(cols)
-        print("!!")
         # return data frame subset
         reshaped_data[cols]
         
