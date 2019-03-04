@@ -6,6 +6,7 @@
 # Oct. 2018
 #
 
+library(shiny)
 library(stringr)
 library(future)
 library(rlang)
@@ -104,9 +105,17 @@ parse_sequence_string <- function(s, cls = 'numeric') {
     } else {  # character list or int/num scalar or int/num sequence like 1, 3, 8, 2
         elems <- str_trim(str_split(s, ',')[[1]])
         if (cls %in% c('numeric', 'integer')) {
-            return(as.numeric(elems))
+            if (length(elems) == 1 && elems == '') {
+                return(numeric())
+            } else {
+                return(as.numeric(elems))
+            }
         } else {
-            return(elems)
+            if (length(elems) == 1 && elems == '') {
+                return(character())
+            } else {
+                return(elems)
+            }
         }
     }
 }
@@ -134,6 +143,8 @@ parse_sequence_string <- function(s, cls = 'numeric') {
 #
 # If the input cannot be parsed, NULL will be returned.
 parse_sequence_of_sequences_string <- function(s, cls = 'numeric', require_rectangular = FALSE) {
+    if (str_trim(s) == '') return(list())
+    
     m <- gregexpr('\\(([^\\(\\)]*)\\)', s)
     vecs <- regmatches(s, m)
     
@@ -181,7 +192,7 @@ get_designer_args <- function(designer) {
 # For a given designer `design`, its argument definitions `d_argdefs`, the inspector tab input values object `inspect_input`,
 # a character vector of fixed design arguments `fixed_args`, and the design tab input values object `design_input`,
 # parse the sequence string for each designer argument and generate a list of arguments used for inspection.
-# These argument values will define the paremeter space for inspection.
+# These argument values will define the parameter space for inspection.
 get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input) {
     d_args <- get_designer_args(design)
     
