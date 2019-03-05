@@ -45,6 +45,22 @@ This shiny app displays several tabs, each of which is a separate shiny module (
 - `uihelpers.R`: UI related utility functions
 - `conf.R`: Configuration options
 
+## Tests
+
+### Unit tests
+
+Unit tests are implemented in the *tests* folder with [RUnit](https://cran.r-project.org/web/packages/RUnit/index.html).
+
+A shortcut to run all tests was added to the Makefile so you can run:
+
+```
+make run_tests
+```
+
+### Functional tests
+
+tbd.
+
 ## TODOs
 
 See "Issues" page on GitHub.

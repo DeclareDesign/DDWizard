@@ -11,6 +11,7 @@ library(stringr)
 library(future)
 library(rlang)
 library(digest)
+library(DeclareDesign)
 
 
 # Append `v` to list `l` and return the resulting list. Appending is slow, don't use that often!
@@ -257,9 +258,12 @@ get_diagnosis_cache_filename <- function(cachetype, args, sims, bs_sims, designe
 # If `use_cache` is TRUE, check if simulated data already exists for this designer / parameter combinations and use cached
 # data or create newly simulated data for running diagnoses.
 # The simulations are run in parallel if packages `future` and `future.apply` are installed.
-run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call, use_cache = TRUE, advance_progressbar = 0) {
-    # set up to run in parallel
-    plan('multicore', workers = n_diagnosis_workers)
+run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call, use_cache = TRUE,
+                          advance_progressbar = 0, n_diagnosis_workers = 1) {
+    if (n_diagnosis_workers > 1) {
+        # set up to run in parallel
+        plan('multicore', workers = n_diagnosis_workers)
+    }
     
     all_designs <- NULL
     if (use_cache) {

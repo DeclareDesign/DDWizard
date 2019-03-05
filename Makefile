@@ -1,3 +1,3 @@
 run_tests:
-	cd tests; echo "library(RUnit); runTestSuite(defineTestSuite('all', '.'))" | R -q --vanilla; cd ..
+	cd tests; rm .cache/*.RDS; echo "library(RUnit); runTestSuite(defineTestSuite('all', '.'))" | R -q --vanilla; cd ..
 

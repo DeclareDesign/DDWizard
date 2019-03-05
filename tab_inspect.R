@@ -108,7 +108,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                       bootstrap_sims = input$simconf_bootstrap_num,
                                       diagnosands_call = react$diagnosands_call(diag_param_alpha),
                                       use_cache = !input$simconf_force_rerun,
-                                      advance_progressbar = advance_progressbar)
+                                      advance_progressbar = advance_progressbar,
+                                      n_diagnosis_workers = n_diagnosis_workers)
         })
         
         diag_res
