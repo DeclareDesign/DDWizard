@@ -349,7 +349,6 @@ designTab <- function(input, output, session) {
         }
         
         test <- gsub("_", " ",gsub("_designer","", option[!is.na(option)]))
-            #sub("_", " ",sub("_", " ", sub("_", " ", sub("_designer", "", option[!is.na(option)]))))
         options_data <- data.frame(names = option[!is.na(option)],abbr = stri_trans_totitle(test), stringsAsFactors = FALSE)
         option_list <- as.list(options_data$names)
         names(option_list) <- options_data$abbr
