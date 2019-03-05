@@ -29,19 +29,9 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
         width = width
     )
     
-    #evaluate arguments in separate environment
-    #this allows us to evaluate 'language' class default arguments and convert resulting vectors to string inputs
-    eval_envir <- new.env()
-    
-    args_eval <- lapply(1:length(args), function(a){
-        evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
-        invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
-        hold <- invisible(get(names(args)[a], envir = eval_envir))
-        if(length(hold) > 1) hold <- paste0(hold, collapse = ", ")
-        return(hold)
-    })
-    
-    names(args_eval) <- names(args)
+    # get evaluated designer arguments (because they might be "language" constructs)
+    # this allows us to evaluate 'language' class default arguments and convert resulting vectors to string inputs
+    args_eval <- evaluate_designer_args(args)
     
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)

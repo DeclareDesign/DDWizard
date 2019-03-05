@@ -1,5 +1,13 @@
+# Test suite for all designers from DesignLibrary in order to check if they
+# meet the requirements to work with DDWizard.
+# This also tests some functions from `inspect_helpers.R`
+
 library(RUnit)
 library(DesignLibrary)
+
+
+source('../common.R')
+source('../inspect_helpers.R')
 
 
 get_available_designers <- function() {
@@ -45,7 +53,7 @@ test.designers_have_valid_definitions <- function() {
 }
 
 
-test.designers_can_be_run <- function() {
+test.designers_instantiation_with_defaults <- function() {
     designer_names <- get_available_designers()
     for (d_name in designer_names) {
         d <- get_designer(d_name)
@@ -68,5 +76,72 @@ test.designers_can_be_run <- function() {
         d_code <- attr(d_instance, 'code')
         checkTrue(class(d_code) == 'character' && sum(nchar(d_code)) > 0,
                   paste(d_name, 'design generates code'))
+    }
+}
+
+
+test.designers_inspection_with_defaults <- function() {
+    omit_designers <- c('multi_arm_designer', 'two_by_two_designer')  # both still contain errors
+    
+    designer_names <- get_available_designers()
+    for (d_name in designer_names) {
+        if (d_name %in% omit_designers) {
+            warning(paste('omitting designer', d_name))
+            next()
+        }
+        
+        d <- get_designer(d_name)
+        d_args <- get_designer_args(d)
+        d_args <- d_args[setdiff(names(d_args), 'fixed')]  # remove fixed
+        defs <- attr(d, 'definitions')
+        
+        # remove all but numerical arguments (because only for those we provide inputs anyway in the inspector tab)
+        d_args <- d_args[defs[defs$class %in% c('numeric', 'integer'), 'names']]
+        
+        d_args_eval <- evaluate_designer_args(d_args)
+        checkEquals(names(d_args), names(d_args_eval),
+                    paste(d_name, 'design argument defaults can be evaluated'))
+        
+        d_args_eval <- d_args_eval[!sapply(d_args, is.null)]
+        
+        insp_input <- get_inspect_input_defaults(d_args_eval, defs, list())
+        names(insp_input) <- paste0('inspect_arg_', names(insp_input))
+        design_input <- d_args_eval
+        names(design_input) <- paste0('design_arg_', names(design_input))
+        
+        insp_args <- get_args_for_inspection(d, defs, insp_input, character(), design_input)
+        checkEquals(names(insp_args), names(d_args_eval),
+                    paste(d_name, 'got complete design arguments for inspections'))
+        
+        vec_args <- defs[defs$names %in% names(insp_args) & defs$vector, 'names']
+        checkTrue(all(sapply(insp_args[vec_args], class) == 'list'),
+                  paste(d_name, 'all vector arguments are of class "list"'))
+        
+        varying_arg <- names(insp_args)[sapply(insp_args, length) > 1]
+        checkTrue(length(varying_arg) == 1,
+                  paste(d_name, 'inspection arguments contain exactly one varying argument'))
+        
+        diag_info <- get_diagnosands_info(d)
+        
+        suppressWarnings({  # suppress low number of sims warnings
+            diag_res <- run_diagnoses(d, insp_args, 2, 2, diagnosands_call = diag_info$diagnosands_call(0.05),
+                                      use_cache = FALSE, advance_progressbar = 0, n_diagnosis_workers = 1)
+        })
+        
+        checkTrue(diag_res$from_cache == FALSE,
+                  paste(d_name, 'diagnoses results are not from cache'))
+        checkTrue(class(diag_res$results) == 'diagnosis',
+                  paste(d_name, 'diagnoses results are of correct class'))
+
+        diag_df <- diag_res$results$diagnosands_df
+        varying_arg_res <- diag_df[, varying_arg]
+        if (class(varying_arg_res) == 'factor') {
+            varying_arg_res <- sort(as.numeric(levels(varying_arg_res)))
+        }
+        checkEquals(insp_args[[varying_arg]], varying_arg_res,
+                    paste(d_name, 'diagnoses results have results for varying arg'))
+        
+        checkTrue(all(diag_info$available_diagnosands %in% names(diag_df)),
+                  paste(d_name, 'diagnoses results contain all diagnosands'))
     }
 }

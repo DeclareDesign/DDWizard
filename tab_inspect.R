@@ -6,6 +6,8 @@
 # Dec. 2018
 #
 
+source('inspect_helpers.R')
+
 ### CONFIG ###
 
 diagnosis_table_opts <- list(searching = FALSE,
@@ -269,45 +271,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         d_args <- design_tab_proxy$design_args()
         defs <- design_tab_proxy$react$design_argdefinitions
         
-        first_arg <- names(d_args)[1]
-        if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
-        
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
-            defaults <- sapply(names(d_args), function(argname) {
-                arg_inspect_input <- input[[paste0('inspect_arg_', argname)]]
-                argdef <- as.list(defs[defs$names == argname,])
-        
-                parsed_arg_inspect_input <- tryCatch(parse_sequence_string(arg_inspect_input),
-                                                     warning = function(cond) { NA },
-                                                     error = function(cond) { NA })
-                
-                if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
-                    if (argname == first_arg) {
-                        # set a default value for "N" the first time
-                        # but there are some design without N argument
-                        if (first_arg == 'N') {
-                            n_int <- as.integer(d_args[[first_arg]])
-                            return(sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100))
-                        } else {
-                            min_int <- argdef$inspector_min
-                            step_int <- argdef$inspector_step
-                            max_int <- min_int + 4*step_int
-                            return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
-                        }
-                    } else {
-                        arg_char <- as.character(d_args[[argname]])
-                        if (argdef$vector) {  # vector of vectors input
-                            return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
-                        } else {
-                            return(arg_char)
-                        }
-                    }
-                } else {
-                    return(arg_inspect_input)
-                }
-            }, simplify = FALSE)
+            defaults <- get_inspect_input_defaults(d_args, defs, input)
         })
        
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
@@ -555,24 +522,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d_estimates <- draw_estimates(d)
             
             # get available diagnosands
-            diag_call <- attr(d, 'diagnosands')
-            if (is.null(diag_call)) {
-                react$diagnosands_call <- function(diag_param_alpha) {  # here we can pass alpha
-                    function(data) {
-                        DeclareDesign:::default_diagnosands(data, alpha = diag_param_alpha)
-                    }
-                }
-                
-                available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
-            } else {
-                react$diagnosands_call <- function(diag_param_alpha) {  # here we ignore alpha
-                    attr(diag_call, 'call')
-                }
-                
-                quick_diagnosis <- suppressWarnings(diagnose_design(d, sims = 2, bootstrap_sims = 0)$diagnosands_df)
-                available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
-                                                                           "term", "n_sims"))
-            }
+            diag_info <- get_diagnosands_info(d)
+            react$diagnosands_call <- diag_info$diagnosands_call
+            available_diagnosands <- diag_info$available_diagnosands
             
             # 1. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")

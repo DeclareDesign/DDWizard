@@ -189,51 +189,23 @@ get_designer_args <- function(designer) {
     formals(designer)
 }
 
-
-# For a given designer `design`, its argument definitions `d_argdefs`, the inspector tab input values object `inspect_input`,
-# a character vector of fixed design arguments `fixed_args`, and the design tab input values object `design_input`,
-# parse the sequence string for each designer argument and generate a list of arguments used for inspection.
-# These argument values will define the parameter space for inspection.
-get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input) {
-    d_args <- get_designer_args(design)
+# evaluate argument defaults of designers in separate environment (because they might be "language" constructs)
+# return evaluated argument defaults
+# `args` is a list of arguments with defaults as returned from `formals(<designer>)`
+evaluate_designer_args <- function(args) {
+    eval_envir <- new.env()
     
-    insp_args <- list()
+    args_eval <- lapply(1:length(args), function(a){
+        evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
+        invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
+        hold <- invisible(get(names(args)[a], envir = eval_envir))
+        if(length(hold) > 1) hold <- paste0(hold, collapse = ", ")
+        return(hold)
+    })
     
-    for (d_argname in names(d_args)) {
-        inp_name_design <- paste0('design_arg_', d_argname)
-        inp_name_inspect <- paste0('inspect_arg_', d_argname)
-        
-        # for a fixed argument or if no input is given in the inspect tab (character arguments),
-        # use the design tab input value
-        if (d_argname %in% fixed_args || is.null(inspect_input[[inp_name_inspect]])) {
-            inp_value <- design_input[[inp_name_design]]
-        } else {                           # else use the value from the inspect tab
-            inp_value <- inspect_input[[inp_name_inspect]]
-        }
-        
-        d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
-        d_argclass <- d_argdef$class
-        
-        # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
-        inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
-        if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
-            insp_args[[d_argname]] <- tryCatch({
-                if (d_argdef$vector) {
-                    parse_sequence_of_sequences_string(inp_value, d_argclass)
-                } else {
-                    parse_sequence_string(inp_value, d_argclass)
-                }
-            }, warning = function(cond) {
-                NA
-            }, error = function(cond) {
-                NA
-            })
-        }
-    }
-    
-    insp_args
+    names(args_eval) <- names(args)
+    args_eval
 }
-
 
 # get cache file name unique to cache type `cachetype` (designs, simulation or diagnosis results),
 # parameter space `args`, number of (bootstrap) simulations `sims`, designer name `designer`
