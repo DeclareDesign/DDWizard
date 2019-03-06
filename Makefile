@@ -8,3 +8,4 @@ run_tests_designers:
 
 run_tests_inspect_helpers:
 	cd tests; echo "library(RUnit); runTestSuite(defineTestSuite('inspect_helpers', '.', 'runit_inspect_helpers.R'))" | R -q --vanilla; cd ..
+

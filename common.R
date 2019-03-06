@@ -40,11 +40,6 @@ get_tips <- function(designer){
     def <- attr(designer, "definitions")
     split(def$tips, def$names)
 }
-
-# Wrapper for tipifying function
-dd_tipify <- function(id, title, content){
-    bsPopover(id = id, title = title, content = content, placement = "top", trigger = "hover")
-}
     
 # Check if lists `a` and `b` have equal elements in a "shallow" way, i.e. *not* traversing recursively
 # through nested lists.

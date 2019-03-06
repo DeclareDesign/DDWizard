@@ -14,7 +14,6 @@ library(ggplot2)
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
 # Returns NULL if argument class is not supported.
 input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
-    args <- formals(design) # need to evaluate design defaults in cases when input is language
     # extract the tips from library
     tips <- get_tips(design)
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
@@ -31,7 +30,7 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     
     # get evaluated designer arguments (because they might be "language" constructs)
     # this allows us to evaluate 'language' class default arguments and convert resulting vectors to string inputs
-    args_eval <- evaluate_designer_args(args)
+    args_eval <- evaluate_designer_args(get_designer_args(design))
     
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
@@ -71,9 +70,9 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     # create the input element and return it
     if (is.function(inp_elem_constructor)) {
         ret <- do.call(inp_elem_constructor, inp_elem_args)
-        if(is.character(tips[[argname]])) 
+        if (is.character(tips[[argname]])) {
             ret <- list(ret, dd_tipify(inp_id, argname, tips[[argname]]))
-        
+        }
     } else { 
         # return NULL if argument class is not supported
         ret <- NULL
@@ -245,4 +244,10 @@ dd_theme <- function() {
             legend.position = "bottom",
             text = element_text(family = "Palatino", size=16)
         )
+}
+
+
+# Wrapper for tipifying function
+dd_tipify <- function(id, title, content){
+    bsPopover(id = id, title = title, content = content, placement = "top", trigger = "hover")
 }
