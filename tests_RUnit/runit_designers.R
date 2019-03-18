@@ -92,7 +92,7 @@ test.designers_inspection_with_defaults <- function() {
         
         d <- get_designer(d_name)
         d_args <- get_designer_args(d)
-        d_args <- d_args[setdiff(names(d_args), 'fixed')]  # remove fixed
+        d_args <- d_args[setdiff(names(d_args), 'args_to_fix')]  # remove args_to_fix
         defs <- attr(d, 'definitions')
         
         # remove all but numerical arguments (because only for those we provide inputs anyway in the inspector tab)

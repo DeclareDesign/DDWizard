@@ -120,7 +120,7 @@ designTab <- function(input, output, session) {
                     }
                 }
                 
-                # determine whether argument was set to "fixed"
+                # determine whether argument was set in "args_to_fix"
                 arg_is_fixed_value <- input[[paste0('design_arg_', argname, '_fixed')]]
                 if (isTruthy(arg_is_fixed_value)) {
                     fixed_args <- c(fixed_args, argname)
@@ -142,7 +142,7 @@ designTab <- function(input, output, session) {
             }
             
             if (design_supports_fixed_arg()) {
-                output_args$fixed <- fixed_args
+                output_args$args_to_fix <- fixed_args
             }
             
             print('design args changed:')
@@ -192,14 +192,14 @@ designTab <- function(input, output, session) {
         d_inst
     })
     
-    # return TRUE if designer supports "fixed" argument, else FALSE
+    # return TRUE if designer supports "args_to_fix" argument, else FALSE
     design_supports_fixed_arg <- reactive({
         req(react$design)
         #return(FALSE)  # for testing
-        'fixed' %in% names(formals(react$design))
+        'args_to_fix' %in% names(formals(react$design))
     })
     
-    # return a character vector that lists the arguments set as "fixed"
+    # return a character vector that lists the arguments set in "args_to_fix"
     get_fixed_design_args <- reactive({
         req(react$design)
         
@@ -222,7 +222,7 @@ designTab <- function(input, output, session) {
         names(args_fixed)[args_fixed]
     })
     
-    # returns TRUE if at least one designer argument was set to "fixed", otherwise FALSE
+    # returns TRUE if at least one designer argument was set in "args_to_fix", otherwise FALSE
     at_least_one_design_arg_fixed <- reactive({
         length(get_fixed_design_args()) > 0
     })
