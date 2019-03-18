@@ -138,7 +138,7 @@ test.designers_inspection_with_defaults <- function() {
         if (class(varying_arg_res) == 'factor') {
             varying_arg_res <- sort(as.numeric(levels(varying_arg_res)))
         }
-        checkEquals(insp_args[[varying_arg]], varying_arg_res,
+        checkEquals(insp_args[[varying_arg]], unique(varying_arg_res),
                     paste(d_name, 'diagnoses results have results for varying arg'))
         
         checkTrue(all(diag_info$available_diagnosands %in% names(diag_df)),
