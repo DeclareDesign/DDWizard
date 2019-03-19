@@ -55,6 +55,7 @@ designTabUI <- function(id, label = 'Design') {
                                            dataTableOutput(nspace("section_simdata_table"))),
                            bsCollapsePanel("About DeclareDesign Wizard",
                                            p("  This project is generously supported by a grant from the Laura and John Arnold Foundation and seed funding from Evidence in Governance and Politics (EGAP)."),
+                                           tagList("  This software is in beta release. We welcome your feedback! Please report any issues ", a("here.", href="https://github.com/DeclareDesign/DDWizard/issues")))
                 )
             )
         )
