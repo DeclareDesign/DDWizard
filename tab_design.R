@@ -11,6 +11,7 @@
 ### UI ###
 
 designTabUI <- function(id, label = 'Design') {
+    
     nspace <- NS(id)
     
     material_tab_content(
@@ -18,12 +19,12 @@ designTabUI <- function(id, label = 'Design') {
         material_row(
             material_column(  # left: input and design parameters
                 width = 3,
-                material_card("Load design",
+                material_card("Choose design",
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
                                   actionButton(nspace("import_from_design_lib"), 
-                                               label = "Import", 
+                                               label = "Load", 
                                                disabled = "disabled")
                               )
                 ),
@@ -69,6 +70,8 @@ designTabUI <- function(id, label = 'Design') {
 
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
+    
+    welcome_alert()
     
     ### reactive values  ###
     
@@ -368,7 +371,7 @@ designTab <- function(input, output, session) {
         
         shinyjs::enable("import_from_design_lib")
         selectInput(nspace("import_design_library"), 
-                    label = "Choose design name",
+                    label = "",
                     selected = "two_arm_designer", choices = option_list,
                     multiple = FALSE)
         
