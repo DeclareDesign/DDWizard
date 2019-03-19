@@ -13,6 +13,7 @@ library(DesignLibrary)
 library(shiny)
 library(shinymaterial)
 library(shinythemes)
+library(shinyalert)
 library(shinyBS)
 library(shinyjs)
 library(stringr)
@@ -22,6 +23,7 @@ library(dplyr)
 source('conf.R')
 source('common.R')
 source('uihelpers.R')
+source('welcome_modal.R')
 source('tab_design.R')
 source('tab_inspect.R')
 
@@ -62,6 +64,7 @@ ui <- material_page(
     ),
     
     # "Design" tab
+    useShinyalert(),
     designTabUI('tab_design'),
     
     # "Inspect" tab

@@ -11,6 +11,7 @@
 ### UI ###
 
 designTabUI <- function(id, label = 'Design') {
+    
     nspace <- NS(id)
     
     material_tab_content(
@@ -18,12 +19,12 @@ designTabUI <- function(id, label = 'Design') {
         material_row(
             material_column(  # left: input and design parameters
                 width = 3,
-                material_card("Load design",
+                material_card("Choose design",
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
                                   actionButton(nspace("import_from_design_lib"), 
-                                               label = "Import", 
+                                               label = "Load", 
                                                disabled = "disabled")
                               )
                 ),
@@ -31,6 +32,9 @@ designTabUI <- function(id, label = 'Design') {
                 hidden(div(id = nspace('design_params_panel_wrapper'),
                     material_card("Set design parameters",
                         htmlOutput(nspace('design_description')),
+                        br(),
+                        uiOutput(nspace('design_vignette')),
+                        br(),
                         textInput(nspace('design_arg_design_name'), 'Design name'),
                         conditionalPanel(paste0("output['", nspace('design_supports_fixed_arg'), "'] != ''"),
                             div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn')))
@@ -52,7 +56,10 @@ designTabUI <- function(id, label = 'Design') {
                                            p("The following table shows a single draw of the data."),
                                            actionButton(nspace("simdata_redraw"), label = "Redraw data", disabled = "disabled"),
                                            downloadButton(nspace("simdata_download"), label = "Download data", disabled = "disabled"),
-                                           dataTableOutput(nspace("section_simdata_table")))
+                                           dataTableOutput(nspace("section_simdata_table"))),
+                           bsCollapsePanel("About DeclareDesign Wizard",
+                                           p("  This project is generously supported by a grant from the Laura and John Arnold Foundation and seed funding from Evidence in Governance and Politics (EGAP)."),
+                                           tagList("  This software is in beta release. We welcome your feedback! Please report any issues ", a("here.", href="https://github.com/DeclareDesign/DDWizard/issues")))
                 )
             )
         )
@@ -63,6 +70,8 @@ designTabUI <- function(id, label = 'Design') {
 
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
+    
+    welcome_alert()
     
     ### reactive values  ###
     
@@ -80,6 +89,13 @@ designTab <- function(input, output, session) {
     )
     
     ### reactive expressions ###
+    # create link to vignette based on design input from the library
+    output$design_vignette <- renderUI({
+        url <- paste0("window.open('https://declaredesign.org/library/articles/", gsub("_designer","",react$design_id), ".html', '_blank')")
+        actionButton(inputId='vignette', label=" Read more", 
+                     icon = icon("book"), 
+                     onclick = url)
+    })
     
     # arguments/parameters for react$design and their values taken from the inputs
     design_args <- reactive({
@@ -355,7 +371,7 @@ designTab <- function(input, output, session) {
         
         shinyjs::enable("import_from_design_lib")
         selectInput(nspace("import_design_library"), 
-                    label = "Choose design name",
+                    label = "",
                     selected = "two_arm_designer", choices = option_list,
                     multiple = FALSE)
         
