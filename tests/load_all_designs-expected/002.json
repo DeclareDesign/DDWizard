@@ -1,0 +1,75 @@
+{
+  "input": {
+    "inspect_sections_container": null,
+    "tab_design-design_arg_design_name": "binary_iv_design",
+    "tab_design-import_design_library": "binary_iv_designer",
+    "tab_design-import_design_library-selectized": "",
+    "tab_design-import_from_design_lib": 1,
+    "tab_design-sections_container": null,
+    "tab_design-simdata_redraw": 0,
+    "tab_inspect-inspect_sections_simconf_container": null,
+    "tab_inspect-simconf_bootstrap_num": 30,
+    "tab_inspect-simconf_force_rerun": false,
+    "tab_inspect-simconf_sim_num": 100,
+    "tab_inspect-update_plot": 0,
+    "tab_inspect-update_plot_all_fixed": 0
+  },
+  "output": {
+    "tab_design-design_description": {
+      "html": "\n<p> A simple IV design of sample size <code>N<\/code>.\n",
+      "deps": [
+
+      ]
+    },
+    "tab_design-design_parameters": {
+      "html": "<div>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_N\">N<\/label>\n    <input id=\"tab_design-design_arg_N\" type=\"number\" class=\"form-control\" value=\"100\" min=\"4\" step=\"1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_N', 'popover', {'content': 'Sample size', 'placement': 'top', 'trigger': 'hover', 'title': 'N'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_type_probs\">type_probs<\/label>\n    <input id=\"tab_design-design_arg_type_probs\" type=\"text\" class=\"form-control\" value=\"0.333333333333333, 0.333333333333333, 0.333333333333333, 0\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_type_probs', 'popover', {'content': 'Probability of each complier type', 'placement': 'top', 'trigger': 'hover', 'title': 'type_probs'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_assignment_probs\">assignment_probs<\/label>\n    <input id=\"tab_design-design_arg_assignment_probs\" type=\"text\" class=\"form-control\" value=\"0.5, 0.5, 0.5, 0.5\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_assignment_probs', 'popover', {'content': 'Probability of assignment to encouragement', 'placement': 'top', 'trigger': 'hover', 'title': 'assignment_probs'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_a_Y\">a_Y<\/label>\n    <input id=\"tab_design-design_arg_a_Y\" type=\"number\" class=\"form-control\" value=\"1\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_a_Y', 'popover', {'content': 'Constant in Y equation for each complier type', 'placement': 'top', 'trigger': 'hover', 'title': 'a_Y'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_b_Y\">b_Y<\/label>\n    <input id=\"tab_design-design_arg_b_Y\" type=\"number\" class=\"form-control\" value=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_b_Y', 'popover', {'content': 'Effect of X on Y', 'placement': 'top', 'trigger': 'hover', 'title': 'b_Y'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_d_Y\">d_Y<\/label>\n    <input id=\"tab_design-design_arg_d_Y\" type=\"number\" class=\"form-control\" value=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_d_Y', 'popover', {'content': 'Effect of Z on Y', 'placement': 'top', 'trigger': 'hover', 'title': 'd_Y'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_outcome_sd\">outcome_sd<\/label>\n    <input id=\"tab_design-design_arg_outcome_sd\" type=\"number\" class=\"form-control\" value=\"1\" min=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_outcome_sd', 'popover', {'content': 'Standard deviation of the outcome.', 'placement': 'top', 'trigger': 'hover', 'title': 'outcome_sd'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_a\">a<\/label>\n    <input id=\"tab_design-design_arg_a\" type=\"text\" class=\"form-control\" value=\"1, 0, 0, 0\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_a', 'popover', {'content': 'Constant in Y equation', 'placement': 'top', 'trigger': 'hover', 'title': 'a'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_b\">b<\/label>\n    <input id=\"tab_design-design_arg_b\" type=\"text\" class=\"form-control\" value=\"0, 0, 0, 0\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_b', 'popover', {'content': 'Slope on X in Y equation for each complier type', 'placement': 'top', 'trigger': 'hover', 'title': 'b'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_d\">d<\/label>\n    <input id=\"tab_design-design_arg_d\" type=\"text\" class=\"form-control\" value=\"0, 0, 0, 0\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_d', 'popover', {'content': 'Slope on Z in Y equation for each complier type', 'placement': 'top', 'trigger': 'hover', 'title': 'd'})}, 500)});<\/script>\n<\/div>",
+      "deps": [
+        {
+          "name": "shinyBS",
+          "version": "0.61",
+          "src": {
+            "href": "sbs"
+          },
+          "meta": null,
+          "script": "shinyBS.js",
+          "stylesheet": "shinyBS.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "tab_design-design_supports_fixed_arg": false,
+    "tab_design-fix_toggle_btn": {
+      "html": "<button id=\"tab_design-fix_toggle_click\" type=\"button\" class=\"btn btn-default action-button\">Fix all<\/button>",
+      "deps": [
+
+      ]
+    },
+    "tab_design-import_design_lib_id": {
+      "html": "<div class=\"form-group shiny-input-container\">\n  <label class=\"control-label\" for=\"tab_design-import_design_library\">Choose design name<\/label>\n  <div>\n    <select id=\"tab_design-import_design_library\"><option value=\"binary_iv_designer\">Binary Iv<\/option>\n<option value=\"block_cluster_two_arm_designer\">Block Cluster Two Arm<\/option>\n<option value=\"cluster_sampling_designer\">Cluster Sampling<\/option>\n<option value=\"factorial_designer\">Factorial<\/option>\n<option value=\"mediation_analysis_designer\">Mediation Analysis<\/option>\n<option value=\"multi_arm_designer\">Multi Arm<\/option>\n<option value=\"pretest_posttest_designer\">Pretest Posttest<\/option>\n<option value=\"process_tracing_designer\">Process Tracing<\/option>\n<option value=\"randomized_response_designer\">Randomized Response<\/option>\n<option value=\"regression_discontinuity_designer\">Regression Discontinuity<\/option>\n<option value=\"spillover_designer\">Spillover<\/option>\n<option value=\"two_arm_attrition_designer\">Two Arm Attrition<\/option>\n<option value=\"two_arm_covariate_designer\">Two Arm Covariate<\/option>\n<option value=\"two_arm_designer\" selected>Two Arm<\/option>\n<option value=\"two_by_two_designer\">Two By Two<\/option><\/select>\n    <script type=\"application/json\" data-for=\"tab_design-import_design_library\" data-nonempty=\"\">{}<\/script>\n  <\/div>\n<\/div>",
+      "deps": [
+        {
+          "name": "selectize",
+          "version": "0.11.2",
+          "src": {
+            "href": "shared/selectize"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "css/selectize.bootstrap3.css",
+          "head": "<!--[if lt IE 9]>\n<script src=\"shared/selectize/js/es5-shim.min.js\"><\/script>\n<![endif]-->\n<script src=\"shared/selectize/js/selectize.min.js\"><\/script>",
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "tab_inspect-all_design_args_fixed": false,
+    "tab_inspect-cur_design_id": "binary_iv_designer"
+  },
+  "export": {
+
+  }
+}

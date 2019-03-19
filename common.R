@@ -6,10 +6,12 @@
 # Oct. 2018
 #
 
+library(shiny)
 library(stringr)
 library(future)
 library(rlang)
 library(digest)
+library(DeclareDesign)
 
 
 # Append `v` to list `l` and return the resulting list. Appending is slow, don't use that often!
@@ -37,11 +39,6 @@ list_merge <- function(l1, l2) {
 get_tips <- function(designer){
     def <- attr(designer, "definitions")
     split(def$tips, def$names)
-}
-
-# Wrapper for tipifying function
-dd_tipify <- function(id, title, content){
-    bsPopover(id = id, title = title, content = content, placement = "top", trigger = "hover")
 }
     
 # Check if lists `a` and `b` have equal elements in a "shallow" way, i.e. *not* traversing recursively
@@ -104,9 +101,17 @@ parse_sequence_string <- function(s, cls = 'numeric') {
     } else {  # character list or int/num scalar or int/num sequence like 1, 3, 8, 2
         elems <- str_trim(str_split(s, ',')[[1]])
         if (cls %in% c('numeric', 'integer')) {
-            return(as.numeric(elems))
+            if (length(elems) == 1 && elems == '') {
+                return(numeric())
+            } else {
+                return(as.numeric(elems))
+            }
         } else {
-            return(elems)
+            if (length(elems) == 1 && elems == '') {
+                return(character())
+            } else {
+                return(elems)
+            }
         }
     }
 }
@@ -134,6 +139,8 @@ parse_sequence_string <- function(s, cls = 'numeric') {
 #
 # If the input cannot be parsed, NULL will be returned.
 parse_sequence_of_sequences_string <- function(s, cls = 'numeric', require_rectangular = FALSE) {
+    if (str_trim(s) == '') return(list())
+    
     m <- gregexpr('\\(([^\\(\\)]*)\\)', s)
     vecs <- regmatches(s, m)
     
@@ -177,51 +184,23 @@ get_designer_args <- function(designer) {
     formals(designer)
 }
 
-
-# For a given designer `design`, its argument definitions `d_argdefs`, the inspector tab input values object `inspect_input`,
-# a character vector of fixed design arguments `fixed_args`, and the design tab input values object `design_input`,
-# parse the sequence string for each designer argument and generate a list of arguments used for inspection.
-# These argument values will define the paremeter space for inspection.
-get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args, design_input) {
-    d_args <- get_designer_args(design)
+# evaluate argument defaults of designers in separate environment (because they might be "language" constructs)
+# return evaluated argument defaults
+# `args` is a list of arguments with defaults as returned from `formals(<designer>)`
+evaluate_designer_args <- function(args) {
+    eval_envir <- new.env()
     
-    insp_args <- list()
+    args_eval <- lapply(1:length(args), function(a){
+        evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
+        invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
+        hold <- invisible(get(names(args)[a], envir = eval_envir))
+        if(length(hold) > 1) hold <- paste0(hold, collapse = ", ")
+        return(hold)
+    })
     
-    for (d_argname in names(d_args)) {
-        inp_name_design <- paste0('design_arg_', d_argname)
-        inp_name_inspect <- paste0('inspect_arg_', d_argname)
-        
-        # for a fixed argument or if no input is given in the inspect tab (character arguments),
-        # use the design tab input value
-        if (d_argname %in% fixed_args || is.null(inspect_input[[inp_name_inspect]])) {
-            inp_value <- design_input[[inp_name_design]]
-        } else {                           # else use the value from the inspect tab
-            inp_value <- inspect_input[[inp_name_inspect]]
-        }
-        
-        d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
-        d_argclass <- d_argdef$class
-        
-        # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
-        inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
-        if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
-            insp_args[[d_argname]] <- tryCatch({
-                if (d_argdef$vector) {
-                    parse_sequence_of_sequences_string(inp_value, d_argclass)
-                } else {
-                    parse_sequence_string(inp_value, d_argclass)
-                }
-            }, warning = function(cond) {
-                NA
-            }, error = function(cond) {
-                NA
-            })
-        }
-    }
-    
-    insp_args
+    names(args_eval) <- names(args)
+    args_eval
 }
-
 
 # get cache file name unique to cache type `cachetype` (designs, simulation or diagnosis results),
 # parameter space `args`, number of (bootstrap) simulations `sims`, designer name `designer`
@@ -246,9 +225,12 @@ get_diagnosis_cache_filename <- function(cachetype, args, sims, bs_sims, designe
 # If `use_cache` is TRUE, check if simulated data already exists for this designer / parameter combinations and use cached
 # data or create newly simulated data for running diagnoses.
 # The simulations are run in parallel if packages `future` and `future.apply` are installed.
-run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call, use_cache = TRUE, advance_progressbar = 0) {
-    # set up to run in parallel
-    plan('multicore', workers = n_diagnosis_workers)
+run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call, use_cache = TRUE,
+                          advance_progressbar = 0, n_diagnosis_workers = 1) {
+    if (n_diagnosis_workers > 1) {
+        # set up to run in parallel
+        plan('multicore', workers = n_diagnosis_workers)
+    }
     
     all_designs <- NULL
     if (use_cache) {

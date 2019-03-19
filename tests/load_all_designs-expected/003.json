@@ -1,0 +1,98 @@
+{
+  "input": {
+    "inspect_sections_container": null,
+    "tab_design-design_arg_a": "1, 0, 0, 0",
+    "tab_design-design_arg_a_Y": 1,
+    "tab_design-design_arg_assignment_probs": "0.5",
+    "tab_design-design_arg_ate": 0,
+    "tab_design-design_arg_b": "0, 0, 0, 0",
+    "tab_design-design_arg_b_Y": 0,
+    "tab_design-design_arg_control_mean": 0,
+    "tab_design-design_arg_d": "0, 0, 0, 0",
+    "tab_design-design_arg_d_Y": 0,
+    "tab_design-design_arg_design_name": "block_cluster_two_arm_design",
+    "tab_design-design_arg_N": null,
+    "tab_design-design_arg_N_blocks": 1,
+    "tab_design-design_arg_N_clusters_in_block": "100",
+    "tab_design-design_arg_N_i_in_cluster": "1",
+    "tab_design-design_arg_outcome_sd": 1,
+    "tab_design-design_arg_rho": 1,
+    "tab_design-design_arg_sd": 1,
+    "tab_design-design_arg_sd_block": 0.5773,
+    "tab_design-design_arg_sd_cluster": 0.577375402143181,
+    "tab_design-design_arg_sd_i_0": 0.577375402143181,
+    "tab_design-design_arg_sd_i_1": 0.577375402143181,
+    "tab_design-design_arg_treatment_mean": 0,
+    "tab_design-design_arg_type_probs": "0.333333333333333, 0.333333333333333, 0.333333333333333, 0",
+    "tab_design-fix_toggle_click": 0,
+    "tab_design-import_design_library": "block_cluster_two_arm_designer",
+    "tab_design-import_design_library-selectized": "",
+    "tab_design-import_from_design_lib": 2,
+    "tab_design-sections_container": null,
+    "tab_design-simdata_redraw": 0,
+    "tab_inspect-inspect_sections_simconf_container": null,
+    "tab_inspect-simconf_bootstrap_num": 30,
+    "tab_inspect-simconf_force_rerun": false,
+    "tab_inspect-simconf_sim_num": 100,
+    "tab_inspect-update_plot": 0,
+    "tab_inspect-update_plot_all_fixed": 0
+  },
+  "output": {
+    "tab_design-design_description": {
+      "html": "\n<p> A two arm blocked and clustered experiment with <code>N_blocks<\/code> blocks, \neach containing <code>N_clusters_in_block<\/code> clusters. Each cluster in turn contains \n<code>N_i_in_cluster<\/code> units. \n<p> Estimand is the average treatment effect (<code>ate<\/code>).\n",
+      "deps": [
+
+      ]
+    },
+    "tab_design-design_parameters": {
+      "html": "<div>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_N\">N<\/label>\n    <input id=\"tab_design-design_arg_N\" type=\"number\" class=\"form-control\" value=\"\" min=\"2\" step=\"1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_N', 'popover', {'content': 'Total number of units', 'placement': 'top', 'trigger': 'hover', 'title': 'N'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_N_blocks\">N_blocks<\/label>\n    <input id=\"tab_design-design_arg_N_blocks\" type=\"number\" class=\"form-control\" value=\"1\" min=\"1\" step=\"1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_N_blocks', 'popover', {'content': 'Number of blocks', 'placement': 'top', 'trigger': 'hover', 'title': 'N_blocks'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_N_clusters_in_block\">N_clusters_in_block<\/label>\n    <input id=\"tab_design-design_arg_N_clusters_in_block\" type=\"text\" class=\"form-control\" value=\"100\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_N_clusters_in_block', 'popover', {'content': 'Number of clusters in each block', 'placement': 'top', 'trigger': 'hover', 'title': 'N_clusters_in_block'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_N_i_in_cluster\">N_i_in_cluster<\/label>\n    <input id=\"tab_design-design_arg_N_i_in_cluster\" type=\"text\" class=\"form-control\" value=\"1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_N_i_in_cluster', 'popover', {'content': 'Number of units in each cluster', 'placement': 'top', 'trigger': 'hover', 'title': 'N_i_in_cluster'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_sd\">sd<\/label>\n    <input id=\"tab_design-design_arg_sd\" type=\"number\" class=\"form-control\" value=\"1\" min=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_sd', 'popover', {'content': 'Overall standard deviation', 'placement': 'top', 'trigger': 'hover', 'title': 'sd'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_sd_block\">sd_block<\/label>\n    <input id=\"tab_design-design_arg_sd_block\" type=\"number\" class=\"form-control\" value=\"0.5773\" min=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_sd_block', 'popover', {'content': 'Standard deviation of block level shocks', 'placement': 'top', 'trigger': 'hover', 'title': 'sd_block'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_sd_cluster\">sd_cluster<\/label>\n    <input id=\"tab_design-design_arg_sd_cluster\" type=\"number\" class=\"form-control\" value=\"0.577375402143181\" min=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_sd_cluster', 'popover', {'content': 'Standard deviation of cluster level shock', 'placement': 'top', 'trigger': 'hover', 'title': 'sd_cluster'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_sd_i_0\">sd_i_0<\/label>\n    <input id=\"tab_design-design_arg_sd_i_0\" type=\"number\" class=\"form-control\" value=\"0.577375402143181\" min=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_sd_i_0', 'popover', {'content': 'Standard deviation of individual level shock in control', 'placement': 'top', 'trigger': 'hover', 'title': 'sd_i_0'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_sd_i_1\">sd_i_1<\/label>\n    <input id=\"tab_design-design_arg_sd_i_1\" type=\"number\" class=\"form-control\" value=\"0.577375402143181\" min=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_sd_i_1', 'popover', {'content': 'Standard deviation of individual level shock in treatment', 'placement': 'top', 'trigger': 'hover', 'title': 'sd_i_1'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_rho\">rho<\/label>\n    <input id=\"tab_design-design_arg_rho\" type=\"number\" class=\"form-control\" value=\"1\" min=\"-1\" max=\"1\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_rho', 'popover', {'content': 'Correlation in individual shock between potential outcomes for treatment and control', 'placement': 'top', 'trigger': 'hover', 'title': 'rho'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_assignment_probs\">assignment_probs<\/label>\n    <input id=\"tab_design-design_arg_assignment_probs\" type=\"text\" class=\"form-control\" value=\"0.5\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_assignment_probs', 'popover', {'content': 'Treatment assignment probability for each block', 'placement': 'top', 'trigger': 'hover', 'title': 'assignment_probs'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_control_mean\">control_mean<\/label>\n    <input id=\"tab_design-design_arg_control_mean\" type=\"number\" class=\"form-control\" value=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_control_mean', 'popover', {'content': 'Average outcome in control', 'placement': 'top', 'trigger': 'hover', 'title': 'control_mean'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_ate\">ate<\/label>\n    <input id=\"tab_design-design_arg_ate\" type=\"number\" class=\"form-control\" value=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_ate', 'popover', {'content': 'Average treatment effect', 'placement': 'top', 'trigger': 'hover', 'title': 'ate'})}, 500)});<\/script>\n  <div class=\"form-group shiny-input-container\" style=\"width: 100%;\">\n    <label for=\"tab_design-design_arg_treatment_mean\">treatment_mean<\/label>\n    <input id=\"tab_design-design_arg_treatment_mean\" type=\"number\" class=\"form-control\" value=\"0\" step=\"0.1\"/>\n  <\/div>\n  <script>$(document).ready(function() {setTimeout(function() {shinyBS.addTooltip('tab_design-design_arg_treatment_mean', 'popover', {'content': 'Average outcome in treatment', 'placement': 'top', 'trigger': 'hover', 'title': 'treatment_mean'})}, 500)});<\/script>\n<\/div>",
+      "deps": [
+        {
+          "name": "shinyBS",
+          "version": "0.61",
+          "src": {
+            "href": "sbs"
+          },
+          "meta": null,
+          "script": "shinyBS.js",
+          "stylesheet": "shinyBS.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "tab_design-design_supports_fixed_arg": false,
+    "tab_design-fix_toggle_btn": {
+      "html": "<button id=\"tab_design-fix_toggle_click\" type=\"button\" class=\"btn btn-default action-button\">Fix all<\/button>",
+      "deps": [
+
+      ]
+    },
+    "tab_design-import_design_lib_id": {
+      "html": "<div class=\"form-group shiny-input-container\">\n  <label class=\"control-label\" for=\"tab_design-import_design_library\">Choose design name<\/label>\n  <div>\n    <select id=\"tab_design-import_design_library\"><option value=\"binary_iv_designer\">Binary Iv<\/option>\n<option value=\"block_cluster_two_arm_designer\">Block Cluster Two Arm<\/option>\n<option value=\"cluster_sampling_designer\">Cluster Sampling<\/option>\n<option value=\"factorial_designer\">Factorial<\/option>\n<option value=\"mediation_analysis_designer\">Mediation Analysis<\/option>\n<option value=\"multi_arm_designer\">Multi Arm<\/option>\n<option value=\"pretest_posttest_designer\">Pretest Posttest<\/option>\n<option value=\"process_tracing_designer\">Process Tracing<\/option>\n<option value=\"randomized_response_designer\">Randomized Response<\/option>\n<option value=\"regression_discontinuity_designer\">Regression Discontinuity<\/option>\n<option value=\"spillover_designer\">Spillover<\/option>\n<option value=\"two_arm_attrition_designer\">Two Arm Attrition<\/option>\n<option value=\"two_arm_covariate_designer\">Two Arm Covariate<\/option>\n<option value=\"two_arm_designer\" selected>Two Arm<\/option>\n<option value=\"two_by_two_designer\">Two By Two<\/option><\/select>\n    <script type=\"application/json\" data-for=\"tab_design-import_design_library\" data-nonempty=\"\">{}<\/script>\n  <\/div>\n<\/div>",
+      "deps": [
+        {
+          "name": "selectize",
+          "version": "0.11.2",
+          "src": {
+            "href": "shared/selectize"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "css/selectize.bootstrap3.css",
+          "head": "<!--[if lt IE 9]>\n<script src=\"shared/selectize/js/es5-shim.min.js\"><\/script>\n<![endif]-->\n<script src=\"shared/selectize/js/selectize.min.js\"><\/script>",
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "tab_inspect-all_design_args_fixed": false,
+    "tab_inspect-cur_design_id": "block_cluster_two_arm_designer"
+  },
+  "export": {
+
+  }
+}
