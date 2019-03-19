@@ -52,7 +52,9 @@ designTabUI <- function(id, label = 'Design') {
                                            p("The following table shows a single draw of the data."),
                                            actionButton(nspace("simdata_redraw"), label = "Redraw data", disabled = "disabled"),
                                            downloadButton(nspace("simdata_download"), label = "Download data", disabled = "disabled"),
-                                           dataTableOutput(nspace("section_simdata_table")))
+                                           dataTableOutput(nspace("section_simdata_table"))),
+                           bsCollapsePanel("About DeclareDesign Wizard",
+                                           p("  This project is generously supported by a grant from the Laura and John Arnold Foundation and seed funding from Evidence in Governance and Politics (EGAP)."),
                 )
             )
         )
