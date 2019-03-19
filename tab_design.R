@@ -31,6 +31,9 @@ designTabUI <- function(id, label = 'Design') {
                 hidden(div(id = nspace('design_params_panel_wrapper'),
                     material_card("Set design parameters",
                         htmlOutput(nspace('design_description')),
+                        br(),
+                        uiOutput(nspace('design_vignette')),
+                        br(),
                         textInput(nspace('design_arg_design_name'), 'Design name'),
                         conditionalPanel(paste0("output['", nspace('design_supports_fixed_arg'), "'] != ''"),
                             div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn')))
@@ -83,6 +86,13 @@ designTab <- function(input, output, session) {
     )
     
     ### reactive expressions ###
+    # create link to vignette based on design input from the library
+    output$design_vignette <- renderUI({
+        url <- paste0("window.open('https://declaredesign.org/library/articles/", gsub("_designer","",react$design_id), ".html', '_blank')")
+        actionButton(inputId='vignette', label=" Read more", 
+                     icon = icon("book"), 
+                     onclick = url)
+    })
     
     # arguments/parameters for react$design and their values taken from the inputs
     design_args <- reactive({
