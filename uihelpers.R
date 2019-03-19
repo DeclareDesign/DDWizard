@@ -9,6 +9,24 @@
 library(ggplot2)
 
 
+#Inspector help text
+inpector_help_text <- '<dl>
+                        <dt>Top panel</dt>
+                        <dd>Specify the number of simulations in your diagnosis.</dd>
+                        <dt>Left panel</dt>
+                        <dd>Specify which design arguments to vary with each design 
+                        diagnosis. You can input numeric values separated by a comma 
+                        (e.g., 10, 20, 30) or provide ranges of values with one step 
+                        to create an arithmetic sequence of values 
+                        (e.g., 10, 20, ..., 100 generates a sequence from 10 to 100 
+                        where the difference in terms is 10).</dd>
+                        <dt>Right panel</dt>
+                        <dd>Choose which arguments should be mapped to which visual
+                        property of the diagnosis plot and which diagnosand should 
+                        be displayed.</dd>
+                        <br><dd>Click <b>"Run diagnoses"</b> to run the diagnoses and
+                        display the updated plot.<br><br></dd>'
+
 # Create an input element for a design argument with name `argname`, with a default value `argdefault`.
 # Use min/max and class definition from `argdefinition` (comes from designer "definitions" attrib.).
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
