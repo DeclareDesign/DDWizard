@@ -40,47 +40,54 @@ if (file.exists(piwik_code_file)) {
     piwik_code <- ''
 }
 
-ui <- material_page(
-    # title
-    title = app_title,
-    nav_bar_color = nav_bar_color,
-    shiny::tags$title(app_title),
-    
-    # additional JS / CSS libraries
-    bootstrapLib(),
-    withMathJax(),
-    tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
-        HTML(piwik_code)
-    ),
-    shinyjs::useShinyjs(),
-    
-    # tabs
-    material_tabs(
-        tabs = c(
-            "Design" = "tab_design",
-            "Inspect" = "tab_inspect"
-        )
-    ),
-    
-    # "Design" tab
-    useShinyalert(),
-    designTabUI('tab_design'),
-    
-    # "Inspect" tab
-    inspectTabUI('tab_inspect')
-)
-
+ui <- function(request) {
+    material_page(
+        # title
+        title = app_title,
+        nav_bar_color = nav_bar_color,
+        shiny::tags$title(app_title),
+        
+        # additional JS / CSS libraries
+        bootstrapLib(),
+        withMathJax(),
+        tags$head(
+            tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
+            HTML(piwik_code)
+        ),
+        shinyjs::useShinyjs(),
+        
+        bookmarkButton(),
+        
+        # tabs
+        material_tabs(
+            tabs = c(
+                "Design" = "tab_design",
+                "Inspect" = "tab_inspect"
+            )
+        ),
+        
+        # "Design" tab
+        useShinyalert(),
+        designTabUI('tab_design'),
+        
+        # "Inspect" tab
+        inspectTabUI('tab_inspect')
+    )
+}
 
 ###########################################################
 # Backend: Input handling and output generation on server #
 ###########################################################
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     design_tab_proxy <- callModule(designTab, 'tab_design')
     callModule(inspectTab, 'tab_inspect', design_tab_proxy)
+
+    onBookmarked(function(url) {
+        print(url)
+    })
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server)
+shinyApp(ui = ui, server = server, enableBookmarking = 'server')

@@ -19,6 +19,7 @@ Authors:
 
 - DeclareDesign
 - shiny
+- shinyalert
 - shinymaterial
 - shinythemes
 - shinyBS
