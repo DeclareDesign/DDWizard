@@ -254,10 +254,13 @@ designTab <- function(input, output, session) {
         }
     }
     
-    load_designer <- function(designer) {
+    # Load the designer with the name `designer` (char string).
+    # For mysterious reasons, it is necessary to pass a namespace function `nspace` (created with `NS(<id>)`)
+    # *whenever this function is called for restoring a bookmark.*
+    load_designer <- function(designer, nspace = function(x) { x }) {
         print(paste('loading designer', designer))
         
-        shinyjs::show('design_params_panel_wrapper')
+        shinyjs::show(nspace('design_params_panel_wrapper'))
         
         react$design_id <- designer
         react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
@@ -265,15 +268,16 @@ designTab <- function(input, output, session) {
         react$design_name_once_changed <- FALSE
         react$fix_toggle <- 'fix'
         
-        shinyjs::enable('download_r_script')
-        shinyjs::enable('download_rds_obj')
-        shinyjs::enable('simdata_redraw')
-        shinyjs::enable('simdata_download')
+        shinyjs::enable(nspace('download_r_script'))
+        shinyjs::enable(nspace('download_rds_obj'))
+        shinyjs::enable(nspace('simdata_redraw'))
+        shinyjs::enable(nspace('simdata_download'))
         
+        # save this to state because it is not automatically restored from bookmark
         react$custom_state$designer <- react$design_id
         
         # replace xx_designer as xx_design
-        updateTextInput(session, 'design_arg_design_name', value = gsub("designer","design",react$design_id))
+        updateTextInput(session, nspace('design_arg_design_name'), value = gsub("designer","design", react$design_id))
     }
     
     ### bookmarking ###
@@ -295,7 +299,7 @@ designTab <- function(input, output, session) {
         
         # design is not loaded automatically on restore (probably because list of available designers
         # is not loaded yet) so do it here
-        load_designer(react$custom_state$designer)
+        load_designer(react$custom_state$designer, NS('tab_design'))
         
         # re-open the panels
         updateCollapse(session, 'sections_container', open = react$custom_state$panels_state)
