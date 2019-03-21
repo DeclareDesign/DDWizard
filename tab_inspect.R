@@ -41,7 +41,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
             ),
             material_column(   # center: inspection output
                 width = 6,
-                bsCollapse(id=nspace('inspect_sections_simconf_container'),
+                bsCollapse(id = nspace('inspect_sections_simconf_container'),
                            bsCollapsePanel('Configure simulations',
                                            checkboxInput(nspace('simconf_force_rerun'), label = 'Always re-run simulations (disable cache)'),
                                            numericInput(nspace("simconf_sim_num"), label = "Num. of simulations",
@@ -57,7 +57,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                   uiOutput(nspace('plot_output')),
                                   downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
                     ),
-                    bsCollapse(id='inspect_sections_container',
+                    bsCollapse(id = nspace('inspect_sections_container'),
                                bsCollapsePanel('Diagnosis',
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
@@ -93,7 +93,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
         diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
         insp_args_used_in_plot = NULL,  # last used design parameters used in plot
-        captured_errors = NULL      # errors to display
+        captured_errors = NULL,     # errors to display
+        custom_state = list()       # additional state values for bookmarking
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -360,6 +361,31 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 p
             })
         })
+    })
+    
+    ### bookmarking ###
+    
+    # customize bookmarking process: add additional data to bookmarked state
+    onBookmark(function(state) {
+        print('BOOKMARKING IN INSPECT TAB:')
+        
+        # add open panels, because they're not restored automatically
+        react$custom_state$panel_simconf_state <- input$inspect_sections_simconf_container
+        react$custom_state$panel_diagnosis_state <- input$inspect_sections_container
+        
+        print(react$custom_state)
+        state$values$custom_state <- react$custom_state
+    })
+    
+    # customize restoring process
+    onRestore(function(state) {
+        print('RESTORING IN INSPECT TAB:')
+        react$custom_state <- state$values$custom_state
+        print(react$custom_state)
+        
+        # re-open the panels
+        updateCollapse(session, 'inspect_sections_simconf_container', open = react$custom_state$panel_simconf_state)
+        updateCollapse(session, 'inspect_sections_container', open = react$custom_state$panel_diagnosis_state)
     })
     
     # -------------- center: messages for plot --------------

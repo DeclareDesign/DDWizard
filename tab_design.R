@@ -86,7 +86,7 @@ designTab <- function(input, output, session) {
         captured_errors = NULL,         # captured errors and warnings during design creation
         input_errors = NULL,            # errors related to invalid inputs
         captured_msgs = NULL,           # captured messages during design creation
-        custom_state = list()
+        custom_state = list()           # additional state values for bookmarking
     )
     
     ### reactive expressions ###
@@ -282,8 +282,9 @@ designTab <- function(input, output, session) {
     
     ### bookmarking ###
     
+    # customize bookmarking process: add additional data to bookmarked state
     onBookmark(function(state) {
-        print('BOOKMARKING:')
+        print('BOOKMARKING IN DESIGN TAB:')
         
         # add open panels, because they're not restored automatically
         react$custom_state$panels_state <- input$sections_container
@@ -292,13 +293,15 @@ designTab <- function(input, output, session) {
         state$values$custom_state <- react$custom_state
     })
     
+    # customize restoring process
     onRestore(function(state) {
-        print('RESTORING:')
+        print('RESTORING IN DESIGN TAB:')
         react$custom_state <- state$values$custom_state
         print(react$custom_state)
         
         # design is not loaded automatically on restore (probably because list of available designers
         # is not loaded yet) so do it here
+        # also, a namespace function must be passed when doing a restore (reason unknown)
         load_designer(react$custom_state$designer, NS('tab_design'))
         
         # re-open the panels

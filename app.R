@@ -52,7 +52,8 @@ ui <- function(request) {
         withMathJax(),
         tags$head(
             tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
-            HTML(piwik_code)
+            HTML(piwik_code),
+            includeScript('www/custom.js')
         ),
         shinyjs::useShinyjs(),
         
@@ -83,9 +84,22 @@ ui <- function(request) {
 server <- function(input, output, session) {
     design_tab_proxy <- callModule(designTab, 'tab_design')
     callModule(inspectTab, 'tab_inspect', design_tab_proxy)
+    
+    onBookmark(function(state) {
+        print('BOOKMARKING IN APP:')
+        state$values$current_tab <- input$current_tab
+        print(state$values$current_tab)
+    })
 
+    
     onBookmarked(function(url) {
         print(url)
+    })
+    
+    
+    onRestore(function(state) {
+        # open the bookmarked tab
+        shinymaterial::select_material_tab(session, state$values$current_tab)
     })
 }
 
