@@ -289,6 +289,9 @@ designTab <- function(input, output, session) {
         # add open panels, because they're not restored automatically
         react$custom_state$panels_state <- input$sections_container
         
+        # store simulated data
+        react$custom_state$simdata <- react$simdata
+        
         print(react$custom_state)
         state$values$custom_state <- react$custom_state
     })
@@ -297,6 +300,7 @@ designTab <- function(input, output, session) {
     onRestore(function(state) {
         print('RESTORING IN DESIGN TAB:')
         react$custom_state <- state$values$custom_state
+        
         print(react$custom_state)
         
         # design is not loaded automatically on restore (probably because list of available designers
@@ -335,8 +339,13 @@ designTab <- function(input, output, session) {
     # input observer for click on "redraw data" button in "simulated data" section
     observeEvent(input$simdata_redraw, {
         d <- req(design_instance())
-        simdata <- draw_data(d)
-        simdata <- round_df(simdata, 4)
+        if (!is.null(react$custom_state$simdata)) {
+            simdata <- react$custom_state$simdata
+            react$custom_state$simdata <- NULL
+        } else {
+            simdata <- draw_data(d)
+        }
+        
         react$simdata <- simdata
     })
     
@@ -503,7 +512,7 @@ designTab <- function(input, output, session) {
     
     # center: simulated data table
     output$section_simdata_table <- renderDataTable({
-        react$simdata
+        round_df(react$simdata, 4)
     }, options = list(searching = FALSE,
                       ordering = FALSE,
                       paging = TRUE,
