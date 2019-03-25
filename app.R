@@ -93,7 +93,19 @@ server <- function(input, output, session) {
 
     
     onBookmarked(function(url) {
-        print(url)
+        shinyalert(
+            sprintf('<p>Share with the following URL:</p><pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
+            closeOnEsc = TRUE,
+            closeOnClickOutside = TRUE,
+            html = TRUE,
+            showConfirmButton = TRUE,
+            showCancelButton = FALSE,
+            confirmButtonText = "OK",
+            timer = 0,
+            imageUrl = "",
+            confirmButtonCol = "light-blue darken-3", 
+            animation = TRUE
+        )
     })
     
     
