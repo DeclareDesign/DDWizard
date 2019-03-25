@@ -55,7 +55,8 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                   uiOutput(nspace('plot_message')),
                                   div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"),
                                   uiOutput(nspace('plot_output')),
-                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
+                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled"),
+                                  downloadButton(nspace("download_plot_code"), label = "Download plot code", disabled = "disabled")
                     ),
                     bsCollapse(id='inspect_sections_container',
                                bsCollapsePanel('Diagnosis',
@@ -408,8 +409,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         if (!is.null(p) && !is.null(react$diagnosands)) {
             shinyjs::enable('download_plot')
+            shinyjs::enable('download_plot_code')
         } else {
             shinyjs::disable('download_plot')
+            shinyjs::disable('download_plot_code')
         }
         
         p
@@ -430,6 +433,31 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             png(file, width = 1200, height = 900)
             print(generate_plot())
             dev.off()
+        }
+    )
+    
+    output$download_plot_code <- downloadHandler(
+        filename = function() {
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_inspection_plot.R')
+        },
+        content = function(fname) {
+            code <- generate_plot_code(get_diagnosands_for_display(),
+                                       react$cur_design_id,
+                                       input$plot_conf_diag_param,
+                                       input$plot_conf_x_param,
+                                       input$plot_conf_color_param,
+                                       input$plot_conf_facets_param,
+                                       isTruthy(input$plot_conf_confi_int_id))
+            print(code)
+            fh <- file(fname, 'w')
+            writeLines(code, fh)
+            close(fh)
         }
     )
     
