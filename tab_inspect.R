@@ -253,6 +253,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
             react$design_params_used_in_plot <- NULL
+            shinyjs::disable('update_plot')
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
