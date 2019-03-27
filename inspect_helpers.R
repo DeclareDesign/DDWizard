@@ -18,7 +18,8 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
                                              warning = function(cond) { NA },
                                              error = function(cond) { NA })
         
-        if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
+        #if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
+        if (is.null(arg_inspect_input)) {
             if (argname == first_arg) {
                 # set a default value for "N" the first time
                 # but there are some design without N argument
