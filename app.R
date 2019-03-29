@@ -23,7 +23,6 @@ library(dplyr)
 source('conf.R')
 source('common.R')
 source('uihelpers.R')
-source('welcome_modal.R')
 source('tab_design.R')
 source('tab_inspect.R')
 
@@ -55,6 +54,11 @@ ui <- material_page(
     ),
     shinyjs::useShinyjs(),
     
+    div(actionLink('show_legal_notice', 'Legal notice'),
+        span(' | '),
+        actionLink('show_data_protection_policy', 'Data protection policy'),
+        id = 'legal_stuff_container'),
+    
     # tabs
     material_tabs(
         tabs = c(
@@ -76,10 +80,19 @@ ui <- material_page(
 # Backend: Input handling and output generation on server #
 ###########################################################
 
-
 server <- function(input, output) {
     design_tab_proxy <- callModule(designTab, 'tab_design')
     callModule(inspectTab, 'tab_inspect', design_tab_proxy)
+    
+    observeEvent(input$show_legal_notice, {
+        alert_with_content_from_html_file('Legal notice', 'www/legal_notice.html', className = 'wide')
+    })
+    
+    observeEvent(input$show_data_protection_policy, {
+        alert_with_content_from_html_file('Data protection policy', 'www/data_protection_policy.html', className = 'wide')
+    })
+    
+    alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
 }
 
 # Run the application 

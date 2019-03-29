@@ -13,3 +13,35 @@ input[type="checkbox"]:not(:checked), input[type="checkbox"]:checked {
 .error_msgs {
     color: red;
 }
+
+#legal_stuff_container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 100;
+    color: white;
+    padding: 0.2em 0.5em 0 0;
+}
+
+#legal_stuff_container a {
+    color: white;
+    text-decoration: underline;
+}
+
+.sweet-alert.wide {
+    max-height: 90%;
+    width: 80%;
+    position: fixed;
+    left: 10%;
+    margin-left: 0;
+    text-align:left;
+    overflow-y: auto;
+}
+
+.sweet-alert.wide p {
+    margin-bottom: 1.5em !important;
+}
+
+.sweet-alert.wide strong {
+    font-weight: bold;
+}
