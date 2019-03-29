@@ -193,7 +193,7 @@ evaluate_designer_args <- function(args, definition) {
     args_eval <- lapply(1:length(args), function(a){
         evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
         # convert the value to fraction 
-        if (sum(sapply(evaluated_arg, nchar) > 10) >0 & definition$class[definition$names == names(args)[a]] == "numeric"){
+        if (any(vapply(evaluated_arg, nchar, FUN.VALUE=numeric(1)) > 10) && definition[a, "class"] == "numeric"){
             evaluated_arg <- fractions(evaluated_arg)
         }
         invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
