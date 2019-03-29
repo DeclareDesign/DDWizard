@@ -19,6 +19,7 @@ library(shinyjs)
 library(stringr)
 library(stringi)
 library(dplyr)
+library(MASS)
 
 source('conf.R')
 source('common.R')

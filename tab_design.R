@@ -118,12 +118,10 @@ designTab <- function(input, output, session) {
                 argdefault <- args[[argname]]
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
-                
                 # convert an input value to a argument value of correct class
                 if (length(argdefinition) != 0) {
                     argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                     has_NAs <- !is.null(argvalue) && any(is.na(argvalue))   # may contain NAs where invalid input was supplied
-
                     if (!has_NAs && ((!is.null(argvalue) && is.null(argdefault))
                         || (!is.null(argvalue) && argvalue != ''
                             && (length(argvalue) != length(argdefault) || argvalue != argdefault))))
@@ -167,6 +165,7 @@ designTab <- function(input, output, session) {
         
         output_args
     })
+    
     
     # specific design instance generated from above react$design with specific parameter values `design_args()`
     design_instance <- reactive({
@@ -323,7 +322,7 @@ designTab <- function(input, output, session) {
         nspace <- NS('tab_design')
         
         defaults <- isolate({ design_args() })
-        
+     
         param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
                                                   input = input, defaults = defaults,
                                                   create_fixed_checkboxes = design_supports_fixed_arg())

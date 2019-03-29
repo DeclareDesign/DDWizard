@@ -270,13 +270,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         d_args <- design_tab_proxy$design_args()
         defs <- design_tab_proxy$react$design_argdefinitions
-        
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
             defaults <- get_inspect_input_defaults(d_args, defs, input)
         })
-       
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
                                                   input = design_tab_proxy$input,
                                                   defaults = defaults)
