@@ -34,8 +34,12 @@ test.lists_equal_shallow <- function() {
 test.parse_sequence_string <- function() {
     checkEquals(parse_sequence_string(''), numeric())
     checkEquals(parse_sequence_string('1'), 1)
+    checkEquals(parse_sequence_string('1,'), 1)
+    checkEquals(parse_sequence_string('1,  '), 1)
     checkEquals(parse_sequence_string('1,2'), c(1, 2))
     checkEquals(parse_sequence_string('1, 2'), c(1, 2))
+    checkEquals(parse_sequence_string('1,2,'), c(1, 2))
+    checkEquals(parse_sequence_string('1,2 ,'), c(1, 2))
     checkEquals(parse_sequence_string('  1,  2 '), c(1, 2))
     checkEquals(parse_sequence_string('1.2'), 1.2)
     checkEquals(parse_sequence_string('1.2, 3, 4'), c(1.2, 3, 4))
