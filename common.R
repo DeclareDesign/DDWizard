@@ -100,6 +100,7 @@ parse_sequence_string <- function(s, cls = 'numeric') {
         return(seq(from = startnums[1], to = endnum, by = step))
     } else {  # character list or int/num scalar or int/num sequence like 1, 3, 8, 2
         elems <- str_trim(str_split(s, ',')[[1]])
+        elems <- elems[nchar(elems) > 0]
         if (cls %in% c('numeric', 'integer')) {
             if (length(elems) == 1 && elems == '') {
                 return(numeric())
