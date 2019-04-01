@@ -121,3 +121,64 @@ get_diagnosands_info <- function(designer) {
     
     res
 }
+
+
+# generate plot code
+generate_plot_code <- function(plotdf, design_name, diag_param, x_param, color_param, facets_param, plot_ci) {
+    code <- readLines('inspect_plot_template.txt')
+    plot_color <- isTruthy(color_param) && color_param != '(none)'
+    plot_facets <- isTruthy(facets_param) && facets_param != '(none)'
+    
+    if (plot_color) {
+        plotdf[[color_param]] <- factor(plotdf[[color_param]])
+    }
+    
+    if (plot_facets) {
+        plotdf[[facets_param]] <- factor(plotdf[[facets_param]])
+    }
+    
+    aes_args <- list(
+        'x' = x_param,   
+        'y' = diag_param,
+        'ymin' = paste0(diag_param, '_min'),
+        'ymax' = paste0(diag_param, '_max')
+    )
+    
+    # if the "color" parameter is set, add it to the aeshetics definition
+    if (plot_color) {
+        aes_args$color <- color_param
+        aes_args$fill <- color_param
+        aes_args$group <- color_param
+    } else {
+        aes_args$group <- 1
+    }
+    
+    vars <- list()
+    vars$CREATION_DATE <- Sys.Date()
+    vars$CREATE_DATA <- paste(capture.output({
+        datapasta::df_paste(plotdf,     # nicely format data frame. ugly alternative: dput
+                            output_context = datapasta::console_context())
+    }), collapse = '\n')
+    vars$DIAG_PARAM <- diag_param
+    vars$X_PARAM <- x_param
+    vars$DESIGN_NAME <- design_name
+    vars$PLOT_AES <- paste(paste(names(aes_args), '=', as.character(aes_args)), collapse = ', ')
+    
+    if (plot_ci) {
+        vars$PLOT_RIBBON <- "\n    geom_ribbon(alpha = 0.25, color = 'white') +"
+    } else {
+        vars$PLOT_RIBBON <- ''
+    }
+    
+    if (plot_facets) {
+        vars$PLOT_FACETS <- sprintf("+\n    facet_wrap(~%s, ncol = 2, labeller = label_both)", facets_param)
+    } else {
+        vars$PLOT_FACETS <- ''
+    }
+
+    for (varname in names(vars)) {
+        code <- gsub(paste0('%', varname, '%'), vars[[varname]], code, fixed = TRUE)
+    }
+    
+    code
+}
