@@ -631,10 +631,16 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                      design_tab_proxy$input)
                 
                 insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
-                if (sum(insp_args_NAs) > 0) {
-                    react$captured_errors <- paste('Invalid values supplied to the following arguments:',
-                                                   paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', ')) 
+                insp_args_lens<- sapply(insp_args, function(arg) {any(length(arg) > 1)})
+
+                if (sum(insp_args_NAs) > 0||sum(insp_args_lens) == 0) {
                     shinyjs::disable('update_plot')
+                    if (sum(insp_args_NAs) > 0){
+                        react$captured_errors <- paste('Invalid values supplied to the following arguments:',
+                                                       paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', '))
+                    }else{
+                        react$captured_errors <- paste('Please vary any following argument')
+                    }
                 } else {
                     react$captured_errors <- NULL
                     shinyjs::enable('update_plot')
