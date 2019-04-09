@@ -162,6 +162,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # save the current state of the inspection parameters
         react$insp_args_used_in_plot <- insp_args
+        react$insp_args_used_in_plot$simconf_sim_num <- input$simconf_sim_num
+        react$insp_args_used_in_plot$simconf_bootstrap_num <- input$simconf_bootstrap_num
         
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
@@ -238,6 +240,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                  design_tab_proxy$get_fixed_design_args(),
                                                  design_tab_proxy$input)
             
+            insp_args$simconf_sim_num <- input$simconf_sim_num
+            insp_args$simconf_bootstrap_num <- input$simconf_bootstrap_num
+            
             return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
         }
     })
@@ -285,6 +290,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
             react$design_params_used_in_plot <- NULL
+            shinyjs::disable('update_plot')
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
@@ -563,12 +569,28 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             args_fixed <- design_tab_proxy$get_fixed_design_args()
             all_fixed <- design_tab_proxy$all_design_args_fixed()
             
-            # create the design instance and get its estimates
-            d <- design_tab_proxy$design_instance()
-            d_estimates <- draw_estimates(d)
+
+            # get estimates and diagnosis information
+            # cache this because it's slow:
+            estimates_cache_args <- list(
+                'designer' = react$cur_design_id,
+                'designer_src' = deparse(design_tab_proxy$react$design)
+            )
+            estimates_cachefile <- sprintf('.cache/designer_estimates_%s.RDS', digest(estimates_cache_args))
+            if (file.exists(estimates_cachefile)) {
+                cached <- readRDS(estimates_cachefile)
+                d_estimates <- cached$estimates
+                diag_info <- cached$diag_info
+            } else {
+                # create the design instance and get its estimates
+                d <- design_tab_proxy$design_instance()
+                d_estimates <- draw_estimates(d)
+                diag_info <- get_diagnosands_info(d)
+                
+                saveRDS(list('estimates' = d_estimates, 'diag_info' = diag_info), estimates_cachefile)
+            }
             
             # get available diagnosands
-            diag_info <- get_diagnosands_info(d)
             react$diagnosands_call <- diag_info$diagnosands_call
             available_diagnosands <- diag_info$available_diagnosands
             
