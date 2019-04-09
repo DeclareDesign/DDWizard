@@ -13,7 +13,7 @@ Authors:
 
 **From GitHub:**
 
-- [*DesignLibrary* from branch `enhancements_wizard`](https://github.com/DeclareDesign/DesignLibrary/tree/enhancements_wizard)
+- *DesignLibrary* 0.1.2.9999 or newer: `devtools::install_github("DeclareDesign/DesignLibrary")`
 - shinymaterial 0.5.5.900 or newer (`select_material_tab()` is required): `devtools::install_github("ericrayanderson/shinymaterial")`
 
 **From CRAN:**
@@ -28,7 +28,6 @@ Authors:
 - stringr
 - rlang
 - digest
-- datapasta
 
 Optional for parallel processing during simulation:
 
