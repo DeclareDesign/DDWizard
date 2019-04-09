@@ -27,6 +27,7 @@ Authors:
 - stringr
 - rlang
 - digest
+- datapasta
 
 Optional for parallel processing during simulation:
 
