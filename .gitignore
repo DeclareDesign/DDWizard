@@ -4,3 +4,5 @@ _tmp/
 .DS_Store
 .Rapp.history
 www/piwik.txt
+tests/load_all_designs-current/
+shiny_bookmarks/

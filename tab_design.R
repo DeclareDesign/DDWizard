@@ -85,17 +85,11 @@ designTab <- function(input, output, session) {
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_errors = NULL,         # captured errors and warnings during design creation
         input_errors = NULL,            # errors related to invalid inputs
-        captured_msgs = NULL            # captured messages during design creation
+        captured_msgs = NULL,           # captured messages during design creation
+        custom_state = list()           # additional state values for bookmarking
     )
     
     ### reactive expressions ###
-    # create link to vignette based on design input from the library
-    output$design_vignette <- renderUI({
-        url <- paste0("window.open('https://declaredesign.org/library/articles/", gsub("_designer","",react$design_id), ".html', '_blank')")
-        actionButton(inputId='vignette', label=" Read more", 
-                     icon = icon("book"), 
-                     onclick = url)
-    })
     
     # arguments/parameters for react$design and their values taken from the inputs
     design_args <- reactive({
@@ -250,6 +244,8 @@ designTab <- function(input, output, session) {
         length(args_fixed) == length(all_args)
     })
     
+    ### non-reactive functions ###
+    
     wrap_errors <- function(output) {
         if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
             list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")))
@@ -258,28 +254,72 @@ designTab <- function(input, output, session) {
         }
     }
     
+    # Load the designer with the name `designer` (char string).
+    # For mysterious reasons, it is necessary to pass a namespace function `nspace` (created with `NS(<id>)`)
+    # *whenever this function is called for restoring a bookmark.*
+    load_designer <- function(designer, nspace = function(x) { x }) {
+        print(paste('loading designer', designer))
+        
+        shinyjs::show(nspace('design_params_panel_wrapper'))
+        
+        react$design_id <- designer
+        react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
+        react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
+        react$design_name_once_changed <- FALSE
+        react$fix_toggle <- 'fix'
+        
+        shinyjs::enable(nspace('download_r_script'))
+        shinyjs::enable(nspace('download_rds_obj'))
+        shinyjs::enable(nspace('simdata_redraw'))
+        shinyjs::enable(nspace('simdata_download'))
+        
+        # save this to state because it is not automatically restored from bookmark
+        react$custom_state$designer <- react$design_id
+        
+        # replace xx_designer as xx_design
+        updateTextInput(session, nspace('design_arg_design_name'), value = gsub("designer","design", react$design_id))
+    }
+    
+    ### bookmarking ###
+    
+    # customize bookmarking process: add additional data to bookmarked state
+    onBookmark(function(state) {
+        print('BOOKMARKING IN DESIGN TAB:')
+        
+        # add open panels, because they're not restored automatically
+        react$custom_state$panels_state <- input$sections_container
+        
+        # store simulated data
+        react$custom_state$simdata <- react$simdata
+        
+        print(react$custom_state)
+        state$values$custom_state <- react$custom_state
+    })
+    
+    # customize restoring process
+    onRestore(function(state) {
+        print('RESTORING IN DESIGN TAB:')
+        react$custom_state <- state$values$custom_state
+        
+        print(react$custom_state)
+        
+        # design is not loaded automatically on restore (probably because list of available designers
+        # is not loaded yet) so do it here
+        # also, a namespace function must be passed when doing a restore (reason unknown)
+        load_designer(react$custom_state$designer, NS('tab_design'))
+        
+        # re-open the panels
+        updateCollapse(session, 'sections_container', open = react$custom_state$panels_state)
+    })
+    
     ### input observers ###
     
     # input observer for click on design import
     observeEvent(input$import_from_design_lib, {
         # loads a pre-defined designer from the library
-        print(paste('loading designer', input$import_design_library))
-        
-        shinyjs::show('design_params_panel_wrapper')
-        
-        react$design <- getFromNamespace(input$import_design_library, 'DesignLibrary')
-        react$design_id <- input$import_design_library
-        react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
-        react$design_name_once_changed <- FALSE
-        react$fix_toggle <- 'fix'
-        
-        shinyjs::enable('download_r_script')
-        shinyjs::enable('download_rds_obj')
-        shinyjs::enable('simdata_redraw')
-        shinyjs::enable('simdata_download')
-        
-        # replace xx_designer as xx_design
-        updateTextInput(session, 'design_arg_design_name', value = gsub("designer","design",react$design_id))
+        if (!is.null(input$import_design_library)) {
+            load_designer(input$import_design_library)
+        }
     })
     
     # input observer for click on "Fix/Unfix all" button
@@ -299,8 +339,13 @@ designTab <- function(input, output, session) {
     # input observer for click on "redraw data" button in "simulated data" section
     observeEvent(input$simdata_redraw, {
         d <- req(design_instance())
-        simdata <- draw_data(d)
-        simdata <- round_df(simdata, 4)
+        if (!is.null(react$custom_state$simdata)) {
+            simdata <- react$custom_state$simdata
+            react$custom_state$simdata <- NULL
+        } else {
+            simdata <- draw_data(d)
+        }
+        
         react$simdata <- simdata
     })
     
@@ -314,6 +359,14 @@ designTab <- function(input, output, session) {
     output$design_description <- renderUI({
         req(react$design)
         HTML(attr(react$design, 'description'))
+    })
+    
+    # create link to vignette based on design input from the library
+    output$design_vignette <- renderUI({
+        url <- paste0("window.open('https://declaredesign.org/library/articles/", gsub("_designer","",react$design_id), ".html', '_blank')")
+        actionButton(inputId='vignette', label=" Read more", 
+                     icon = icon("book"), 
+                     onclick = url)
     })
     
     # left side: designer parameters
@@ -379,7 +432,6 @@ designTab <- function(input, output, session) {
         
     })
     
-   
     # center: design code
     output$section_design_code <- renderUI({
         d <- design_instance()
@@ -460,7 +512,7 @@ designTab <- function(input, output, session) {
     
     # center: simulated data table
     output$section_simdata_table <- renderDataTable({
-        react$simdata
+        round_df(react$simdata, 4)
     }, options = list(searching = FALSE,
                       ordering = FALSE,
                       paging = TRUE,
