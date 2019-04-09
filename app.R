@@ -94,7 +94,7 @@ server <- function(input, output, session) {
     
     onBookmarked(function(url) {
         shinyalert(
-            sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below onto your browser:</i></p>
+            sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
                     <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
             closeOnEsc = TRUE,
             closeOnClickOutside = TRUE,
