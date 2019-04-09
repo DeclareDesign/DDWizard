@@ -100,6 +100,7 @@ parse_sequence_string <- function(s, cls = 'numeric') {
         return(seq(from = startnums[1], to = endnum, by = step))
     } else {  # character list or int/num scalar or int/num sequence like 1, 3, 8, 2
         elems <- str_trim(str_split(s, ',')[[1]])
+        elems <- elems[nchar(elems) > 0]
         if (cls %in% c('numeric', 'integer')) {
             if (length(elems) == 1 && elems == '') {
                 return(numeric())
@@ -203,12 +204,12 @@ evaluate_designer_args <- function(args) {
 }
 
 # get cache file name unique to cache type `cachetype` (designs, simulation or diagnosis results),
-# parameter space `args`, number of (bootstrap) simulations `sims`, designer name `designer`
+# parameter space `args`, number of (bootstrap) simulations `sims`, designer object `designer`
 get_diagnosis_cache_filename <- function(cachetype, args, sims, bs_sims, designer) {
     fingerprint_args <- args
     fingerprint_args$sims <- sims
     fingerprint_args$bs_sims <- bs_sims
-    fingerprint_args$design <- designer
+    fingerprint_args$designer_src <- deparse(designer)
     fingerprint_args$cache_version <- 1       # increment whenever the simulated data in cache is not compatible anymore (i.e. DD upgrade)
     fingerprint <- digest(fingerprint_args)   # uses MD5
     

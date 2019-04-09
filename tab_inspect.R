@@ -55,7 +55,8 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                   uiOutput(nspace('plot_message')),
                                   div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"),
                                   uiOutput(nspace('plot_output')),
-                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
+                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled"),
+                                  downloadButton(nspace("download_plot_code"), label = "Download plot code", disabled = "disabled")
                     ),
                     bsCollapse(id='inspect_sections_container',
                                bsCollapsePanel('Diagnosis',
@@ -105,13 +106,22 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 diag_param_alpha <- input$plot_conf_diag_param_param
             }
             
-            diag_res <- run_diagnoses(design_tab_proxy$react$design, insp_args,
-                                      sims = input$simconf_sim_num,
-                                      bootstrap_sims = input$simconf_bootstrap_num,
-                                      diagnosands_call = react$diagnosands_call(diag_param_alpha),
-                                      use_cache = !input$simconf_force_rerun,
-                                      advance_progressbar = advance_progressbar,
-                                      n_diagnosis_workers = n_diagnosis_workers)
+            # run diagnoses. if errors occur, write them to "error_msg" element in result list
+            diag_res <- tryCatch({
+                res <- run_diagnoses(design_tab_proxy$react$design, insp_args,
+                                     sims = input$simconf_sim_num,
+                                     bootstrap_sims = input$simconf_bootstrap_num,
+                                     diagnosands_call = react$diagnosands_call(diag_param_alpha),
+                                     use_cache = !input$simconf_force_rerun,
+                                     advance_progressbar = advance_progressbar,
+                                     n_diagnosis_workers = n_diagnosis_workers)
+                res$error_msg <- NULL
+                res
+            }, warning = function(exc) {
+                list(error_msg = conditionMessage(exc))
+            }, error = function(exc) {
+                list(error_msg = conditionMessage(exc))
+            })
         })
         
         diag_res
@@ -152,9 +162,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # save the current state of the inspection parameters
         react$insp_args_used_in_plot <- insp_args
+        react$insp_args_used_in_plot$simconf_sim_num <- input$simconf_sim_num
+        react$insp_args_used_in_plot$simconf_bootstrap_num <- input$simconf_bootstrap_num
         
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
+        
+        if (!is.null(diag_results$error_msg)) { # if errors occurred, don't try to generate a plot and directly return NULL
+            react$captured_errors <- c(react$captured_errors, diag_results$error_msg)
+            return(NULL)
+        }
+        
         react$diagnosands_cached <- diag_results$from_cache
         plotdf <- diag_results$results$diagnosands_df
         
@@ -222,10 +240,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                  design_tab_proxy$get_fixed_design_args(),
                                                  design_tab_proxy$input)
             
+            insp_args$simconf_sim_num <- input$simconf_sim_num
+            insp_args$simconf_bootstrap_num <- input$simconf_bootstrap_num
+            
             return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
         }
     })
     
+    # message to be displayed if results were loaded from cache
     results_cached_message <- reactive({
         if (react$diagnosands_cached) {
             return(p('Results loaded from cached diagnoses. You can disable caching in the top panel "Configure simulations".'))
@@ -233,7 +255,22 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return('')
         }
     })
+    
+    # "reset values" button on left side: set inputs to defaults
+    observeEvent(input$reset_inputs, {
+        d_args <- design_tab_proxy$design_args()
+        defs <- design_tab_proxy$react$design_argdefinitions
+        
+        defaults <- get_inspect_input_defaults(d_args, defs, list())  # pass empty input list
+        
+        for (argname in names(defaults)) {
+            updateTextInput(session, paste0('inspect_arg_', argname), value = defaults[[argname]])
+        }
+    })
 
+    # Action button label gets updated only when reactive inspector values don't change
+    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
+    
     
     ### output elements ###
     
@@ -253,6 +290,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
             react$design_params_used_in_plot <- NULL
+            shinyjs::disable('update_plot')
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
@@ -277,13 +315,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             defaults <- get_inspect_input_defaults(d_args, defs, input)
         })
        
-        param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
+        nspace <- NS('tab_inspect')
+        param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
                                                   input = design_tab_proxy$input,
                                                   defaults = defaults)
+        reset_btn <- actionButton(nspace('reset_inputs'), 'Reset values')
         if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
-            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(param_boxes))
+            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(reset_btn, param_boxes))
         } else {
-            list(tags$div(param_boxes))
+            list(tags$div(reset_btn, param_boxes))
         }
     })
     
@@ -384,9 +424,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
     })
     
-    # Action button label gets updated only when reactive inspector values don't change
-    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
-    
     # all the following hassle because Shiny would neither:
     # - accept "auto" as plot height
     # - allow to show/hide the plot inside a conditional panel (the "Run diagnoses" button would not work anymore)
@@ -408,8 +445,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         if (!is.null(p) && !is.null(react$diagnosands)) {
             shinyjs::enable('download_plot')
+            shinyjs::enable('download_plot_code')
         } else {
             shinyjs::disable('download_plot')
+            shinyjs::disable('download_plot_code')
         }
         
         p
@@ -430,6 +469,31 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             png(file, width = 1200, height = 900)
             print(generate_plot())
             dev.off()
+        }
+    )
+    
+    output$download_plot_code <- downloadHandler(
+        filename = function() {
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_inspection_plot.R')
+        },
+        content = function(fname) {
+            code <- generate_plot_code(get_diagnosands_for_display(),
+                                       react$cur_design_id,
+                                       input$plot_conf_diag_param,
+                                       input$plot_conf_x_param,
+                                       input$plot_conf_color_param,
+                                       input$plot_conf_facets_param,
+                                       isTruthy(input$plot_conf_confi_int_id))
+            print(code)
+            fh <- file(fname, 'w')
+            writeLines(code, fh)
+            close(fh)
         }
     )
     
@@ -505,12 +569,28 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             args_fixed <- design_tab_proxy$get_fixed_design_args()
             all_fixed <- design_tab_proxy$all_design_args_fixed()
             
-            # create the design instance and get its estimates
-            d <- design_tab_proxy$design_instance()
-            d_estimates <- draw_estimates(d)
+
+            # get estimates and diagnosis information
+            # cache this because it's slow:
+            estimates_cache_args <- list(
+                'designer' = react$cur_design_id,
+                'designer_src' = deparse(design_tab_proxy$react$design)
+            )
+            estimates_cachefile <- sprintf('.cache/designer_estimates_%s.RDS', digest(estimates_cache_args))
+            if (file.exists(estimates_cachefile)) {
+                cached <- readRDS(estimates_cachefile)
+                d_estimates <- cached$estimates
+                diag_info <- cached$diag_info
+            } else {
+                # create the design instance and get its estimates
+                d <- design_tab_proxy$design_instance()
+                d_estimates <- draw_estimates(d)
+                diag_info <- get_diagnosands_info(d)
+                
+                saveRDS(list('estimates' = d_estimates, 'diag_info' = diag_info), estimates_cachefile)
+            }
             
             # get available diagnosands
-            diag_info <- get_diagnosands_info(d)
             react$diagnosands_call <- diag_info$diagnosands_call
             available_diagnosands <- diag_info$available_diagnosands
             
