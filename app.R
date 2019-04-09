@@ -57,7 +57,7 @@ ui <- function(request) {
         ),
         shinyjs::useShinyjs(),
         
-        bookmarkButton(),
+        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
         
         # tabs
         material_tabs(
@@ -94,7 +94,8 @@ server <- function(input, output, session) {
     
     onBookmarked(function(url) {
         shinyalert(
-            sprintf('<p>Share with the following URL:</p><pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
+            sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below onto your browser:</i></p>
+                    <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
             closeOnEsc = TRUE,
             closeOnClickOutside = TRUE,
             html = TRUE,
