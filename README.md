@@ -14,13 +14,13 @@ Authors:
 **From GitHub:**
 
 - [*DesignLibrary* from branch `enhancements_wizard`](https://github.com/DeclareDesign/DesignLibrary/tree/enhancements_wizard)
+- shinymaterial 0.5.5.900 or newer (`select_material_tab()` is required): `devtools::install_github("ericrayanderson/shinymaterial")`
 
 **From CRAN:**
 
 - DeclareDesign
 - shiny
 - shinyalert
-- shinymaterial
 - shinythemes
 - shinyBS
 - shinyjs
@@ -38,7 +38,6 @@ Optional for running tests:
 
 - RUnit
 - shinytest
-
 
 ## Overview of files
 
