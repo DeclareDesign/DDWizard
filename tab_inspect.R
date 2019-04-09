@@ -162,6 +162,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # save the current state of the inspection parameters
         react$insp_args_used_in_plot <- insp_args
+        react$insp_args_used_in_plot$simconf_sim_num <- input$simconf_sim_num
+        react$insp_args_used_in_plot$simconf_bootstrap_num <- input$simconf_bootstrap_num
         
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
@@ -237,6 +239,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
                                                  design_tab_proxy$input)
+            
+            insp_args$simconf_sim_num <- input$simconf_sim_num
+            insp_args$simconf_bootstrap_num <- input$simconf_bootstrap_num
             
             return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
         }
