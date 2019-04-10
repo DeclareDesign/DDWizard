@@ -313,8 +313,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             # was defined in inspect tab
             defaults <- get_inspect_input_defaults(d_args, defs, input)
         })
-
-       
+        
+        
         nspace <- NS('tab_inspect')
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
                                                   input = design_tab_proxy$input,

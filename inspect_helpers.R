@@ -33,6 +33,9 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
                     return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
                 }
             } else {
+                if(any(vapply(d_args[[argname]], nchar, FUN.VALUE=numeric(1)) > 10) && argdef[["class"]] == "numeric"){
+                    d_args[[argname]] <- fractions(d_args[[argname]])
+                }
                 arg_char <- as.character(d_args[[argname]])
                 if (argdef$vector) {  # vector of vectors input
                     return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
@@ -59,7 +62,7 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
     for (d_argname in names(d_args)) {
         inp_name_design <- paste0('design_arg_', d_argname)
         inp_name_inspect <- paste0('inspect_arg_', d_argname)
-        
+       
         # for a fixed argument or if no input is given in the inspect tab (character arguments),
         # use the design tab input value
         if (d_argname %in% fixed_args || is.null(inspect_input[[inp_name_inspect]])) {
@@ -70,12 +73,14 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         
         d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
         d_argclass <- d_argdef$class
-        
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- tryCatch({
                 if (d_argdef$vector) {
+                    # convert fractions to decimals
+                    inp_value <-  unname(sapply(trimws(strsplit(gsub("[()]","", inp_value), ",")[[1]]), function(x) eval(parse(text=x))))
+                    inp_value <- sprintf('(%s)', paste(inp_value, collapse = ', '))
                     parse_sequence_of_sequences_string(inp_value, d_argclass)
                 } else {
                     parse_sequence_string(inp_value, d_argclass)
