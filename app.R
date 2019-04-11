@@ -40,47 +40,81 @@ if (file.exists(piwik_code_file)) {
     piwik_code <- ''
 }
 
-ui <- material_page(
-    # title
-    title = app_title,
-    nav_bar_color = nav_bar_color,
-    shiny::tags$title(app_title),
-    
-    # additional JS / CSS libraries
-    bootstrapLib(),
-    withMathJax(),
-    tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
-        HTML(piwik_code)
-    ),
-    shinyjs::useShinyjs(),
-    
-    # tabs
-    material_tabs(
-        tabs = c(
-            "Design" = "tab_design",
-            "Inspect" = "tab_inspect"
-        )
-    ),
-    
-    # "Design" tab
-    useShinyalert(),
-    designTabUI('tab_design'),
-    
-    # "Inspect" tab
-    inspectTabUI('tab_inspect')
-)
-
+ui <- function(request) {
+    material_page(
+        # title
+        title = app_title,
+        nav_bar_color = nav_bar_color,
+        shiny::tags$title(app_title),
+        
+        # additional JS / CSS libraries
+        bootstrapLib(),
+        withMathJax(),
+        tags$head(
+            tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
+            HTML(piwik_code),
+            includeScript('www/custom.js')
+        ),
+        shinyjs::useShinyjs(),
+        
+        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
+        
+        # tabs
+        material_tabs(
+            tabs = c(
+                "Design" = "tab_design",
+                "Inspect" = "tab_inspect"
+            )
+        ),
+        
+        # "Design" tab
+        useShinyalert(),
+        designTabUI('tab_design'),
+        
+        # "Inspect" tab
+        inspectTabUI('tab_inspect')
+    )
+}
 
 ###########################################################
 # Backend: Input handling and output generation on server #
 ###########################################################
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     design_tab_proxy <- callModule(designTab, 'tab_design')
     callModule(inspectTab, 'tab_inspect', design_tab_proxy)
+    
+    onBookmark(function(state) {
+        print('BOOKMARKING IN APP:')
+        state$values$current_tab <- input$current_tab
+        print(state$values$current_tab)
+    })
+
+    
+    onBookmarked(function(url) {
+        shinyalert(
+            sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
+                    <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
+            closeOnEsc = TRUE,
+            closeOnClickOutside = TRUE,
+            html = TRUE,
+            showConfirmButton = TRUE,
+            showCancelButton = FALSE,
+            confirmButtonText = "OK",
+            timer = 0,
+            imageUrl = "",
+            confirmButtonCol = "light-blue darken-3", 
+            animation = TRUE
+        )
+    })
+    
+    
+    onRestore(function(state) {
+        # open the bookmarked tab
+        shinymaterial::select_material_tab(session, state$values$current_tab)
+    })
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server)
+shinyApp(ui = ui, server = server, enableBookmarking = 'server')
