@@ -652,49 +652,52 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                      design_tab_proxy$get_fixed_design_args(),
                                                      design_tab_proxy$input)
                 
-                insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
-                insp_args_lens<- sapply(insp_args, function(arg) {any(length(arg) > 1)})
+                if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
+                
+                    insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
+                    insp_args_lens<- sapply(insp_args, function(arg) {any(length(arg) > 1)})
 
-                if (sum(insp_args_NAs) > 0||sum(insp_args_lens) == 0) {
-                    shinyjs::disable('update_plot')
-                    if (sum(insp_args_NAs) > 0){
-                        react$captured_errors <- paste('Invalid values supplied to the following arguments:',
-                                                       paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', '))
-                    }else{
-                        react$captured_errors <- paste('Please vary any following argument')
+                    if (sum(insp_args_NAs) > 0||sum(insp_args_lens) == 0) {
+                        shinyjs::disable('update_plot')
+                        if (sum(insp_args_NAs) > 0){
+                            react$captured_errors <- paste('Invalid values supplied to the following arguments:',
+                                                           paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', '))
+                        }else{
+                            react$captured_errors <- paste('Please vary any following argument')
+                        }
+                    } else {
+                        react$captured_errors <- NULL
+                        shinyjs::enable('update_plot')
                     }
-                } else {
-                    react$captured_errors <- NULL
-                    shinyjs::enable('update_plot')
+                    
+                    insp_args_lengths <- sapply(insp_args, length)
+                    variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
+                    variable_args <- setdiff(variable_args, args_fixed)
+                    
+                    inp_x_param_id <- paste0(inp_prefix, "x_param")
+                    inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
+                                               choices = variable_args,
+                                               selected = input[[inp_x_param_id]])
+                    
+                    boxes <- list_append(boxes, inp_x_param)
+                    
+                    # 6. secondary inspection parameter (color)
+                    variable_args_optional <- c('(none)', variable_args)
+                    inp_color_param_id <- paste0(inp_prefix, "color_param")
+                    inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
+                                                   choices = variable_args_optional,
+                                                   selected = input[[inp_color_param_id]])
+                    boxes <- list_append(boxes, inp_color_param)
+                    
+                    # 7. tertiary inspection parameter (small multiples)
+                    inp_facets_param_id <- paste0(inp_prefix, "facets_param")
+                    inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
+                                                    choices = variable_args_optional,
+                                                    selected = input[[inp_facets_param_id]])
+                    boxes <- list_append(boxes, inp_facets_param)
                 }
-                
-                insp_args_lengths <- sapply(insp_args, length)
-                variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
-                variable_args <- setdiff(variable_args, args_fixed)
-                
-                inp_x_param_id <- paste0(inp_prefix, "x_param")
-                inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
-                                           choices = variable_args,
-                                           selected = input[[inp_x_param_id]])
-                boxes <- list_append(boxes, inp_x_param)
-                
-                # 6. secondary inspection parameter (color)
-                variable_args_optional <- c('(none)', variable_args)
-                inp_color_param_id <- paste0(inp_prefix, "color_param")
-                inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
-                                               choices = variable_args_optional,
-                                               selected = input[[inp_color_param_id]])
-                boxes <- list_append(boxes, inp_color_param)
-                
-                # 7. tertiary inspection parameter (small multiples)
-                inp_facets_param_id <- paste0(inp_prefix, "facets_param")
-                inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
-                                                choices = variable_args_optional,
-                                                selected = input[[inp_facets_param_id]])
-                boxes <- list_append(boxes, inp_facets_param)
             }
         }
-        
         do.call(material_card, c(title="Plot configuration", boxes))
     })
 }
