@@ -6,6 +6,8 @@
 # Dec. 2018
 #
 
+source('inspect_helpers.R')
+
 ### CONFIG ###
 
 diagnosis_table_opts <- list(searching = FALSE,
@@ -39,7 +41,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
             ),
             material_column(   # center: inspection output
                 width = 6,
-                bsCollapse(id=nspace('inspect_sections_simconf_container'),
+                bsCollapse(id = nspace('inspect_sections_simconf_container'),
                            bsCollapsePanel('Configure simulations',
                                            checkboxInput(nspace('simconf_force_rerun'), label = 'Always re-run simulations (disable cache)'),
                                            numericInput(nspace("simconf_sim_num"), label = "Num. of simulations",
@@ -53,9 +55,10 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                   uiOutput(nspace('plot_message')),
                                   div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"),
                                   uiOutput(nspace('plot_output')),
-                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled")
+                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled"),
+                                  downloadButton(nspace("download_plot_code"), label = "Download plot code", disabled = "disabled")
                     ),
-                    bsCollapse(id='inspect_sections_container',
+                    bsCollapse(id = nspace('inspect_sections_container'),
                                bsCollapsePanel('Diagnosis',
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
@@ -84,6 +87,13 @@ inspectTabUI <- function(id, label = 'Inspect') {
 
 ### Server ###
 
+bookmark_store_react_objects <- c('cur_design_id', 
+                                  'diagnosands',
+                                  'diagnosands_cached',
+                                  'diagnosands_call',
+                                  'insp_args_used_in_plot',
+                                  'captured_errors')
+
 inspectTab <- function(input, output, session, design_tab_proxy) {
     react <- reactiveValues(
         cur_design_id = NULL,       # current design name used in inspection (coming from design tab)
@@ -91,7 +101,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
         diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
         insp_args_used_in_plot = NULL,  # last used design parameters used in plot
-        captured_errors = NULL      # errors to display
+        captured_errors = NULL,     # errors to display
+        custom_state = list()       # additional state values for bookmarking
     )
     
     # Run diagnoses using inspection arguments `insp_args`
@@ -103,12 +114,22 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 diag_param_alpha <- input$plot_conf_diag_param_param
             }
             
-            diag_res <- run_diagnoses(design_tab_proxy$react$design, insp_args,
-                                      sims = input$simconf_sim_num,
-                                      bootstrap_sims = input$simconf_bootstrap_num,
-                                      diagnosands_call = react$diagnosands_call(diag_param_alpha),
-                                      use_cache = !input$simconf_force_rerun,
-                                      advance_progressbar = advance_progressbar)
+            # run diagnoses. if errors occur, write them to "error_msg" element in result list
+            diag_res <- tryCatch({
+                res <- run_diagnoses(design_tab_proxy$react$design, insp_args,
+                                     sims = input$simconf_sim_num,
+                                     bootstrap_sims = input$simconf_bootstrap_num,
+                                     diagnosands_call = react$diagnosands_call(diag_param_alpha),
+                                     use_cache = !input$simconf_force_rerun,
+                                     advance_progressbar = advance_progressbar,
+                                     n_diagnosis_workers = n_diagnosis_workers)
+                res$error_msg <- NULL
+                res
+            }, warning = function(exc) {
+                list(error_msg = conditionMessage(exc))
+            }, error = function(exc) {
+                list(error_msg = conditionMessage(exc))
+            })
         })
         
         diag_res
@@ -149,9 +170,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # save the current state of the inspection parameters
         react$insp_args_used_in_plot <- insp_args
+        react$insp_args_used_in_plot$simconf_sim_num <- input$simconf_sim_num
+        react$insp_args_used_in_plot$simconf_bootstrap_num <- input$simconf_bootstrap_num
         
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
+        
+        if (!is.null(diag_results$error_msg)) { # if errors occurred, don't try to generate a plot and directly return NULL
+            react$captured_errors <- c(react$captured_errors, diag_results$error_msg)
+            return(NULL)
+        }
+        
         react$diagnosands_cached <- diag_results$from_cache
         plotdf <- diag_results$results$diagnosands_df
         
@@ -184,6 +213,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
   
     get_diagnosands_for_display <- reactive({
         req(react$diagnosands)
+        req(input$plot_conf_color_param)
+        req(input$plot_conf_facets_param)
+        req(input$plot_conf_diag_param)
         
       reshaped_data <- reshape_data(react$diagnosands)
         
@@ -223,10 +255,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                  design_tab_proxy$get_fixed_design_args(),
                                                  design_tab_proxy$input)
             
+            insp_args$simconf_sim_num <- input$simconf_sim_num
+            insp_args$simconf_bootstrap_num <- input$simconf_bootstrap_num
+            
             return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
         }
     })
     
+    # message to be displayed if results were loaded from cache
     results_cached_message <- reactive({
         if (react$diagnosands_cached) {
             return(p('Results loaded from cached diagnoses. You can disable caching in the top panel "Configure simulations".'))
@@ -234,7 +270,22 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return('')
         }
     })
+    
+    # "reset values" button on left side: set inputs to defaults
+    observeEvent(input$reset_inputs, {
+        d_args <- design_tab_proxy$design_args()
+        defs <- design_tab_proxy$react$design_argdefinitions
+        
+        defaults <- get_inspect_input_defaults(d_args, defs, list())  # pass empty input list
+        
+        for (argname in names(defaults)) {
+            updateTextInput(session, paste0('inspect_arg_', argname), value = defaults[[argname]])
+        }
+    })
 
+    # Action button label gets updated only when reactive inspector values don't change
+    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
+    
     
     ### output elements ###
     
@@ -254,6 +305,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
             react$design_params_used_in_plot <- NULL
+            shinyjs::disable('update_plot')
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
@@ -272,54 +324,21 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         d_args <- design_tab_proxy$design_args()
         defs <- design_tab_proxy$react$design_argdefinitions
         
-        first_arg <- names(d_args)[1]
-        if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
-        
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
-            defaults <- sapply(names(d_args), function(argname) {
-                arg_inspect_input <- input[[paste0('inspect_arg_', argname)]]
-                argdef <- as.list(defs[defs$names == argname,])
-        
-                parsed_arg_inspect_input <- tryCatch(parse_sequence_string(arg_inspect_input),
-                                                     warning = function(cond) { NA },
-                                                     error = function(cond) { NA })
-                
-                if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
-                    if (argname == first_arg) {
-                        # set a default value for "N" the first time
-                        # but there are some design without N argument
-                        if (first_arg == 'N') {
-                            n_int <- as.integer(d_args[[first_arg]])
-                            return(sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100))
-                        } else {
-                            min_int <- argdef$inspector_min
-                            step_int <- argdef$inspector_step
-                            max_int <- min_int + 4*step_int
-                            return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
-                        }
-                    } else {
-                        arg_char <- as.character(d_args[[argname]])
-                        if (argdef$vector) {  # vector of vectors input
-                            return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
-                        } else {
-                            return(arg_char)
-                        }
-                    }
-                } else {
-                    return(arg_inspect_input)
-                }
-            }, simplify = FALSE)
+            defaults <- get_inspect_input_defaults(d_args, defs, input)
         })
        
-        param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, NS('tab_inspect'),
+        nspace <- NS('tab_inspect')
+        param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
                                                   input = design_tab_proxy$input,
                                                   defaults = defaults)
+        reset_btn <- actionButton(nspace('reset_inputs'), 'Reset values')
         if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
-            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(param_boxes))
+            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(reset_btn, param_boxes))
         } else {
-            list(tags$div(param_boxes))
+            list(tags$div(reset_btn, param_boxes))
         }
     })
     
@@ -398,23 +417,46 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         })
     })
     
+    ### bookmarking ###
+    
+    # customize bookmarking process: add additional data to bookmarked state
+    onBookmark(function(state) {
+        print('BOOKMARKING IN INSPECT TAB:')
+        
+        # add open panels, because they're not restored automatically
+        react$custom_state$panel_simconf_state <- input$inspect_sections_simconf_container
+        react$custom_state$panel_diagnosis_state <- input$inspect_sections_container
+        
+        # store additional state objects
+        for (objname in bookmark_store_react_objects) {
+            react$custom_state[[objname]] <- react[[objname]]
+        }
+        
+        print(react$custom_state)
+        state$values$custom_state <- react$custom_state
+    })
+    
+    # customize restoring process
+    onRestore(function(state) {
+        print('RESTORING IN INSPECT TAB:')
+        react$custom_state <- state$values$custom_state
+        print(react$custom_state)
+        
+        # restore additional state objects
+        for (objname in bookmark_store_react_objects) {
+            react[[objname]] <- react$custom_state[[objname]]
+        }
+        
+        # re-open the panels
+        updateCollapse(session, 'inspect_sections_simconf_container', open = react$custom_state$panel_simconf_state)
+        updateCollapse(session, 'inspect_sections_container', open = react$custom_state$panel_diagnosis_state)
+    })
+    
     # -------------- center: messages for plot --------------
     
     output$plot_message <- renderUI({
         if (is.null(react$diagnosands)) {
-            return(HTML('<p><b>Top panel:</b> Specify the number of simulations
-                        in your diagnosis.</p> 
-                        <p><b>Left panel:</b> Specify which design arguments to
-                        vary with each design diagnosis. You can input numeric 
-                        values separated by a comma (e.g., 10, 20, 30) or provide 
-                        ranges of values with one step to create an arithmetic
-                        sequence of values (e.g., 10, 20, ..., 100 generates a sequence 
-                        from 10 to 100 where the difference in terms is 10).</p>
-                        <p><b>Right panel:</b> Choose which arguments should
-                        be mapped to which visual property of the diagnosis plot
-                        and which diagnosand should be displayed.</p>
-                        <p>Click <b>"Run diagnoses"</b> to run the diagnoses and
-                        display the updated plot.<br><br></p>'))
+            return(HTML(inpector_help_text))
         } else {
             results_cached_message()
         }
@@ -431,9 +473,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             return('Update plot')
         }
     })
-    
-    # Action button label gets updated only when reactive inspector values don't change
-    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
     
     # all the following hassle because Shiny would neither:
     # - accept "auto" as plot height
@@ -456,8 +495,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         if (!is.null(p) && !is.null(react$diagnosands)) {
             shinyjs::enable('download_plot')
+            shinyjs::enable('download_plot_code')
         } else {
             shinyjs::disable('download_plot')
+            shinyjs::disable('download_plot_code')
         }
         
         p
@@ -478,6 +519,31 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             png(file, width = 1200, height = 900)
             print(generate_plot())
             dev.off()
+        }
+    )
+    
+    output$download_plot_code <- downloadHandler(
+        filename = function() {
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_inspection_plot.R')
+        },
+        content = function(fname) {
+            code <- generate_plot_code(get_diagnosands_for_display(),
+                                       react$cur_design_id,
+                                       input$plot_conf_diag_param,
+                                       input$plot_conf_x_param,
+                                       input$plot_conf_color_param,
+                                       input$plot_conf_facets_param,
+                                       isTruthy(input$plot_conf_confi_int_id))
+            print(code)
+            fh <- file(fname, 'w')
+            writeLines(code, fh)
+            close(fh)
         }
     )
     
@@ -553,29 +619,30 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             args_fixed <- design_tab_proxy$get_fixed_design_args()
             all_fixed <- design_tab_proxy$all_design_args_fixed()
             
-            # create the design instance and get its estimates
-            d <- design_tab_proxy$design_instance()
-            d_estimates <- draw_estimates(d)
+
+            # get estimates and diagnosis information
+            # cache this because it's slow:
+            estimates_cache_args <- list(
+                'designer' = react$cur_design_id,
+                'designer_src' = deparse(design_tab_proxy$react$design)
+            )
+            estimates_cachefile <- sprintf('.cache/designer_estimates_%s.RDS', digest(estimates_cache_args))
+            if (file.exists(estimates_cachefile)) {
+                cached <- readRDS(estimates_cachefile)
+                d_estimates <- cached$estimates
+                diag_info <- cached$diag_info
+            } else {
+                # create the design instance and get its estimates
+                d <- design_tab_proxy$design_instance()
+                d_estimates <- draw_estimates(d)
+                diag_info <- get_diagnosands_info(d)
+                
+                saveRDS(list('estimates' = d_estimates, 'diag_info' = diag_info), estimates_cachefile)
+            }
             
             # get available diagnosands
-            diag_call <- attr(d, 'diagnosands')
-            if (is.null(diag_call)) {
-                react$diagnosands_call <- function(diag_param_alpha) {  # here we can pass alpha
-                    function(data) {
-                        DeclareDesign:::default_diagnosands(data, alpha = diag_param_alpha)
-                    }
-                }
-                
-                available_diagnosands <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
-            } else {
-                react$diagnosands_call <- function(diag_param_alpha) {  # here we ignore alpha
-                    attr(diag_call, 'call')
-                }
-                
-                quick_diagnosis <- suppressWarnings(diagnose_design(d, sims = 2, bootstrap_sims = 0)$diagnosands_df)
-                available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
-                                                                           "term", "n_sims"))
-            }
+            react$diagnosands_call <- diag_info$diagnosands_call
+            available_diagnosands <- diag_info$available_diagnosands
             
             # 1. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")
@@ -635,40 +702,43 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                      design_tab_proxy$get_fixed_design_args(),
                                                      design_tab_proxy$input)
                 
-                insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
-                if (sum(insp_args_NAs) > 0) {
-                    react$captured_errors <- paste('Invalid values supplied to the following arguments:',
-                                                   paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', ')) 
-                    shinyjs::disable('update_plot')
-                } else {
-                    react$captured_errors <- NULL
-                    shinyjs::enable('update_plot')
+                if (length(insp_args) > 0) {
+                    insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
+    
+                    if (sum(insp_args_NAs) > 0) {
+                        react$captured_errors <- paste('Invalid values supplied to the following arguments:',
+                                                       paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', ')) 
+                        shinyjs::disable('update_plot')
+                    } else {
+                        react$captured_errors <- NULL
+                        shinyjs::enable('update_plot')
+                    }
+                    
+                    insp_args_lengths <- sapply(insp_args, length)
+                    variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
+                    variable_args <- setdiff(variable_args, args_fixed)
+                    
+                    inp_x_param_id <- paste0(inp_prefix, "x_param")
+                    inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
+                                               choices = variable_args,
+                                               selected = input[[inp_x_param_id]])
+                    boxes <- list_append(boxes, inp_x_param)
+                    
+                    # 6. secondary inspection parameter (color)
+                    variable_args_optional <- c('(none)', variable_args)
+                    inp_color_param_id <- paste0(inp_prefix, "color_param")
+                    inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
+                                                   choices = variable_args_optional,
+                                                   selected = input[[inp_color_param_id]])
+                    boxes <- list_append(boxes, inp_color_param)
+                    
+                    # 7. tertiary inspection parameter (small multiples)
+                    inp_facets_param_id <- paste0(inp_prefix, "facets_param")
+                    inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
+                                                    choices = variable_args_optional,
+                                                    selected = input[[inp_facets_param_id]])
+                    boxes <- list_append(boxes, inp_facets_param)
                 }
-                
-                insp_args_lengths <- sapply(insp_args, length)
-                variable_args <- names(insp_args_lengths[insp_args_lengths > 1])
-                variable_args <- setdiff(variable_args, args_fixed)
-                
-                inp_x_param_id <- paste0(inp_prefix, "x_param")
-                inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
-                                           choices = variable_args,
-                                           selected = input[[inp_x_param_id]])
-                boxes <- list_append(boxes, inp_x_param)
-                
-                # 6. secondary inspection parameter (color)
-                variable_args_optional <- c('(none)', variable_args)
-                inp_color_param_id <- paste0(inp_prefix, "color_param")
-                inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
-                                               choices = variable_args_optional,
-                                               selected = input[[inp_color_param_id]])
-                boxes <- list_append(boxes, inp_color_param)
-                
-                # 7. tertiary inspection parameter (small multiples)
-                inp_facets_param_id <- paste0(inp_prefix, "facets_param")
-                inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
-                                                choices = variable_args_optional,
-                                                selected = input[[inp_facets_param_id]])
-                boxes <- list_append(boxes, inp_facets_param)
             }
         }
         
