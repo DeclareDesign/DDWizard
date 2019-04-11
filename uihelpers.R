@@ -120,12 +120,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
             if (argdefinition$class %in% c('numeric', 'integer')) {
                 if (is.character(inp_value)) {
                     arg_value <- trimws(strsplit(inp_value, ",")[[1]])
-                    # if the format of inp_value is fraction, cannot convert it to decimal directly.
-                    if(is.na(as.numeric(arg_value))){
-                        arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
-                    }else {
-                        arg_value <- as.numeric(arg_value)
-                    }
+                    # convert the fractions to the decimals
+                    arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
                 } else {
                     arg_value <- as.numeric(inp_value)
                 }
