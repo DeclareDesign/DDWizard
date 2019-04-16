@@ -186,14 +186,13 @@ designTab <- function(input, output, session) {
                 }, error = function(cond) {
                     cond$message
                 })
-                
                 # create a design instance from the designer using the current arguments `d_args`
                 react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
                     print(d_inst)   # to create summary output
                 }, type = 'output')
                 
                 react$captured_errors <- conditions
-                react$captured_msgs <- msgs
+                react$captured_msgs <- msgs 
             }
             
             print('design instance changed')
@@ -444,7 +443,7 @@ designTab <- function(input, output, session) {
             code_text <- ''
         }
         
-        wrap_errors(tags$pre(renderText(code_text)))
+       tags$pre(code_text)
     })
     
     # center: design summary
@@ -456,7 +455,7 @@ designTab <- function(input, output, session) {
             txt <- 'No summary.'
         }
         
-        wrap_errors(tags$pre(renderText(txt)))
+      tags$pre(txt)
     })
     
     # center: design messages
@@ -468,7 +467,7 @@ designTab <- function(input, output, session) {
             txt <- 'No messages.'
         }
         
-        wrap_errors(renderText(txt))
+        tags$pre(txt)
     })
     
     # center: download generated R code
