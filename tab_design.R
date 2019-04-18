@@ -318,6 +318,8 @@ designTab <- function(input, output, session) {
         # loads a pre-defined designer from the library
         if (!is.null(input$import_design_library)) {
             load_designer(input$import_design_library)
+            # unfold the message panel 
+            updateCollapse(session, "sections_container", open = "Messages")
         }
     })
     
