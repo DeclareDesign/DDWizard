@@ -48,7 +48,7 @@ designTabUI <- function(id, label = 'Design') {
                 material_card("Download",
                               downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                               downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
-                bsCollapse(id=nspace('sections_container'),
+                bsCollapse(id=nspace('sections_container'), multiple = TRUE,
                            bsCollapsePanel('Messages', uiOutput(nspace("section_messages"))),
                            bsCollapsePanel('Summary', uiOutput(nspace("section_summary"))),
                            bsCollapsePanel('Code output', uiOutput(nspace('section_design_code'))),
@@ -244,14 +244,6 @@ designTab <- function(input, output, session) {
     })
     
     ### non-reactive functions ###
-    
-    wrap_errors <- function(output) {
-        if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
-            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")))
-        } else {
-            list(output)
-        }
-    }
     
     # Load the designer with the name `designer` (char string).
     # For mysterious reasons, it is necessary to pass a namespace function `nspace` (created with `NS(<id>)`)
