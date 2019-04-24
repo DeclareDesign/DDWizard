@@ -11,6 +11,8 @@ library(stringr)
 library(future)
 library(rlang)
 library(digest)
+library(reshape)
+library(tidyr)
 library(DeclareDesign)
 
 
@@ -73,6 +75,30 @@ round_df <- function(df, digits){
     i <- vapply(df, is.numeric, TRUE)
     df[i] <- lapply(df[i], round, digits)
     df
+}
+
+
+# reshape the diagnosis table
+reshape_data <- function(data){
+    # coefficients
+    coef_var <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
+    # standrad errors of coefficients
+    se_var <- paste0("se(", coef_var, ")")
+    # remove all the NA 
+    if(any(is.na(data))) data <- data[complete.cases(data[c(coef_var, se_var)]),]
+    # melt data to the long shape
+    newdata <- melt(data, id = colnames(data)[!colnames(data) %in% c(coef_var, se_var)])
+    # round the data as 2- digital 
+    newdata$value <- format(round(newdata$value, 2), nsmall = 2)
+    # remove the space, if the value is negative, other positive values would produce empty space
+    newdata$value <- gsub(" ", "", newdata$value)
+    # add bracket on the values of se
+    newdata$value[grepl("^se", newdata$variable)] <- paste0("(",newdata$value[grepl("^se", newdata$variable)],")")
+    # remove "se()" in the variable name 
+    newdata$variable <- gsub("^se\\(|\\)", "", newdata$variable)
+    # spread single columns into mutiple columns  
+    reshape_data <- as.data.frame(newdata %>% group_by(variable) %>% mutate(i = row_number()) %>% spread(variable, value) %>% select(-i))
+    return(reshape_data)
 }
 
 
