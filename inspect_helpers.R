@@ -122,6 +122,12 @@ get_diagnosands_info <- function(designer) {
     res
 }
 
+# round function of diagnosands data table
+round_df <- function(df, digits) {
+    nums <- vapply(df, is.numeric, FUN.VALUE = logical(1))
+    df[,nums] <- round(df[,nums], digits = digits)
+    return(df)
+}
 
 # generate plot code
 generate_plot_code <- function(plotdf, design_name, diag_param, x_param, color_param, facets_param, plot_ci) {

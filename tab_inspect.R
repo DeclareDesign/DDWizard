@@ -562,7 +562,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
-        get_diagnosands_for_display()
+        round_df(get_diagnosands_for_display(), digits = 3) # round function from inspect_helper file
     }, options = diagnosis_table_opts)
     
     # center below plot: download buttons
