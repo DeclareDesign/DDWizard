@@ -48,7 +48,7 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     
     # get evaluated designer arguments (because they might be "language" constructs)
     # this allows us to evaluate 'language' class default arguments and convert resulting vectors to string inputs
-    args_eval <- evaluate_designer_args(get_designer_args(design))
+    args_eval <- evaluate_designer_args(get_designer_args(design), attr(design, 'definitions'))
     
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
@@ -119,7 +119,9 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
             # if there is a input value for an R formula field, convert it to the requested class
             if (argdefinition$class %in% c('numeric', 'integer')) {
                 if (is.character(inp_value)) {
-                    arg_value <- as.numeric(trimws(strsplit(inp_value, ",")[[1]]))
+                    arg_value <- trimws(strsplit(inp_value, ",")[[1]])
+                    # convert the fractions to the decimals
+                    arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
                 } else {
                     arg_value <- as.numeric(inp_value)
                 }
