@@ -65,9 +65,7 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
        
         # for a fixed argument or if no input is given in the inspect tab (character arguments),
         # use the design tab input value
-        if (d_argname %in% fixed_args 
-            # || is.null(inspect_input[[inp_name_inspect]]) 
-            ) {
+        if (d_argname %in% fixed_args) {
             inp_value <- design_input[[inp_name_design]]
         } else {                           # else use the value from the inspect tab
             inp_value <- inspect_input[[inp_name_inspect]]
