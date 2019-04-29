@@ -116,7 +116,7 @@ get_diagnosands_info <- function(designer) {
             attr(diag_call, 'call')
         }
         
-        quick_diagnosis <- suppressWarnings(diagnose_design(d, sims = 2, bootstrap_sims = 0)$diagnosands_df)
+        quick_diagnosis <- suppressWarnings(diagnose_design(designer, sims = 2, bootstrap_sims = 0)$diagnosands_df)
         res$available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
                                                                        "term", "n_sims"))
     }
