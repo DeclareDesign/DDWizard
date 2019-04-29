@@ -319,13 +319,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         d_args <- design_tab_proxy$design_args()
         defs <- design_tab_proxy$react$design_argdefinitions
-        
         isolate({
             # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
             # was defined in inspect tab
             defaults <- get_inspect_input_defaults(d_args, defs, input)
         })
-       
+        
+        
         nspace <- NS('tab_inspect')
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
                                                   input = design_tab_proxy$input,
@@ -562,7 +562,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
-        get_diagnosands_for_display()
+        round_df(get_diagnosands_for_display(), digits = 3) # round function from inspect_helper file
     }, options = diagnosis_table_opts)
     
     # center below plot: download buttons
