@@ -20,12 +20,16 @@ designTabUI <- function(id, label = 'Design') {
             material_column(  # left: input and design parameters
                 width = 3,
                 material_card("Choose design",
+                              # tagList("Read about the library ", a("here", href="https://declaredesign.org/library/")),
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
                                   actionButton(nspace("import_from_design_lib"), 
                                                label = "Load", 
-                                               disabled = "disabled")
+                                               disabled = "disabled"),
+                                  actionButton(inputId='learn_more', label= "", 
+                                               icon = icon("question-circle"), 
+                                               onclick = "window.open('https://declaredesign.org/library', '_blank')")
                               )
                 ),
                 # show designer parameters if a design was loaded
