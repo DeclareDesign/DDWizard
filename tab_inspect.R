@@ -710,7 +710,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                             react$captured_errors <- paste('Invalid values supplied to the following arguments:',
                                                            paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', '))
                         }else{
-                            react$captured_errors <- paste('Please vary any following argument')
+                            react$captured_errors <- paste('Please vary one or more of the following arguments:')
                         }
                     }else{
                         react$captured_errors <- NULL
