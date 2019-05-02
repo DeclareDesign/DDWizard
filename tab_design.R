@@ -176,6 +176,7 @@ designTab <- function(input, output, session) {
             msgs <- character()
             error_occure <- FALSE
             warning_occure <- FALSE
+            cap_msgs <- ''
             d_args <- design_args()  # designer arguments
             
             d_args_NAs <- sapply(d_args, function(arg) { any(is.na(arg)) })
@@ -188,6 +189,8 @@ designTab <- function(input, output, session) {
                     expr = {
                         capture.output({
                             d_inst <- do.call(react$design, d_args)
+                            # capture message prints, e.g in block_cluster_two_arm_designer
+                            cap_msgs <-  paste0(capture.output(d_inst <- do.call(react$design, d_args)), collapse = "\n") 
                             print(d_inst)
                         }, type = 'message')
                     }, error = function(e){
@@ -206,14 +209,17 @@ designTab <- function(input, output, session) {
                 
                 
                 react$captured_errors <- conditions
-                react$captured_msgs <- msgs
-                if (!isTRUE(warning_occure) && !isTRUE(error_occure)){
+                if (cap_msgs != '') {
+                        react$captured_msgs <- cap_msgs
+                }else{
+                    react$captured_msgs <- msgs
+                }
+                
+                if (!isTRUE(warning_occure) && !isTRUE(error_occure) && cap_msgs == ''){
                     react$error_occured <- FALSE
                 }else{
                     react$error_occured <- TRUE
                 }
-                
-                
             }
             
             print('design instance changed')
