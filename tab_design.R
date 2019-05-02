@@ -375,10 +375,8 @@ designTab <- function(input, output, session) {
     message_close <- reactive({
         req(design_instance())
        if (!isTRUE(react$error_occured)){
-            print("no errors!")
             return(TRUE)
         }else{
-            print("open plz")
             return(NULL) 
         }
         
