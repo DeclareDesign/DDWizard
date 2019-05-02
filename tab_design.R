@@ -88,7 +88,7 @@ designTab <- function(input, output, session) {
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_errors = NULL,         # captured errors and warnings during design creation
-        error_occured  = NULL,         # detect whether error occured in design_instance 
+        error_occured  = NULL,          # detect whether error occured in design_instance 
         input_errors = NULL,            # errors related to invalid inputs
         captured_msgs = NULL,           # captured messages during design creation
         custom_state = list()           # additional state values for bookmarking
@@ -184,23 +184,24 @@ designTab <- function(input, output, session) {
                                             paste(names(d_args_NAs)[d_args_NAs], collapse = ', '))
                 react$captured_errors <- 'Please correct the errors in the argument values first.'
             } else {
-                conditions <- tryCatch({
-                    capture.output({
-                        d_inst <- do.call(react$design, d_args)
-                        print(d_inst)
-                    }, type = 'message')
-                }, error = function(e) {
-                    error_occure <<- TRUE
-                    msgs <<- e
-                },warning=function(w){
-                    warning_occure <<- TRUE #even though there is warning, we also consider it as error message
-                    msgs <<- w
-                })
+                conditions <- tryCatch(
+                    expr = {
+                        capture.output({
+                            d_inst <- do.call(react$design, d_args)
+                            print(d_inst)
+                        }, type = 'message')
+                    }, error = function(e){
+                        error_occure <<- TRUE
+                        msgs <<- e
+                    },warning=function(w){
+                        warning_occure <<- TRUE 
+                        msgs <<- w
+                    })
                 
                 
                 # create a design instance from the designer using the current arguments `d_args`
                 react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
-                if (error_occure == FALSE) print(d_inst)   # to create summary output if and only if there is no error in d_inst
+                if (!isTRUE(warning_occure) && !isTRUE(error_occure)) print(d_inst)   # to create summary output if and only if there is no error in d_inst
                 }, type = 'output')
                 
                 
@@ -212,7 +213,7 @@ designTab <- function(input, output, session) {
                     react$error_occured <- TRUE
                 }
                 
-               
+                
             }
             
             print('design instance changed')
@@ -364,49 +365,44 @@ designTab <- function(input, output, session) {
         } else {
             simdata <- draw_data(d)
         }
-        
         react$simdata <- simdata
+       
     })
     
     # observer for the error message to unfold the message panel
     
-    # reactive expression -----------
-    message_open <- reactive({
-        req(design_instance())
-        if (!is.null(react$error_occured)){
-            if (isTRUE(react$error_occured)){
-                return(TRUE)
-            }else{
-                return(NULL)
-            }
-        }else{
-            return(NULL) 
-        }
-       
-    })
-    
+    # reactive expression returns true when there is no error or warning
     message_close <- reactive({
         req(design_instance())
-        if (!is.null(react$error_occured)){
-            if (!isTRUE(react$error_occured)){
-                return(FALSE)
-            }else{
-                return(NULL)
-            }
+       if (!isTRUE(react$error_occured)){
+            print("no errors!")
+            return(TRUE)
+        }else{
+            print("open plz")
+            return(NULL) 
+        }
+        
+    })
+    
+    # reactive expression returns true when there is any error or warning
+    message_open <- reactive({
+        if (is.null(design_instance())){
+            return(TRUE)
+        }else if (isTRUE(react$error_occured)){
+            return(TRUE)
         }else{
             return(NULL) 
         }
         
     })
     
-
+    # unfold the message panel
     observeEvent(message_open(),ignoreInit = TRUE,{
-        # unfold the message panel 
         updateCollapse(session, "sections_container", open = "Messages")
     })
     
+    # fold back the message panel
     observeEvent(message_close(),ignoreInit = TRUE,{
-        # fold back the message panel 
         updateCollapse(session, "sections_container", close = "Messages")
     })
     
@@ -574,6 +570,7 @@ designTab <- function(input, output, session) {
     
     # center: simulated data table
     output$section_simdata_table <- renderDataTable({
+        req(react$simdata)
         round_df(react$simdata, 4)
     }, options = list(searching = FALSE,
                       ordering = FALSE,
@@ -582,6 +579,7 @@ designTab <- function(input, output, session) {
                       info = FALSE,
                       lengthChange = FALSE,
                       scrollX = TRUE))
+
     
     # center: download simulated data
     output$simdata_download <- downloadHandler(
