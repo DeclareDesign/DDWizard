@@ -42,7 +42,7 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     inp_elem_constructor <- NULL
     inp_elem_args <- list(
         inp_id,
-        argname,
+        gsub("_", " ", argname),
         width = width
     )
     
@@ -176,6 +176,8 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
         
         inp_id <- nspace(paste0('inspect_arg_', argname))
         
+        arglabel <- gsub("_", " ", argname)
+        
         if (type == 'design') {
             # for the "design" tab, create two input elements for each argument:
             # 1. the argument value input box
@@ -226,13 +228,13 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
                 
                 if (argdefinition$vector) {
                     inp_elem_complete <- list(
-                        textAreaInput(inp_id, argname, value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
-                        dd_tipify(inp_id, argname, tips[[argname]])
+                        textAreaInput(inp_id, gsub("_", "", argname), value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
+                        dd_tipify(inp_id, gsub("_", "", argname), tips[[argname]])
                     )
                 } else {
                     inp_elem_complete <- list(
-                        textInput(inp_id, argname, value = argvalue, width = '100%'),
-                        dd_tipify(inp_id, argname, tips[[argname]])
+                        textInput(inp_id, gsub("_", " ", argname), value = argvalue, width = '100%'),
+                        dd_tipify(inp_id, gsub("_", " ", argname), tips[[argname]])
                     )
                     
                 }
