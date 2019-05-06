@@ -322,6 +322,16 @@ designTab <- function(input, output, session) {
         # loads a pre-defined designer from the library
         if (!is.null(input$import_design_library)) {
             load_designer(input$import_design_library)
+            # simulation data would react once new design is loaded
+            d <- req(design_instance())
+            if (!is.null(react$custom_state$simdata)) {
+                simdata <- react$custom_state$simdata
+                react$custom_state$simdata <- NULL
+            } else {
+                simdata <- draw_data(d)
+            }
+            
+            react$simdata <- simdata
         }
     })
     
@@ -515,6 +525,7 @@ designTab <- function(input, output, session) {
     
     # center: simulated data table
     output$section_simdata_table <- renderDataTable({
+        req(react$simdata)
         round_df(react$simdata, 4)
     }, options = list(searching = FALSE,
                       ordering = FALSE,
