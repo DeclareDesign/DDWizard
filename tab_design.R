@@ -27,8 +27,9 @@ designTabUI <- function(id, label = 'Design') {
                                   actionButton(nspace("import_from_design_lib"), 
                                                label = "Load", 
                                                disabled = "disabled"),
-                                  actionButton(inputId='learn_more', label= "", 
-                                               icon = icon("question-circle"), 
+                                  actionButton(inputId='learn_more', label= NULL,
+                                               icon = icon("question-circle"),
+                                               style = "text-align: center; padding-left: 8px; padding-right: 8px",
                                                onclick = "window.open('https://declaredesign.org/library', '_blank')")
                               )
                 ),
