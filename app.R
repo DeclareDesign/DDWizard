@@ -64,7 +64,7 @@ ui <- function(request) {
         material_tabs(
             tabs = c(
                 "Design" = "tab_design",
-                "Inspect" = "tab_inspect"
+                "Diagnose" = "tab_inspect"
             )
         ),
         
