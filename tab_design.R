@@ -498,7 +498,7 @@ designTab <- function(input, output, session) {
             code_text <- ''
         }
         
-        wrap_errors(code_text)
+        wrap_errors(tags$pre(code_text))
     })
     
     # center: design summary
@@ -510,7 +510,7 @@ designTab <- function(input, output, session) {
             txt <- 'No summary.'
         }
         
-        wrap_errors(txt)
+        wrap_errors(tags$pre(txt))
     })
     
     # center: design messages
@@ -522,7 +522,7 @@ designTab <- function(input, output, session) {
             txt <- 'No messages.'
         }
         
-        wrap_errors(txt)
+        wrap_errors(tags$pre(txt))
     })
     
     # center: download generated R code
