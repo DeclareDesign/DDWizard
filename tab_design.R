@@ -174,9 +174,8 @@ designTab <- function(input, output, session) {
         
         if (!is.null(react$design)) {  # return NULL if no designer is given
             msgs <- character()
-            error_occure <- FALSE
-            warning_occure <- FALSE
-            cap_msgs <- ''
+            error_occur <- FALSE
+            warning_occur <- FALSE
             d_args <- design_args()  # designer arguments
             
             d_args_NAs <- sapply(d_args, function(arg) { any(is.na(arg)) })
@@ -190,32 +189,27 @@ designTab <- function(input, output, session) {
                         capture.output({
                             d_inst <- do.call(react$design, d_args)
                             # capture message prints, e.g in block_cluster_two_arm_designer
-                            cap_msgs <-  paste0(capture.output(d_inst <- do.call(react$design, d_args)), collapse = "\n") 
+                            msgs <-  paste0(capture.output(d_inst <- do.call(react$design, d_args)), collapse = "\n") 
                             print(d_inst)
                         }, type = 'message')
                     }, error = function(e){
-                        error_occure <<- TRUE
+                        error_occur <<- TRUE
                         msgs <<- e
                     },warning=function(w){
-                        warning_occure <<- TRUE 
+                        warning_occur <<- TRUE 
                         msgs <<- w
                     })
                 
                 
                 # create a design instance from the designer using the current arguments `d_args`
                 react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
-                if (!isTRUE(warning_occure) && !isTRUE(error_occure)) print(d_inst)   # to create summary output if and only if there is no error in d_inst
+                if (!isTRUE(warning_occur) && !isTRUE(error_occur)) print(d_inst)   # to create summary output if and only if there is no error in d_inst
                 }, type = 'output')
                 
                 
                 react$captured_errors <- conditions
-                if (cap_msgs != '') {
-                        react$captured_msgs <- cap_msgs
-                }else{
-                    react$captured_msgs <- msgs
-                }
-                
-                if (!isTRUE(warning_occure) && !isTRUE(error_occure) && cap_msgs == ''){
+                react$captured_msgs <- msgs
+                if (!isTRUE(warning_occur) && !isTRUE(error_occur) && msgs == ''){
                     react$error_occured <- FALSE
                 }else{
                     react$error_occured <- TRUE
@@ -376,16 +370,14 @@ designTab <- function(input, output, session) {
     })
     
     # observer for the error message to unfold the message panel
-    
     # reactive expression returns true when there is no error or warning
     message_close <- reactive({
         req(design_instance())
        if (!isTRUE(react$error_occured)){
             return(TRUE)
         }else{
-            return(NULL) 
+            return(NULL)
         }
-        
     })
     
     # reactive expression returns true when there is any error or warning
@@ -395,7 +387,7 @@ designTab <- function(input, output, session) {
         }else if (isTRUE(react$error_occured)){
             return(TRUE)
         }else{
-            return(NULL) 
+            return(NULL)
         }
         
     })
@@ -506,7 +498,7 @@ designTab <- function(input, output, session) {
             code_text <- ''
         }
         
-        wrap_errors(tags$pre(code_text))
+        wrap_errors(code_text)
     })
     
     # center: design summary
@@ -518,19 +510,19 @@ designTab <- function(input, output, session) {
             txt <- 'No summary.'
         }
         
-        wrap_errors(tags$pre(txt))
+        wrap_errors(txt)
     })
     
     # center: design messages
     output$section_messages <- renderUI({
-        if(!is.null(design_instance()) && !is.null(react$captured_msgs) && length(react$captured_msgs) > 0) {   # call design_instance() will also create design
+        if(!is.null(design_instance()) && !is.null(react$captured_msgs) && react$captured_msgs != '') {   # call design_instance() will also create design
             # show captured messages
             txt <- paste(react$captured_msgs, collapse = "\n")
         } else {
             txt <- 'No messages.'
         }
         
-        wrap_errors(tags$pre(txt))
+        wrap_errors(txt)
     })
     
     # center: download generated R code
