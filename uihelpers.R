@@ -89,7 +89,7 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     if (is.function(inp_elem_constructor)) {
         ret <- do.call(inp_elem_constructor, inp_elem_args)
         if (is.character(tips[[argname]])) {
-            ret <- list(ret, dd_tipify(inp_id, argname, tips[[argname]]))
+            ret <- list(ret, dd_tipify(inp_id, gsub("_", " ", argname), tips[[argname]]))
         }
     } else { 
         # return NULL if argument class is not supported
