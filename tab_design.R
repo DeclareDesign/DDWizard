@@ -277,6 +277,17 @@ designTab <- function(input, output, session) {
         shinyjs::enable(nspace('simdata_redraw'))
         shinyjs::enable(nspace('simdata_download'))
         
+        # simulation data would react once new design is loaded
+        d <- req(design_instance())
+        if (!is.null(react$custom_state$simdata)) {
+            simdata <- react$custom_state$simdata
+            react$custom_state$simdata <- NULL
+        } else {
+            simdata <- draw_data(d)
+        }
+        
+        react$simdata <- simdata
+        
         # save this to state because it is not automatically restored from bookmark
         react$custom_state$designer <- react$design_id
         
