@@ -27,8 +27,9 @@ designTabUI <- function(id, label = 'Design') {
                                   actionButton(nspace("import_from_design_lib"), 
                                                label = "Load", 
                                                disabled = "disabled"),
-                                  actionButton(inputId='learn_more', label= "", 
-                                               icon = icon("question-circle"), 
+                                  actionButton(inputId='learn_more', label= NULL,
+                                               icon = icon("question-circle"),
+                                               style = "text-align: center; padding-left: 8px; padding-right: 8px",
                                                onclick = "window.open('https://declaredesign.org/library', '_blank')")
                               )
                 ),
@@ -53,7 +54,7 @@ designTabUI <- function(id, label = 'Design') {
                               downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                               downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
                 bsCollapse(id=nspace('sections_container'),
-                           bsCollapsePanel('Messages', uiOutput(nspace("section_messages"))),
+                           bsCollapsePanel('Warnings or errors', uiOutput(nspace("section_messages"))),
                            bsCollapsePanel('Summary', uiOutput(nspace("section_summary"))),
                            bsCollapsePanel('Code output', uiOutput(nspace('section_design_code'))),
                            bsCollapsePanel('Simulated data',
@@ -468,7 +469,7 @@ designTab <- function(input, output, session) {
             # show captured messages
             txt <- paste(react$captured_msgs, collapse = "\n")
         } else {
-            txt <- 'No messages.'
+            txt <- 'No warnings/errors.'
         }
         
         wrap_errors(renderText(txt))
@@ -515,6 +516,7 @@ designTab <- function(input, output, session) {
     
     # center: simulated data table
     output$section_simdata_table <- renderDataTable({
+        req(react$simdata)
         round_df(react$simdata, 4)
     }, options = list(searching = FALSE,
                       ordering = FALSE,

@@ -127,6 +127,21 @@ get_diagnosands_info <- function(designer) {
     res
 }
 
+# clean and capitalize string
+str_cap <- function(str, hard_code = c("rmse" = "RMSE",
+                                       "type_s_rate" = "Type S rate",
+                                       "mean_se" = "Mean SE",
+                                       "sd_estimate" = "SD estimate")){ #can hardcode specific capitalizations
+    if(str %in% names(hard_code)) 
+        hard_code[[str]]
+    else {
+        str_ret <- rm_usc(str)
+        paste0(toupper(substr(str_ret, 1, 1)), 
+               substr(str_ret, 2, nchar(str_ret)))
+    }
+        
+}
+
 # round function of diagnosands data table
 round_df <- function(df, digits) {
     nums <- vapply(df, is.numeric, FUN.VALUE = logical(1))
