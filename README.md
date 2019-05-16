@@ -19,6 +19,7 @@ Authors:
 **From CRAN:**
 
 - DeclareDesign
+- datapasta
 - shiny
 - shinyalert
 - shinythemes

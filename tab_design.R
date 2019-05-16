@@ -27,8 +27,9 @@ designTabUI <- function(id, label = 'Design') {
                                   actionButton(nspace("import_from_design_lib"), 
                                                label = "Load", 
                                                disabled = "disabled"),
-                                  actionButton(inputId='learn_more', label= "", 
-                                               icon = icon("question-circle"), 
+                                  actionButton(inputId='learn_more', label= NULL,
+                                               icon = icon("question-circle"),
+                                               style = "text-align: center; padding-left: 8px; padding-right: 8px",
                                                onclick = "window.open('https://declaredesign.org/library', '_blank')")
                               )
                 ),
@@ -53,7 +54,7 @@ designTabUI <- function(id, label = 'Design') {
                               downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                               downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
                 bsCollapse(id=nspace('sections_container'), multiple = TRUE,
-                           bsCollapsePanel('Messages', uiOutput(nspace("section_messages"))),
+                           bsCollapsePanel('Warnings or errors', uiOutput(nspace("section_messages"))),
                            bsCollapsePanel('Summary', uiOutput(nspace("section_summary"))),
                            bsCollapsePanel('Code output', uiOutput(nspace('section_design_code'))),
                            bsCollapsePanel('Simulated data',
@@ -88,7 +89,7 @@ designTab <- function(input, output, session) {
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_errors = NULL,         # captured errors and warnings during design creation
-        error_occured  = NULL,          # detect whether error occured in design_instance 
+        error_occurred  = NULL,         # detect whether error occurred in design_instance 
         input_errors = NULL,            # errors related to invalid inputs
         captured_msgs = NULL,           # captured messages during design creation
         custom_state = list()           # additional state values for bookmarking
@@ -189,30 +190,35 @@ designTab <- function(input, output, session) {
                         capture.output({
                             d_inst <- do.call(react$design, d_args)
                             # capture message prints, e.g in block_cluster_two_arm_designer
-                            msgs <-  paste0(capture.output(d_inst <- do.call(react$design, d_args)), collapse = "\n") 
+                            msgs <-  paste0(capture.output(d_inst <- do.call(react$design, d_args)), collapse = "\n")
                             print(d_inst)
                         }, type = 'message')
                     }, error = function(e){
                         error_occur <<- TRUE
                         msgs <<- e
-                    },warning=function(w){
+                    },warning = function(w){
                         warning_occur <<- TRUE 
                         msgs <<- w
                     })
                 
                 
                 # create a design instance from the designer using the current arguments `d_args`
-                react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
-                if (!isTRUE(warning_occur) && !isTRUE(error_occur)) print(d_inst)   # to create summary output if and only if there is no error in d_inst
-                }, type = 'output')
-                
+                if (!warning_occur && !error_occur) {
+                    react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
+                        print(d_inst)   # to create summary output if and only if there is no error in d_inst
+                    }, type = 'output')
+                } else {
+                    react$captured_stdout <- ''
+                }
                 
                 react$captured_errors <- conditions
                 react$captured_msgs <- msgs
-                if (!isTRUE(warning_occur) && !isTRUE(error_occur) && msgs == ''){
-                    react$error_occured <- FALSE
+                if (!warning_occur && !error_occur && msgs == ''){
+                    react$simdata <- draw_data(d_inst)   # also update simulated data
+                    react$error_occurred <- FALSE
                 }else{
-                    react$error_occured <- TRUE
+                    react$simdata <- NULL
+                    react$error_occurred <- TRUE
                 }
             }
             
@@ -293,6 +299,17 @@ designTab <- function(input, output, session) {
         shinyjs::enable(nspace('simdata_redraw'))
         shinyjs::enable(nspace('simdata_download'))
         
+        # simulation data would react once new design is loaded
+        d <- req(design_instance())
+        if (!is.null(react$custom_state$simdata)) {
+            simdata <- react$custom_state$simdata
+            react$custom_state$simdata <- NULL
+        } else {
+            simdata <- draw_data(d)
+        }
+        
+        react$simdata <- simdata
+        
         # save this to state because it is not automatically restored from bookmark
         react$custom_state$designer <- react$design_id
         
@@ -363,7 +380,11 @@ designTab <- function(input, output, session) {
             simdata <- react$custom_state$simdata
             react$custom_state$simdata <- NULL
         } else {
-            simdata <- draw_data(d)
+            if (react$error_occurred) {
+                simdata <- NULL
+            } else {
+                simdata <- draw_data(d)
+            }
         }
         react$simdata <- simdata
        
@@ -373,7 +394,7 @@ designTab <- function(input, output, session) {
     # reactive expression returns true when there is no error or warning
     message_close <- reactive({
         req(design_instance())
-       if (!isTRUE(react$error_occured)){
+       if (!isTRUE(react$error_occurred)){
             return(TRUE)
         }else{
             return(NULL)
@@ -384,7 +405,7 @@ designTab <- function(input, output, session) {
     message_open <- reactive({
         if (is.null(design_instance())){
             return(TRUE)
-        }else if (isTRUE(react$error_occured)){
+        }else if (isTRUE(react$error_occurred)){
             return(TRUE)
         }else{
             return(NULL)
@@ -519,7 +540,7 @@ designTab <- function(input, output, session) {
             # show captured messages
             txt <- paste(react$captured_msgs, collapse = "\n")
         } else {
-            txt <- 'No messages.'
+            txt <- 'No warnings/errors.'
         }
         
         wrap_errors(tags$pre(txt))

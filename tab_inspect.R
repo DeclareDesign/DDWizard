@@ -192,6 +192,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         react$diagnosands <- plotdf
+        react$diagnosands_full <- diag_results$results$diagnosands_df
+        
         diag_results$results$diagnosands_df_for_plot <- plotdf
         
         diag_results
@@ -298,6 +300,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         if (!is.null(react$cur_design_id) && react$cur_design_id != design_tab_proxy$react$design_id) {
             # if the designer was changed, reset the reactive values
             react$diagnosands <- NULL
+            react$diagnosands_full <- NULL
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
             react$design_params_used_in_plot <- NULL
@@ -592,7 +595,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands_full.csv')
         },
         content = function(file) {
-            write.csv(react$diagnosands, file = file, row.names = FALSE)
+            write.csv(react$diagnosands_full, file = file, row.names = FALSE)
         }
     )
     
@@ -639,6 +642,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             # get available diagnosands
             react$diagnosands_call <- diag_info$diagnosands_call
             available_diagnosands <- diag_info$available_diagnosands
+            names(available_diagnosands) <- sapply(available_diagnosands, str_cap, USE.NAMES = FALSE)
             
             # 1. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")
