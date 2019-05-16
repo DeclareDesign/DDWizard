@@ -213,11 +213,15 @@ get_designer_args <- function(designer) {
 # evaluate argument defaults of designers in separate environment (because they might be "language" constructs)
 # return evaluated argument defaults
 # `args` is a list of arguments with defaults as returned from `formals(<designer>)`
-evaluate_designer_args <- function(args) {
+evaluate_designer_args <- function(args, definition) {
     eval_envir <- new.env()
     
     args_eval <- lapply(1:length(args), function(a){
         evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
+        # convert the value to fraction 
+        if (any(vapply(evaluated_arg, nchar, FUN.VALUE=numeric(1)) > 10) && definition[a, "class"] == "numeric"){
+            evaluated_arg <- fractions(evaluated_arg)
+        }
         invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
         hold <- invisible(get(names(args)[a], envir = eval_envir))
         if(length(hold) > 1) hold <- paste0(hold, collapse = ", ")
