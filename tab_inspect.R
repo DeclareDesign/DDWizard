@@ -389,12 +389,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 incProgress(1/n_steps)
                 
                 # create base line plot
+                
+                # create the title by set_title 
+                title = set_title(x1 = input$plot_conf_x_param, x2 = input$plot_conf_color_param,
+                                  x3 = input$plot_conf_facets_param, y = input$plot_conf_diag_param)
+                
                 p <- ggplot(plotdf, aes_definition) +
                     geom_line() +
                     geom_point() +
-                    scale_y_continuous(name = input$plot_conf_diag_param) +
+                    scale_y_continuous(name = str_cap(input$plot_conf_diag_param)) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param)
+                    labs(x = input$plot_conf_x_param, title = title)
                 
                 # add confidence interval if requested
                 if (isTruthy(input$plot_conf_confi_int_id)) {
@@ -730,21 +735,25 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                choices = variable_args,
                                                selected = input[[inp_x_param_id]])
 
-                  
+
                     boxes <- list_append(boxes, inp_x_param)
-                    
                     # 6. secondary inspection parameter (color)
-                    variable_args_optional <- c('(none)', variable_args)
+                    variable_args_optional <- c('(none)',variable_args[variable_args != input[[inp_x_param_id]]])
                     inp_color_param_id <- paste0(inp_prefix, "color_param")
                     inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
                                                    choices = variable_args_optional,
                                                    selected = input[[inp_color_param_id]])
                     boxes <- list_append(boxes, inp_color_param)
-                    
                     # 7. tertiary inspection parameter (small multiples)
+                    if (length(variable_args_optional) <= 2) {
+                        variable_args_options = variable_args_optional
+                    }else{
+                        variable_args_options <- variable_args_optional[variable_args_optional != input[[inp_color_param_id]]]
+                    }
+                    # variable_args_options <- c('(none)',variable_args_optional[variable_args_optional != input[[inp_color_param_id]]])
                     inp_facets_param_id <- paste0(inp_prefix, "facets_param")
                     inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
-                                                    choices = variable_args_optional,
+                                                    choices = variable_args_options,
                                                     selected = input[[inp_facets_param_id]])
                     boxes <- list_append(boxes, inp_facets_param)
                 }
