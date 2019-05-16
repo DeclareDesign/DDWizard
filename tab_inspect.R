@@ -62,6 +62,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                bsCollapsePanel('Diagnosis',
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
+                                               checkboxInput(nspace("reshape_diagnosands_full"), label = "Reshape full diagnosands table"),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
                                                               label = "Download above table", disabled = "disabled"),
                                                downloadButton(nspace("section_diagnosands_download_full"),
@@ -587,7 +588,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     output$section_diagnosands_download_full <- downloadHandler(
         filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
             design_name <- input$design_arg_design_name
-            
             if (!isTruthy(design_name)) {
                 design_name <- paste0("design-", Sys.Date())
             }
@@ -595,9 +595,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands_full.csv')
         },
         content = function(file) {
-
-            write.csv(reshape_data(react$diagnosands), file = file, row.names = FALSE)
-
+            if (input$reshape_diagnosands_full == TRUE){
+                download_data <- reshape_data(react$diagnosands)
+            }else{
+                download_data <- react$diagnosands
+            }
+            write.csv(download_data, file = file, row.names = FALSE)
         }
     )
     
