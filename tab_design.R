@@ -516,6 +516,7 @@ designTab <- function(input, output, session) {
     
     # center: simulated data table
     output$section_simdata_table <- renderDataTable({
+        req(react$simdata)
         round_df(react$simdata, 4)
     }, options = list(searching = FALSE,
                       ordering = FALSE,
