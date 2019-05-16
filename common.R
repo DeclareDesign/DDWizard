@@ -88,16 +88,15 @@ reshape_data <- function(data){
     if(any(is.na(data))) data <- data[complete.cases(data[c(coef_var, se_var)]),]
     # melt data to the long shape
     newdata <- melt(data, id = colnames(data)[!colnames(data) %in% c(coef_var, se_var)])
-    # round the data as 2- digital 
-    newdata$value <- format(round(newdata$value, 2), nsmall = 2)
-    # remove the space, if the value is negative, other positive values would produce empty space
-    newdata$value <- gsub(" ", "", newdata$value)
     # add bracket on the values of se
     newdata$value[grepl("^se", newdata$variable)] <- paste0("(",newdata$value[grepl("^se", newdata$variable)],")")
     # remove "se()" in the variable name 
     newdata$variable <- gsub("^se\\(|\\)", "", newdata$variable)
     # spread single columns into mutiple columns  
     reshape_data <- as.data.frame(newdata %>% group_by(variable) %>% mutate(i = row_number()) %>% spread(variable, value) %>% select(-i))
+    to_delete <- seq(2,nrow(reshape_data),2)
+    for (i in names(reshape_data)){reshape_data[, i] <- as.character(reshape_data[, i]) }
+    for (i in (names(reshape_data)[!names(reshape_data) %in% coef_var])){reshape_data[to_delete, i] <- " "}
     return(reshape_data)
 }
 

@@ -216,8 +216,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         req(input$plot_conf_facets_param)
         req(input$plot_conf_diag_param)
    
-        reshaped_diagnosands <- reshape_data(react$diagnosands)
-       
         # set columns to show
         cols <- c(input$plot_conf_x_param)
         
@@ -228,15 +226,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             cols <- c(cols, input$plot_conf_facets_param)
         }
        
-        if ("term" %in% colnames(reshaped_diagnosands)){
-            cols <- c(cols, 'estimator_label', 'term', input$plot_conf_diag_param)
+        if ("term" %in% colnames(react$diagnosands)){
+            cols <- c(cols, 'estimator_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
         } else {
-            cols <- c(cols, 'estimator_label', input$plot_conf_diag_param)
+            cols <- c(cols, 'estimator_label', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
         }
         
        
         # return data frame subset
-        reshaped_diagnosands[cols]
+        react$diagnosands[cols]
     })
     
     # determines whether it is necessary to re-run the diagnoses (i.e. when also the comparison parameters
@@ -594,7 +592,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands_full.csv')
         },
         content = function(file) {
-            write.csv(react$diagnosands, file = file, row.names = FALSE)
+            write.csv(reshape_data(react$diagnosands), file = file, row.names = FALSE)
         }
     )
     
