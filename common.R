@@ -12,6 +12,7 @@ library(future)
 library(rlang)
 library(digest)
 library(tidyr)
+library(reshape)
 library(DeclareDesign)
 
 
@@ -93,9 +94,10 @@ reshape_data <- function(data){
     newdata$variable <- gsub("^se\\(|\\)", "", newdata$variable)
     # spread single columns into mutiple columns  
     reshape_data <- as.data.frame(newdata %>% group_by(variable) %>% mutate(i = row_number()) %>% spread(variable, value))
+    reshape_data$i <- NULL
     to_delete <- seq(2,nrow(reshape_data),2)
-    for (i in names(reshape_data)){reshape_data[, i] <- as.character(reshape_data[, i]) }
-    for (i in (names(reshape_data)[!names(reshape_data) %in% coef_var])){reshape_data[to_delete, i] <- " "}
+    reshape_data[] <- lapply(reshape_data, as.character)
+    reshape_data[to_delete, !names(reshape_data) %in% coef_var] <- " "
     return(reshape_data)
 }
 
