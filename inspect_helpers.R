@@ -126,20 +126,6 @@ get_diagnosands_info <- function(designer) {
     
     res
 }
-# create a title 
-set_title <- function(x1, x2, x3, y){
-    if (x1 == 'N') x1 = 'sample size'
-    if (x2 != '(none)' && x3 != '(none)'){
-        title = paste(str_cap(y), 'over', x1,'by', x2, 'and', x3)
-    }else if (x2 != '(none)'){
-        title = paste(str_cap(y), 'over', x1, 'by', x2)
-    }else if (x3 != '(none)'){
-        title = paste(str_cap(y), 'over', x1, 'by', x3)
-    }else{
-        title = paste(str_cap(y), 'over', x1)
-    }
-    return(title)
-}
 
 # clean and capitalize string
 str_cap <- function(str, hard_code = c("rmse" = "RMSE",
@@ -150,7 +136,7 @@ str_cap <- function(str, hard_code = c("rmse" = "RMSE",
         hard_code[[str]]
     else {
         str_ret <- rm_usc(str)
-        paste0(toupper(substr(str_ret, 1, 1)), 
+        paste0(toupper(substr(str_ret, 1, 1)),
                substr(str_ret, 2, nchar(str_ret)))
     }
         

@@ -390,16 +390,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 
                 # create base line plot
                 
-                # create the title by set_title 
-                title = set_title(x1 = input$plot_conf_x_param, x2 = input$plot_conf_color_param,
-                                  x3 = input$plot_conf_facets_param, y = input$plot_conf_diag_param)
-                
                 p <- ggplot(plotdf, aes_definition) +
                     geom_line() +
                     geom_point() +
                     scale_y_continuous(name = str_cap(input$plot_conf_diag_param)) +
                     dd_theme() +
-                    labs(x = input$plot_conf_x_param, title = title)
+                    labs(x = input$plot_conf_x_param)
                 
                 # add confidence interval if requested
                 if (isTruthy(input$plot_conf_confi_int_id)) {
