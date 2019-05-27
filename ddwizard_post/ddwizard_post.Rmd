@@ -1,0 +1,136 @@
+---
+title: "DD Wizard Blog Post"
+author: ""
+date: "April 30, 2019"
+output: html_document
+runtime: shiny
+---
+
+### Overview of the DDWizard
+
+[DDWizard](https://eos.wzb.eu/ipi/DDWizard) is a web app interface that allows users to apply the [_DeclareDesign_ framework](https://declaredesign.org/declare.pdf) to easily define, customize, and examine designs from an existing library of templates (available in the R package [_DesignLibrary_](https://cran.r-project.org/web/packages/DesignLibrary/DesignLibrary.pdf)). It is a tool built for researchers and practicioners who have different levels of familiarity with R and/or _DeclareDesign_ packages.
+
+By loading a design in the `DESIGN` tab, users can:
+
+* customize design parameters (`Set design parameters` panel);
+* inspect design features (`Summary` panel);
+* visualize and download the R code that produces the design in either ".R" or ".RDS" format (`Code output` panel) ; and
+* visualize and download simulated data for the design (`Simulated data` panel).
+
+On the `DIAGNOSE` tab, users can further:
+
+* vary design parameters (`Compare design parameters` panel);
+* customize the number of simulations used in the design diagnosis (`Configure simulations` panel); 
+* graph a comparison of design properties (`Diagnostic plots` panel) by selecting specific estimators, design parameters, and properties of interest, or diagnosands, (`Plot configuration` panel);
+* visualize and download a table with diagnostic properties of designs (`Diagnosis` panel)
+
+<!-- These features allow researchers to better communicate trade-offs in design choices and visualize, download, and share diagnostic statistics of those designs. -->
+
+At its core, DDWizard was conceived as a tool to make it easier for researchers and practioners to communicate design properties. In line with this, users are able to visualize, download, and share their designs and diagnostic properties. Additionally, users can also share the status of the DDWizard by using the url provided by the `Share` button on top right corner. Value inputs and simulations are cached and loaded upon re-entering the token link on the browser.
+
+### Five Practical Examples
+
+Below we guide users on how to use these features on their daily research through five examples.
+
+### 1) Create and export a design from existing templates
+
+Let us say a user is interested in ex ante defining the features of an experiment aimed at studying ethnic discrimination among students in schools. In simple terms, the study aims at measuring the effect of two measures: 1) ethnically mixed classes (as opposed to homogeneous) and 2) introducing awareness raising about discriminatory practices on the curriculum.
+
+We provide a step-by-step of how to implement such a design using a multi-arm design template from our library.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(shiny); library(shinyjs); library(shinymaterial)
+source("ddwizard_post_helpers.R")
+
+text1 <- c(
+  add_title("Load a design template", 
+            "Select and load the 'Multi-arm' design. To learn about this design template in more detail, click on <code>Read more</code>. <p> <p> The <code>?</code> button will redirect to the full database of design templates."),
+  
+  add_title("Set values of design parameters", 
+            "This creates a design with <code>N</code> observations in which each of the three factors (<code>k</code>) are assigned with probabilities given by <code>assignment probs</code>. We can ex ante declare our expectations of outcome means and standard deviations for each combination of factors in <code>outcome means</code> and <code>outcome sds</code> from which to draw normally distributed potential outcomes. Users can also customize <code>outcome name</code> and <code>treatment names</code>. <p><p> Values for all these parameters can be specified in 'Set design parameters'. </p>"),
+  
+    add_title("Fix parameter", 
+            "When creating a design, users can specify whether they want to hard code any or all parameters in design code. This means that the R code exported will prevent other users to easily redefine the values of these parameters. Any parameters set to 'fixed' will also be omitted "),
+  
+  add_title("See summary of design", 
+            "Having specified values for all arguments of the design, users can inspect the design step-by-step such as which variables are created by the design, number of units assigned to each treatment condition, a single draw of the estimands and a single draw of the estimates."),
+  
+  add_title("Export design code", 
+            "Users can download the R code that generates that design as an '.R' file (R script) or in '.RDS' format (which contains the design object and can be onto an R session with the function <code>readRDS()</code>). <p><p> Users can then share this R code with say, co-authors, who are then able to replicate the same design and examine and/or update its assumptions and any of its components."),
+  
+  add_title("Download simulated data", 
+            "Download a '.csv' file containing a single simulation of the data generated by the design."))
+
+imageGallery("ex1", text1)
+```
+
+### 2) Examine the trade-offs of specific design choices
+
+For any design selected, users can then either diagnose the properties of a single design, or vary design parameters to examine how these affect diagnostic properties (or "diagnosands") such as the power of the estimate of the interaction effect, or the bias of each of the treatment effect estimates. Interactive graphs and tables make it easy for users to visualize trends or trade-offs between select choices.
+
+See below for a walk through of how we can use this and other diagnostic tool as a way to compare a multi-arm set up with a factorial design in the context of the study described in 1).
+
+
+
+### 3) Export and customize power graphs
+
+Users can communicate specific diagnostic properties of designs with the help of interactive graphs which can be downloaded and, for example, shared with collaborators or added to funding grants. The `Download plot code` feature allows users to further customize graphs by editing the R code directly.
+
+Below we show a step-wise guide to generating power graphs for the multi-arm design in 1) and adding custom titles.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(shiny); library(shinyjs); library(shinymaterial)
+source("ddwizard_post_helpers.R")
+
+text3 <- c(
+  add_title("Create a plot", 
+            "Select the estimator and term to be displayed, the parameter to appear on the x-axis and any other parameters to be displayed in the color aesthetics (optional) or along different plots (optional)."),
+  
+  add_title("Download graph or R code", 
+            "Download the graph as .png OR download the plot code."),
+  
+  add_title("Customize!", 
+            "After downloading the R code for the plot and opening it with R or RStudio, users can customize features of the plot by editing the code directly. To add custom title and axes labels, for example, replace line <code>labs(x = 'N', y = 'power')</code> with <code>labs(title = 'Power of mixed class treatment estimate', x = 'Sample size', y = 'Power')</code>, rerun the code, and voilà."
+            ))
+
+imageGallery("ex1", text3)
+```
+
+### 4) Use it as a didactic tool in class
+
+The ability to examine and share design choices also facilitates the presentation and discussion of particular estimation and experimental concepts. For example, users can use the instrumental variable design with binary outcome (`Binary IV`) and examine the effect of violating the following assumptions needed for a strong instrumental variable:
+
+
+* *Relevance*: The instrument $Z$ has a causal effect on the treatment $X$.
+* *Exclusion restriction*: The instrument $Z$ affects the outcome $Y$ only through the treatment $X$.
+* *Exchangeability* (or *independence*): The instrument $Z$ is as good as randomly assigned (i.e., there is no confounding for the effect of $Z$ on $Y$).
+* *Monotonicity*: For all units $i$, $X_i(z_1) \geqslant X_i(x_2)$ when $z_1 \geqslant z_2$ (i.e., there are no units that always defy their assignment).
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+text4 <- c(
+  add_title("Load the Binary IV Design", 
+            ""),
+  
+  add_title("Questioning relevance assumption in <code>Diagnose</code> tab", 
+            "Changing the <code>b Y</code> parameter to 0 means there is no effect of our instrument <code>Z</code> on <code>Y</code>, which violates the non-relevance assumption and results in no first-stage effects."),
+  
+  add_title("Violating the exclusion restriction", 
+            ""))
+
+imageGallery("ex1", text4)
+```
+
+### 5) Advanced:  use this interactive tool to examine your own design. 
+
+For more advanced R and _DeclareDesign_ users, the DDWizard can serve as an interactive interface for exploring the properties of any custom-made designer function. Exploring this functionality of the DDWizard for that purpose requires users to:
+
+1. Add new designer function(s) to _DesignLibrary_ by following instructions [here](https://declaredesign.org/library/articles/how_to_write_and_contribute_designers.html) and saving function(s) in the `"R/"` directory of the package;
+2. Reinstall _DesignLibrary_ containing the new designer function(s);
+3. Download _DDWizard_ [here](https://github.com/DeclareDesign/DDWizard) and run `runApp()` on the app directory.
+
+A version of the DDWizard should then run locally with new function(s) appearing in the dropdown menu below `Choose design`.
+
+### Feedback
+
+The DDWizard is still under development. We encourage users to report issues or contribute to developing the app [on our Github repository](https://github.com/DeclareDesign/DDWizard/issues).
