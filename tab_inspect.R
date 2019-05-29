@@ -50,6 +50,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                            numericInput(nspace("simconf_bootstrap_num"), label = "Num. of bootstraps",
                                                         value = default_diag_bootstrap_sims,
                                                         min = 1, max = 1000, step = 1))),
+                bsCollapsePanel('Details', uiOutput(nspace("plot_info"))),
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
                     material_card("Diagnostic plots",
                                   uiOutput(nspace('plot_message')),
@@ -561,6 +562,25 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             results_cached_message()
         }
+    })
+    
+    # center upon plot: plot information
+    output$plot_info <- renderUI({
+        d_args <- design_tab_proxy$design_args()
+        
+        insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                             design_tab_proxy$react$design_argdefinitions,
+                                             input,
+                                             design_tab_proxy$get_fixed_design_args(),
+                                             design_tab_proxy$input)
+        
+        txt <- paste("Loaded Designer:", design_tab_proxy$react$design_id)
+        if (length(design_tab_proxy$get_fixed_design_args()) > 0){
+            txt1 <- paste("Fixed Arguments:", design_tab_proxy$get_fixed_design_args(), "=", insp_args[[design_tab_proxy$get_fixed_design_args()]])
+            txt <- paste(txt, txt1, collapse = "\n")
+        }
+        
+        tags$pre(txt)
     })
     
     # center below plot: diagnosands table
