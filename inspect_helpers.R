@@ -136,7 +136,7 @@ str_cap <- function(str, hard_code = c("rmse" = "RMSE",
         hard_code[[str]]
     else {
         str_ret <- rm_usc(str)
-        paste0(toupper(substr(str_ret, 1, 1)), 
+        paste0(toupper(substr(str_ret, 1, 1)),
                substr(str_ret, 2, nchar(str_ret)))
     }
         
