@@ -20,12 +20,17 @@ designTabUI <- function(id, label = 'Design') {
             material_column(  # left: input and design parameters
                 width = 3,
                 material_card("Choose design",
+                              # tagList("Read about the library ", a("here", href="https://declaredesign.org/library/")),
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
                                   uiOutput(nspace("import_design_lib_id")),
                                   actionButton(nspace("import_from_design_lib"), 
                                                label = "Load", 
-                                               disabled = "disabled")
+                                               disabled = "disabled"),
+                                  actionButton(inputId='learn_more', label= NULL,
+                                               icon = icon("question-circle"),
+                                               style = "text-align: center; padding-left: 8px; padding-right: 8px",
+                                               onclick = "window.open('https://declaredesign.org/library', '_blank')")
                               )
                 ),
                 # show designer parameters if a design was loaded
@@ -49,7 +54,7 @@ designTabUI <- function(id, label = 'Design') {
                               downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                               downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
                 bsCollapse(id=nspace('sections_container'),
-                           bsCollapsePanel('Messages', uiOutput(nspace("section_messages"))),
+                           bsCollapsePanel('Warnings or errors', uiOutput(nspace("section_messages"))),
                            bsCollapsePanel('Summary', uiOutput(nspace("section_summary"))),
                            bsCollapsePanel('Code output', uiOutput(nspace('section_design_code'))),
                            bsCollapsePanel('Simulated data',
@@ -112,12 +117,10 @@ designTab <- function(input, output, session) {
                 argdefault <- args[[argname]]
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
-                
                 # convert an input value to a argument value of correct class
                 if (length(argdefinition) != 0) {
                     argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                     has_NAs <- !is.null(argvalue) && any(is.na(argvalue))   # may contain NAs where invalid input was supplied
-
                     if (!has_NAs && ((!is.null(argvalue) && is.null(argdefault))
                         || (!is.null(argvalue) && argvalue != ''
                             && (length(argvalue) != length(argdefault) || argvalue != argdefault))))
@@ -161,6 +164,7 @@ designTab <- function(input, output, session) {
         
         output_args
     })
+    
     
     # specific design instance generated from above react$design with specific parameter values `design_args()`
     design_instance <- reactive({
@@ -273,6 +277,17 @@ designTab <- function(input, output, session) {
         shinyjs::enable(nspace('simdata_redraw'))
         shinyjs::enable(nspace('simdata_download'))
         
+        # simulation data would react once new design is loaded
+        d <- req(design_instance())
+        if (!is.null(react$custom_state$simdata)) {
+            simdata <- react$custom_state$simdata
+            react$custom_state$simdata <- NULL
+        } else {
+            simdata <- draw_data(d)
+        }
+        
+        react$simdata <- simdata
+        
         # save this to state because it is not automatically restored from bookmark
         react$custom_state$designer <- react$design_id
         
@@ -376,7 +391,7 @@ designTab <- function(input, output, session) {
         nspace <- NS('tab_design')
         
         defaults <- isolate({ design_args() })
-        
+     
         param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
                                                   input = input, defaults = defaults,
                                                   create_fixed_checkboxes = design_supports_fixed_arg())
@@ -465,7 +480,7 @@ designTab <- function(input, output, session) {
             # show captured messages
             txt <- paste(react$captured_msgs, collapse = "\n")
         } else {
-            txt <- 'No messages.'
+            txt <- 'No warnings/errors.'
         }
         
         wrap_errors(renderText(txt))
@@ -512,6 +527,7 @@ designTab <- function(input, output, session) {
     
     # center: simulated data table
     output$section_simdata_table <- renderDataTable({
+        req(react$simdata)
         round_df(react$simdata, 4)
     }, options = list(searching = FALSE,
                       ordering = FALSE,

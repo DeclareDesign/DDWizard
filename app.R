@@ -19,6 +19,7 @@ library(shinyjs)
 library(stringr)
 library(stringi)
 library(dplyr)
+library(MASS)
 
 source('conf.R')
 source('common.R')
@@ -63,7 +64,7 @@ ui <- function(request) {
         material_tabs(
             tabs = c(
                 "Design" = "tab_design",
-                "Inspect" = "tab_inspect"
+                "Diagnose" = "tab_inspect"
             )
         ),
         
