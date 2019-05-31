@@ -220,6 +220,7 @@ designTab <- function(input, output, session) {
                     react$simdata <- NULL
                     react$error_occurred <- TRUE
                 }
+                
             }
             
             print('design instance changed')
@@ -415,12 +416,12 @@ designTab <- function(input, output, session) {
     
     # unfold the message panel
     observeEvent(message_open(),ignoreInit = TRUE,{
-        updateCollapse(session, "sections_container", open = "Messages")
+        updateCollapse(session, "sections_container", open = 'Warnings or errors')
     })
     
     # fold back the message panel
     observeEvent(message_close(),ignoreInit = TRUE,{
-        updateCollapse(session, "sections_container", close = "Messages")
+        updateCollapse(session, "sections_container", close = 'Warnings or errors')
     })
     
     
