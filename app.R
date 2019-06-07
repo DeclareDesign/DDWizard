@@ -56,6 +56,11 @@ ui <- function(request) {
             includeScript('www/custom.js')
         ),
         shinyjs::useShinyjs(),
+        
+        div(actionLink('show_legal_notice', 'Legal notice'),
+        span(' | '),
+        actionLink('show_data_protection_policy', 'Data protection policy'),
+        id = 'legal_stuff_container'),
 
         bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
         
@@ -72,19 +77,7 @@ ui <- function(request) {
         designTabUI('tab_design'),
         
         # "Inspect" tab
-        inspectTabUI('tab_inspect'),
-        tags$footer(div(actionLink('show_legal_notice', 'Legal notice'),
-                        span(' | '),
-                        actionLink('show_data_protection_policy', 'Data protection policy'),
-                        id = 'legal_stuff_container'), 
-                    align = "center", style = "
-              position:absolute;
-              //bottom:0;
-              width:100%;
-              color: black;
-              padding: 10px;
-              background-color: #F5F5F5;
-              z-index: 1000;")
+        inspectTabUI('tab_inspect')
     )
 }
 
