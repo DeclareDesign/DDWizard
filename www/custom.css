@@ -44,4 +44,19 @@ input[type="checkbox"]:not(:checked), input[type="checkbox"]:checked {
 
 .sweet-alert.wide strong {
     font-weight: bold;
+
+body {
+    position: relative;
+}
+
+body > button.btn.btn-default.action-button.shiny-bound-input {   /** bookmark button */
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+pre.share-url {
+    margin-top: 15px;
+    font-size: 13px;
+
 }
