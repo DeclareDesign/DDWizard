@@ -76,6 +76,8 @@ designTabUI <- function(id, label = 'Design') {
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
     
+    welcome_alert()
+    
     ### reactive values  ###
     
     react <- reactiveValues(
