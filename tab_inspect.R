@@ -703,7 +703,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                      design_tab_proxy$get_fixed_design_args(),
                                                      design_tab_proxy$input)
                 
-
                 if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
                 
                     insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
