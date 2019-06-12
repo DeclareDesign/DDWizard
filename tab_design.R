@@ -3,6 +3,7 @@
 # designTab function returns a list of objects that allow to access its reactive values and some functions (see end of file).
 #
 # Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
 #
 # Dec. 2018
@@ -75,8 +76,6 @@ designTabUI <- function(id, label = 'Design') {
 
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
-    
-    welcome_alert()
     
     ### reactive values  ###
     

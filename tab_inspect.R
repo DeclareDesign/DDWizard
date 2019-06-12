@@ -1,7 +1,8 @@
 # UI and server module for "Inspect" tab.
 #
-# Markus Konrad <markus.konrad@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 #
 # Dec. 2018
 #

@@ -1,6 +1,7 @@
 # Common utility functions.
 #
 # Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
 #
 # Oct. 2018
@@ -339,4 +340,24 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
     }
 
     list(results = diag_res, from_cache = from_cache)
+}
+
+# Show a shinyalert message box with title `title` and content loaded from `html_file`.
+# Set label of the confirmation button to `confirm_btn_label`.
+alert_with_content_from_html_file <- function(title, html_file, confirm_btn_label = 'OK', className = '') {
+    shinyalert(
+        title = title,
+        text = readChar(html_file, file.info(html_file)$size),
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = TRUE,
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = confirm_btn_label,
+        timer = 0,
+        imageUrl = "",
+        confirmButtonCol = "light-blue darken-3", 
+        animation = FALSE,
+        className = className
+    )
 }
