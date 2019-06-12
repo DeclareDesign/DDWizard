@@ -58,11 +58,6 @@ ui <- function(request) {
         ),
         shinyjs::useShinyjs(),
         
-        div(actionLink('show_legal_notice', 'Legal notice'),
-            span(' | '),
-            actionLink('show_data_protection_policy', 'Data protection policy'),
-            id = 'legal_stuff_container'),
-        
         bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
         
         # tabs
@@ -78,14 +73,27 @@ ui <- function(request) {
         designTabUI('tab_design'),
         
         # "Inspect" tab
-        inspectTabUI('tab_inspect')
+        inspectTabUI('tab_inspect'),
+        
+        #Footer
+        tags$footer(
+            actionLink('show_legal_notice', 'Legal notice'),
+            span(' | '),
+            actionLink('show_data_protection_policy', 'Data protection policy'),
+            align = "center", style = "
+              bottom:0;
+              width:100%;
+              color: black;
+              padding: 10px;
+              background-color: #F5F5F5;
+              z-index: 1000;"
+        )
     )
 }
 
 ###########################################################
 # Backend: Input handling and output generation on server #
 ###########################################################
-
 
 server <- function(input, output, session) {
     design_tab_proxy <- callModule(designTab, 'tab_design')
@@ -96,7 +104,7 @@ server <- function(input, output, session) {
     observeEvent(input$show_legal_notice, {
         alert_with_content_from_html_file('Legal notice', 'www/legal_notice.html', className = 'wide')
     })
-    
+
     observeEvent(input$show_data_protection_policy, {
         alert_with_content_from_html_file('Data protection policy', 'www/data_protection_policy.html', className = 'wide')
     })
