@@ -3,6 +3,7 @@
 # This shiny app displays several tabs, each of which is a separate shiny module (http://shiny.rstudio.com/articles/modules.html)
 # implemented in the respective "tab_ ... .R" file. Hence this file only implements the "skeleton" of the application.
 #
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Markus Konrad <markus.konrad@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
 #
@@ -19,6 +20,7 @@ library(shinyjs)
 library(stringr)
 library(stringi)
 library(dplyr)
+library(MASS)
 
 source('conf.R')
 source('common.R')
@@ -39,50 +41,57 @@ if (file.exists(piwik_code_file)) {
     piwik_code <- ''
 }
 
-ui <- material_page(
-    # title
-    title = app_title,
-    nav_bar_color = nav_bar_color,
-    shiny::tags$title(app_title),
-    
-    # additional JS / CSS libraries
-    bootstrapLib(),
-    withMathJax(),
-    tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
-        HTML(piwik_code)
-    ),
-    shinyjs::useShinyjs(),
-    
-    div(actionLink('show_legal_notice', 'Legal notice'),
-        span(' | '),
-        actionLink('show_data_protection_policy', 'Data protection policy'),
-        id = 'legal_stuff_container'),
-    
-    # tabs
-    material_tabs(
-        tabs = c(
-            "Design" = "tab_design",
-            "Inspect" = "tab_inspect"
-        )
-    ),
-    
-    # "Design" tab
-    useShinyalert(),
-    designTabUI('tab_design'),
-    
-    # "Inspect" tab
-    inspectTabUI('tab_inspect')
-)
-
+ui <- function(request) {
+    material_page(
+        # title
+        title = app_title,
+        nav_bar_color = nav_bar_color,
+        shiny::tags$title(app_title),
+        
+        # additional JS / CSS libraries
+        bootstrapLib(),
+        withMathJax(),
+        tags$head(
+            tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
+            HTML(piwik_code),
+            includeScript('www/custom.js')
+        ),
+        shinyjs::useShinyjs(),
+        
+        div(actionLink('show_legal_notice', 'Legal notice'),
+            span(' | '),
+            actionLink('show_data_protection_policy', 'Data protection policy'),
+            id = 'legal_stuff_container'),
+        
+        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
+        
+        # tabs
+        material_tabs(
+            tabs = c(
+                "Design" = "tab_design",
+                "Diagnose" = "tab_inspect"
+            )
+        ),
+        
+        # "Design" tab
+        useShinyalert(),
+        designTabUI('tab_design'),
+        
+        # "Inspect" tab
+        inspectTabUI('tab_inspect')
+    )
+}
 
 ###########################################################
 # Backend: Input handling and output generation on server #
 ###########################################################
 
-server <- function(input, output) {
+
+server <- function(input, output, session) {
     design_tab_proxy <- callModule(designTab, 'tab_design')
     callModule(inspectTab, 'tab_inspect', design_tab_proxy)
+    
+    ### observers for legal notice / data protection policy links on top right ###
     
     observeEvent(input$show_legal_notice, {
         alert_with_content_from_html_file('Legal notice', 'www/legal_notice.html', className = 'wide')
@@ -92,8 +101,38 @@ server <- function(input, output) {
         alert_with_content_from_html_file('Data protection policy', 'www/data_protection_policy.html', className = 'wide')
     })
     
+    ### handling of bookmarking via "SHARE" button on top right ###
+    
+    onBookmark(function(state) {
+        print('BOOKMARKING IN APP:')
+        state$values$current_tab <- input$current_tab
+        print(state$values$current_tab)
+    })
+
+    onBookmarked(function(url) {
+        shinyalert(
+            sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
+                    <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
+            closeOnEsc = TRUE,
+            closeOnClickOutside = TRUE,
+            html = TRUE,
+            showConfirmButton = TRUE,
+            showCancelButton = FALSE,
+            confirmButtonText = "OK",
+            timer = 0,
+            imageUrl = "",
+            confirmButtonCol = "light-blue darken-3", 
+            animation = TRUE
+        )
+    })
+    
+    onRestore(function(state) {
+        # open the bookmarked tab
+        shinymaterial::select_material_tab(session, state$values$current_tab)
+    })
+    
     alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server)
+shinyApp(ui = ui, server = server, enableBookmarking = 'server')

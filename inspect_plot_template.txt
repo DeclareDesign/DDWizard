@@ -1,0 +1,22 @@
+#
+# Automatically generated code for design inspection.
+# Created by Declare Design Wizard on %CREATION_DATE%.
+# https://declaredesign.org/
+# 
+
+library(ggplot2)
+
+# diagnosis data
+
+diagnosis <- %CREATE_DATA%
+
+diagnosis$%DIAG_PARAM%_min <- diagnosis$%DIAG_PARAM% - diagnosis$se.%DIAG_PARAM%. * 1.96
+diagnosis$%DIAG_PARAM%_max <- diagnosis$%DIAG_PARAM% + diagnosis$se.%DIAG_PARAM%. * 1.96
+
+# create plot
+
+ggplot(diagnosis, aes(%PLOT_AES%)) +
+    geom_line() +
+    geom_point() + %PLOT_RIBBON%
+    labs(x = '%X_PARAM%', y = '%DIAG_PARAM%') +
+    ggtitle("%DESIGN_NAME%") %PLOT_FACETS%

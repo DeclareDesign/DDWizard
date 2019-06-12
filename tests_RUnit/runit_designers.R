@@ -81,10 +81,11 @@ test.designers_instantiation_with_defaults <- function() {
 
 
 test.designers_inspection_with_defaults <- function() {
-    omit_designers <- c('multi_arm_designer', 'two_by_two_designer')  # both still contain errors
+    omit_designers <- c('two_by_two_designer')  # these still contain errors
     
     designer_names <- get_available_designers()
     for (d_name in designer_names) {
+        print(d_name)
         if (d_name %in% omit_designers) {
             warning(paste('omitting designer', d_name))
             next()
@@ -98,13 +99,14 @@ test.designers_inspection_with_defaults <- function() {
         # remove all but numerical arguments (because only for those we provide inputs anyway in the inspector tab)
         d_args <- d_args[defs[defs$class %in% c('numeric', 'integer'), 'names']]
         
-        d_args_eval <- evaluate_designer_args(d_args)
+        d_args_eval <- evaluate_designer_args(d_args, defs)
         checkEquals(names(d_args), names(d_args_eval),
                     paste(d_name, 'design argument defaults can be evaluated'))
         
         d_args_eval <- d_args_eval[!sapply(d_args, is.null)]
         
         insp_input <- get_inspect_input_defaults(d_args_eval, defs, list())
+        
         names(insp_input) <- paste0('inspect_arg_', names(insp_input))
         design_input <- d_args_eval
         names(design_input) <- paste0('design_arg_', names(design_input))

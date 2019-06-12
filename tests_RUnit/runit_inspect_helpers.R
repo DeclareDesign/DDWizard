@@ -49,12 +49,11 @@ test.get_args_for_inspection_two_arm <- function() {
     insp_input$ate <- NULL
     names(insp_input) <- paste0('inspect_arg_', setdiff(argnames, c('control_mean', 'ate')))
     
+    # control_mean and ate do not appear in the results anymore since they're NULL
     checkEquals(get_args_for_inspection(d, d_argdefs, insp_input, character(), design_input),
                 list(N = seq(10, 100, by = 10),
                      assignment_prob = d_args$assignment_prob,
-                     control_mean = d_args$control_mean,  # ... they equal the values ...
-                     control_sd = d_args$control_sd,      
-                     ate = d_args$ate,                    # ... from the design input.
+                     control_sd = d_args$control_sd,
                      rho = d_args$rho))
     
     # check effect of fixed_args

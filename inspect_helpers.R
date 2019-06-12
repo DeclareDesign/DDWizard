@@ -1,5 +1,9 @@
 # Inspect tab related utility functions.
 #
+# Clara Bicalho <clara.bicalho@wzb.eu>
+# Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
+#
 # March 2019
 #
 
@@ -18,7 +22,8 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
                                              warning = function(cond) { NA },
                                              error = function(cond) { NA })
         
-        if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
+        #if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
+        if (is.null(arg_inspect_input)) {
             if (argname == first_arg) {
                 # set a default value for "N" the first time
                 # but there are some design without N argument
@@ -33,6 +38,14 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
                 }
             } else {
                 arg_char <- as.character(d_args[[argname]])
+                
+                # try to convert to fractions if there is a number with many repeating digits after the decimal point like "0.3333333333"
+                if (argdef$class == "numeric" && any(grepl(sprintf('\\.(%s)$', paste(sprintf('%s{10,}', 1:9), collapse = '|')), arg_char)))
+                {
+                    arg_char <- as.character(MASS::fractions(d_args[[argname]]))
+                }
+                
+                
                 if (argdef$vector) {  # vector of vectors input
                     return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
                 } else {
@@ -58,10 +71,10 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
     for (d_argname in names(d_args)) {
         inp_name_design <- paste0('design_arg_', d_argname)
         inp_name_inspect <- paste0('inspect_arg_', d_argname)
-        
+       
         # for a fixed argument or if no input is given in the inspect tab (character arguments),
         # use the design tab input value
-        if (d_argname %in% fixed_args || is.null(inspect_input[[inp_name_inspect]])) {
+        if (d_argname %in% fixed_args) {
             inp_value <- design_input[[inp_name_design]]
         } else {                           # else use the value from the inspect tab
             inp_value <- inspect_input[[inp_name_inspect]]
@@ -69,13 +82,29 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         
         d_argdef <- as.list(d_argdefs[d_argdefs$names == d_argname,])
         d_argclass <- d_argdef$class
-        
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- tryCatch({
                 if (d_argdef$vector) {
-                    parse_sequence_of_sequences_string(inp_value, d_argclass)
+                    # split the possible "vector or vectors" into a list of character vectors
+                    split_strings <- parse_sequence_of_sequences_string(inp_value, cls = 'character')
+                    
+                    if (d_argclass != 'character') {  # convert strings to numbers
+                        # eval() is evil, so make sure to include only characters that can make up integer, real or rational number:
+                        # all digits, dots, slashes and minus
+                        split_strings <- lapply(split_strings, function(s) {
+                            gsub('[^\\d\\.\\/\\-]', '', s, perl = TRUE)
+                        })
+                        
+                        lapply(split_strings, function(s) {  # outer lapply: list of vectors like ("1.3", "1/5", "-2") -> s
+                            unname(sapply(s, function(x) {   # inner sapply: parse each element in s to produce a numeric (this also handles fractions, otherwise we could use "as.numeric")
+                                eval(parse(text=x))
+                            }))
+                        })
+                    } else {  # return the strings as they are
+                        split_strings
+                    }
                 } else {
                     parse_sequence_string(inp_value, d_argclass)
                 }
@@ -113,10 +142,92 @@ get_diagnosands_info <- function(designer) {
             attr(diag_call, 'call')
         }
         
-        quick_diagnosis <- suppressWarnings(diagnose_design(d, sims = 2, bootstrap_sims = 0)$diagnosands_df)
+        quick_diagnosis <- suppressWarnings(diagnose_design(designer, sims = 2, bootstrap_sims = 0)$diagnosands_df)
         res$available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
                                                                        "term", "n_sims"))
     }
     
     res
+}
+
+# clean and capitalize string
+str_cap <- function(str, hard_code = c("rmse" = "RMSE",
+                                       "type_s_rate" = "Type S rate",
+                                       "mean_se" = "Mean SE",
+                                       "sd_estimate" = "SD estimate")){ #can hardcode specific capitalizations
+    if(str %in% names(hard_code)) 
+        hard_code[[str]]
+    else {
+        str_ret <- rm_usc(str)
+        paste0(toupper(substr(str_ret, 1, 1)),
+               substr(str_ret, 2, nchar(str_ret)))
+    }
+        
+}
+
+# round function of diagnosands data table
+round_df <- function(df, digits) {
+    nums <- vapply(df, is.numeric, FUN.VALUE = logical(1))
+    df[,nums] <- round(df[,nums], digits = digits)
+    return(df)
+}
+
+# generate plot code
+generate_plot_code <- function(plotdf, design_name, diag_param, x_param, color_param, facets_param, plot_ci) {
+    code <- readLines('inspect_plot_template.txt')
+    plot_color <- isTruthy(color_param) && color_param != '(none)'
+    plot_facets <- isTruthy(facets_param) && facets_param != '(none)'
+    
+    if (plot_color) {
+        plotdf[[color_param]] <- factor(plotdf[[color_param]])
+    }
+    
+    if (plot_facets) {
+        plotdf[[facets_param]] <- factor(plotdf[[facets_param]])
+    }
+    
+    aes_args <- list(
+        'x' = x_param,   
+        'y' = diag_param,
+        'ymin' = paste0(diag_param, '_min'),
+        'ymax' = paste0(diag_param, '_max')
+    )
+    
+    # if the "color" parameter is set, add it to the aeshetics definition
+    if (plot_color) {
+        aes_args$color <- color_param
+        aes_args$fill <- color_param
+        aes_args$group <- color_param
+    } else {
+        aes_args$group <- 1
+    }
+    
+    vars <- list()
+    vars$CREATION_DATE <- Sys.Date()
+    vars$CREATE_DATA <- paste(capture.output({
+        datapasta::df_paste(plotdf,     # nicely format data frame. ugly alternative: dput
+                            output_context = datapasta::console_context())
+    }), collapse = '\n')
+    vars$DIAG_PARAM <- diag_param
+    vars$X_PARAM <- x_param
+    vars$DESIGN_NAME <- design_name
+    vars$PLOT_AES <- paste(paste(names(aes_args), '=', as.character(aes_args)), collapse = ', ')
+    
+    if (plot_ci) {
+        vars$PLOT_RIBBON <- "\n    geom_ribbon(alpha = 0.25, color = 'white') +"
+    } else {
+        vars$PLOT_RIBBON <- ''
+    }
+    
+    if (plot_facets) {
+        vars$PLOT_FACETS <- sprintf("+\n    facet_wrap(~%s, ncol = 2, labeller = label_both)", facets_param)
+    } else {
+        vars$PLOT_FACETS <- ''
+    }
+
+    for (varname in names(vars)) {
+        code <- gsub(paste0('%', varname, '%'), vars[[varname]], code, fixed = TRUE)
+    }
+    
+    code
 }

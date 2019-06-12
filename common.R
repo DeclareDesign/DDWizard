@@ -1,6 +1,7 @@
 # Common utility functions.
 #
 # Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
 #
 # Oct. 2018
@@ -100,6 +101,7 @@ parse_sequence_string <- function(s, cls = 'numeric') {
         return(seq(from = startnums[1], to = endnum, by = step))
     } else {  # character list or int/num scalar or int/num sequence like 1, 3, 8, 2
         elems <- str_trim(str_split(s, ',')[[1]])
+        elems <- elems[nchar(elems) > 0]
         if (cls %in% c('numeric', 'integer')) {
             if (length(elems) == 1 && elems == '') {
                 return(numeric())
@@ -187,11 +189,20 @@ get_designer_args <- function(designer) {
 # evaluate argument defaults of designers in separate environment (because they might be "language" constructs)
 # return evaluated argument defaults
 # `args` is a list of arguments with defaults as returned from `formals(<designer>)`
-evaluate_designer_args <- function(args) {
+evaluate_designer_args <- function(args, definition) {
     eval_envir <- new.env()
     
     args_eval <- lapply(1:length(args), function(a){
         evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
+        # convert the value to fraction if necessary
+        evaluated_arg_str <- as.character(args[[a]]) # e.g. c(1/3, 1/10) becomes character vector "c" "1/3" "1/10"
+        if (definition[a, "class"] == "numeric" && length(evaluated_arg_str) > 1
+            && evaluated_arg_str[1] == 'c'   # first element is c
+            && any(grepl('^\\d+/\\d+$', evaluated_arg_str[2:length(evaluated_arg_str)])))   # other elements must contain a fraction
+        {
+            evaluated_arg <- MASS::fractions(evaluated_arg)
+        }
+        
         invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
         hold <- invisible(get(names(args)[a], envir = eval_envir))
         if(length(hold) > 1) hold <- paste0(hold, collapse = ", ")
@@ -203,12 +214,12 @@ evaluate_designer_args <- function(args) {
 }
 
 # get cache file name unique to cache type `cachetype` (designs, simulation or diagnosis results),
-# parameter space `args`, number of (bootstrap) simulations `sims`, designer name `designer`
+# parameter space `args`, number of (bootstrap) simulations `sims`, designer object `designer`
 get_diagnosis_cache_filename <- function(cachetype, args, sims, bs_sims, designer) {
     fingerprint_args <- args
     fingerprint_args$sims <- sims
     fingerprint_args$bs_sims <- bs_sims
-    fingerprint_args$design <- designer
+    fingerprint_args$designer_src <- deparse(designer)
     fingerprint_args$cache_version <- 1       # increment whenever the simulated data in cache is not compatible anymore (i.e. DD upgrade)
     fingerprint <- digest(fingerprint_args)   # uses MD5
     

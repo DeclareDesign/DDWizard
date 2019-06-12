@@ -13,14 +13,14 @@ input[type="checkbox"]:not(:checked), input[type="checkbox"]:checked {
 .error_msgs {
     color: red;
 }
-
 #legal_stuff_container {
     position: absolute;
-    top: 0;
+    top: 40px;
     right: 0;
     z-index: 100;
     color: white;
     padding: 0.2em 0.5em 0 0;
+    font-size: 0.8em;
 }
 
 #legal_stuff_container a {
@@ -44,4 +44,19 @@ input[type="checkbox"]:not(:checked), input[type="checkbox"]:checked {
 
 .sweet-alert.wide strong {
     font-weight: bold;
+}
+
+body {
+    position: relative;
+}
+
+body > button.btn.btn-default.action-button.shiny-bound-input {   /** bookmark button */
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+pre.share-url {
+    margin-top: 15px;
+    font-size: 13px;
 }
