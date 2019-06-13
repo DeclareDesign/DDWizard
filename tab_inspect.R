@@ -566,6 +566,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # center upon plot: plot information
     output$plot_info <- renderUI({
+        # get the values from the inspect tab
         d_args <- design_tab_proxy$design_args()
         
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
@@ -573,12 +574,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                              input,
                                              design_tab_proxy$get_fixed_design_args(),
                                              design_tab_proxy$input)
-        
+       
+        # show the design name 
         txt <- paste("Loaded Designer:", design_tab_proxy$react$design_id)
+        # show the fixed args
         if (length(design_tab_proxy$get_fixed_design_args()) > 0){
-            txt1 <- paste("Fixed Arguments:", design_tab_proxy$get_fixed_design_args(), "=", insp_args[[design_tab_proxy$get_fixed_design_args()]])
-            txt <- paste(txt, txt1, collapse = "\n")
-        }
+            txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
+                paste(x, "=", insp_args[[x]], collapse = "\n")
+            }))
+            txt2 <- paste("Fixed Arguments:", txt1, collapse  = "\n")
+            txt <- paste(txt, txt2, sep = "\n")
+           }
         
         tags$pre(txt)
     })
