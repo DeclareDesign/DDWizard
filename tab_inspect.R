@@ -590,6 +590,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
             design_name <- input$design_arg_design_name
             
+            # subset the full diagnosands by estimator variable 
+            react$diagnosands_full <- react$diagnosands_full[react$diagnosands_full$estimator_label == input[["plot_conf_estimator"]],]
+            
             if (!isTruthy(design_name)) {
                 design_name <- paste0("design-", Sys.Date())
             }
