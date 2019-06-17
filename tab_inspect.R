@@ -183,6 +183,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         react$diagnosands_cached <- diag_results$from_cache
+        react$diagnosands_full <- diag_results$results$diagnosands_df
         plotdf <- diag_results$results$diagnosands_df
         
         # when the coefficients are empty 
@@ -193,8 +194,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         react$diagnosands <- plotdf
-        react$diagnosands_full <- diag_results$results$diagnosands_df
-        
         diag_results$results$diagnosands_df_for_plot <- plotdf
         
         diag_results
@@ -589,9 +588,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     output$section_diagnosands_download_full <- downloadHandler(
         filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
             design_name <- input$design_arg_design_name
-            
-            # subset the full diagnosands by estimator variable 
-            react$diagnosands_full <- react$diagnosands_full[react$diagnosands_full$estimator_label == input[["plot_conf_estimator"]],]
             
             if (!isTruthy(design_name)) {
                 design_name <- paste0("design-", Sys.Date())
