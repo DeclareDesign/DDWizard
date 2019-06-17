@@ -51,6 +51,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                            numericInput(nspace("simconf_bootstrap_num"), label = "Num. of bootstraps",
                                                         value = default_diag_bootstrap_sims,
                                                         min = 1, max = 1000, step = 1))),
+                uiOutput(nspace("plot_info")),
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
                     material_card("Diagnostic plots",
                                   uiOutput(nspace('plot_message')),
@@ -562,6 +563,39 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             results_cached_message()
         }
+    })
+    
+    # center upon plot: plot information
+    output$plot_info <- renderUI({
+        # get the values from the inspect tab
+        d_args <- design_tab_proxy$design_args()
+        
+        insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                             design_tab_proxy$react$design_argdefinitions,
+                                             input,
+                                             design_tab_proxy$get_fixed_design_args(),
+                                             design_tab_proxy$input)
+       
+        # show the design name 
+        # txt <- paste("<dt>Loaded designer:</dt>", str_cap(design_tab_proxy$react$design_id), "<br>")
+        title <- str_cap(design_tab_proxy$react$design_id)
+        fixed_text <- "" 
+        # show the fixed args
+        if (length(design_tab_proxy$get_fixed_design_args()) > 0){
+            txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
+                paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
+            }))
+            fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))
+            # txt <- paste(txt, txt2)
+           }
+        req(design_tab_proxy$react$design)
+        description <- attr(design_tab_proxy$react$design, 'description')
+
+        test <- material_card(title = title,
+                              HTML(attr(design_tab_proxy$react$design, 'description')),
+                              HTML(fixed_text))
+        print(test)
+        test
     })
     
     # center below plot: diagnosands table
