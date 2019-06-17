@@ -1,6 +1,7 @@
 # Common utility functions.
 #
 # Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
 #
 # Oct. 2018
@@ -193,10 +194,15 @@ evaluate_designer_args <- function(args, definition) {
     
     args_eval <- lapply(1:length(args), function(a){
         evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
-        # convert the value to fraction 
-        if (any(vapply(evaluated_arg, nchar, FUN.VALUE=numeric(1)) > 10) && definition[a, "class"] == "numeric"){
-            evaluated_arg <- fractions(evaluated_arg)
+        # convert the value to fraction if necessary
+        evaluated_arg_str <- as.character(args[[a]]) # e.g. c(1/3, 1/10) becomes character vector "c" "1/3" "1/10"
+        if (definition[a, "class"] == "numeric" && length(evaluated_arg_str) > 1
+            && evaluated_arg_str[1] == 'c'   # first element is c
+            && any(grepl('^\\d+/\\d+$', evaluated_arg_str[2:length(evaluated_arg_str)])))   # other elements must contain a fraction
+        {
+            evaluated_arg <- MASS::fractions(evaluated_arg)
         }
+        
         invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
         hold <- invisible(get(names(args)[a], envir = eval_envir))
         if(length(hold) > 1) hold <- paste0(hold, collapse = ", ")
@@ -334,4 +340,24 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
     }
 
     list(results = diag_res, from_cache = from_cache)
+}
+
+# Show a shinyalert message box with title `title` and content loaded from `html_file`.
+# Set label of the confirmation button to `confirm_btn_label`.
+alert_with_content_from_html_file <- function(title, html_file, confirm_btn_label = 'OK', className = '') {
+    shinyalert(
+        title = title,
+        text = readChar(html_file, file.info(html_file)$size),
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = TRUE,
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = confirm_btn_label,
+        timer = 0,
+        imageUrl = "",
+        confirmButtonCol = "light-blue darken-3", 
+        animation = FALSE,
+        className = className
+    )
 }

@@ -3,6 +3,7 @@
 # designTab function returns a list of objects that allow to access its reactive values and some functions (see end of file).
 #
 # Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
 #
 # Dec. 2018
@@ -75,8 +76,6 @@ designTabUI <- function(id, label = 'Design') {
 
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
-    
-    welcome_alert()
     
     ### reactive values  ###
     
@@ -220,6 +219,7 @@ designTab <- function(input, output, session) {
                     react$simdata <- NULL
                     react$error_occurred <- TRUE
                 }
+                
             }
             
             print('design instance changed')
@@ -415,12 +415,12 @@ designTab <- function(input, output, session) {
     
     # unfold the message panel
     observeEvent(message_open(),ignoreInit = TRUE,{
-        updateCollapse(session, "sections_container", open = "Messages")
+        updateCollapse(session, "sections_container", open = 'Warnings or errors')
     })
     
     # fold back the message panel
     observeEvent(message_close(),ignoreInit = TRUE,{
-        updateCollapse(session, "sections_container", close = "Messages")
+        updateCollapse(session, "sections_container", close = 'Warnings or errors')
     })
     
     

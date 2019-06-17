@@ -1,5 +1,9 @@
 # Inspect tab related utility functions.
 #
+# Clara Bicalho <clara.bicalho@wzb.eu>
+# Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
+#
 # March 2019
 #
 
@@ -33,10 +37,15 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
                     return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
                 }
             } else {
-                if(any(vapply(d_args[[argname]], nchar, FUN.VALUE=numeric(1)) > 10) && argdef[["class"]] == "numeric"){
-                    d_args[[argname]] <- fractions(d_args[[argname]])
-                }
                 arg_char <- as.character(d_args[[argname]])
+                
+                # try to convert to fractions if there is a number with many repeating digits after the decimal point like "0.3333333333"
+                if (argdef$class == "numeric" && any(grepl(sprintf('\\.(%s)$', paste(sprintf('%s{10,}', 1:9), collapse = '|')), arg_char)))
+                {
+                    arg_char <- as.character(MASS::fractions(d_args[[argname]]))
+                }
+                
+                
                 if (argdef$vector) {  # vector of vectors input
                     return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
                 } else {
@@ -78,10 +87,24 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- tryCatch({
                 if (d_argdef$vector) {
-                    # convert fractions to decimals
-                    inp_value <-  unname(sapply(trimws(strsplit(gsub("[()]","", inp_value), ",")[[1]]), function(x) eval(parse(text=x))))
-                    inp_value <- sprintf('(%s)', paste(inp_value, collapse = ', '))
-                    parse_sequence_of_sequences_string(inp_value, d_argclass)
+                    # split the possible "vector or vectors" into a list of character vectors
+                    split_strings <- parse_sequence_of_sequences_string(inp_value, cls = 'character')
+                    
+                    if (d_argclass != 'character') {  # convert strings to numbers
+                        # eval() is evil, so make sure to include only characters that can make up integer, real or rational number:
+                        # all digits, dots, slashes and minus
+                        split_strings <- lapply(split_strings, function(s) {
+                            gsub('[^\\d\\.\\/\\-]', '', s, perl = TRUE)
+                        })
+                        
+                        lapply(split_strings, function(s) {  # outer lapply: list of vectors like ("1.3", "1/5", "-2") -> s
+                            unname(sapply(s, function(x) {   # inner sapply: parse each element in s to produce a numeric (this also handles fractions, otherwise we could use "as.numeric")
+                                eval(parse(text=x))
+                            }))
+                        })
+                    } else {  # return the strings as they are
+                        split_strings
+                    }
                 } else {
                     parse_sequence_string(inp_value, d_argclass)
                 }
@@ -136,7 +159,7 @@ str_cap <- function(str, hard_code = c("rmse" = "RMSE",
         hard_code[[str]]
     else {
         str_ret <- rm_usc(str)
-        paste0(toupper(substr(str_ret, 1, 1)), 
+        paste0(toupper(substr(str_ret, 1, 1)),
                substr(str_ret, 2, nchar(str_ret)))
     }
         

@@ -1,7 +1,8 @@
 # UI and server module for "Inspect" tab.
 #
-# Markus Konrad <markus.konrad@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 #
 # Dec. 2018
 #
@@ -183,6 +184,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         react$diagnosands_cached <- diag_results$from_cache
+        react$diagnosands_full <- diag_results$results$diagnosands_df
         plotdf <- diag_results$results$diagnosands_df
         
         # when the coefficients are empty 
@@ -193,8 +195,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         react$diagnosands <- plotdf
-        react$diagnosands_full <- diag_results$results$diagnosands_df
-        
         diag_results$results$diagnosands_df_for_plot <- plotdf
         
         diag_results
@@ -390,10 +390,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 incProgress(1/n_steps)
                 
                 # create base line plot
+                
                 p <- ggplot(plotdf, aes_definition) +
                     geom_line() +
                     geom_point() +
-                    scale_y_continuous(name = input$plot_conf_diag_param) +
+                    scale_y_continuous(name = str_cap(input$plot_conf_diag_param)) +
                     dd_theme() +
                     labs(x = input$plot_conf_x_param)
                 
@@ -643,27 +644,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             boxes <- list()
             args_fixed <- design_tab_proxy$get_fixed_design_args()
             all_fixed <- design_tab_proxy$all_design_args_fixed()
-            
 
             # get estimates and diagnosis information
-            # cache this because it's slow:
-            estimates_cache_args <- list(
-                'designer' = react$cur_design_id,
-                'designer_src' = deparse(design_tab_proxy$react$design)
-            )
-            estimates_cachefile <- sprintf('.cache/designer_estimates_%s.RDS', digest(estimates_cache_args))
-            if (file.exists(estimates_cachefile)) {
-                cached <- readRDS(estimates_cachefile)
-                d_estimates <- cached$estimates
-                diag_info <- cached$diag_info
-            } else {
-                # create the design instance and get its estimates
-                d <- design_tab_proxy$design_instance()
-                d_estimates <- draw_estimates(d)
-                diag_info <- get_diagnosands_info(d)
-                
-                saveRDS(list('estimates' = d_estimates, 'diag_info' = diag_info), estimates_cachefile)
-            }
+            # create the design instance and get its estimates
+            d <- design_tab_proxy$design_instance()
+            d_estimates <- draw_estimates(d)
+            diag_info <- get_diagnosands_info(d)
             
             # get available diagnosands
             react$diagnosands_call <- diag_info$diagnosands_call
@@ -728,7 +714,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                      design_tab_proxy$get_fixed_design_args(),
                                                      design_tab_proxy$input)
                 
-
                 if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
                 
                     insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
@@ -756,21 +741,25 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                choices = variable_args,
                                                selected = input[[inp_x_param_id]])
 
-                  
+
                     boxes <- list_append(boxes, inp_x_param)
-                    
                     # 6. secondary inspection parameter (color)
-                    variable_args_optional <- c('(none)', variable_args)
+                    variable_args_optional <- c('(none)',variable_args[variable_args != input[[inp_x_param_id]]])
                     inp_color_param_id <- paste0(inp_prefix, "color_param")
                     inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
                                                    choices = variable_args_optional,
                                                    selected = input[[inp_color_param_id]])
                     boxes <- list_append(boxes, inp_color_param)
-                    
                     # 7. tertiary inspection parameter (small multiples)
+                    if (length(variable_args_optional) <= 2) {
+                        variable_args_options = variable_args_optional
+                    }else{
+                        variable_args_options <- variable_args_optional[variable_args_optional != input[[inp_color_param_id]]]
+                    }
+                    # variable_args_options <- c('(none)',variable_args_optional[variable_args_optional != input[[inp_color_param_id]]])
                     inp_facets_param_id <- paste0(inp_prefix, "facets_param")
                     inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
-                                                    choices = variable_args_optional,
+                                                    choices = variable_args_options,
                                                     selected = input[[inp_facets_param_id]])
                     boxes <- list_append(boxes, inp_facets_param)
                 }
