@@ -1,7 +1,8 @@
 # UI related utility functions.
 #
-# Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
 #
 # Dec. 2018
 #

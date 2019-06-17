@@ -1,5 +1,9 @@
 # Inspect tab related utility functions.
 #
+# Clara Bicalho <clara.bicalho@wzb.eu>
+# Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
+#
 # March 2019
 #
 

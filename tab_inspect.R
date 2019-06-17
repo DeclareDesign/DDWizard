@@ -1,7 +1,8 @@
 # UI and server module for "Inspect" tab.
 #
-# Markus Konrad <markus.konrad@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 #
 # Dec. 2018
 #
@@ -182,6 +183,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         react$diagnosands_cached <- diag_results$from_cache
+        react$diagnosands_full <- diag_results$results$diagnosands_df
         plotdf <- diag_results$results$diagnosands_df
         
         # when the coefficients are empty 
@@ -192,8 +194,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         react$diagnosands <- plotdf
-        react$diagnosands_full <- diag_results$results$diagnosands_df
-        
         diag_results$results$diagnosands_df_for_plot <- plotdf
         
         diag_results
@@ -618,27 +618,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             boxes <- list()
             args_fixed <- design_tab_proxy$get_fixed_design_args()
             all_fixed <- design_tab_proxy$all_design_args_fixed()
-            
 
             # get estimates and diagnosis information
-            # cache this because it's slow:
-            estimates_cache_args <- list(
-                'designer' = react$cur_design_id,
-                'designer_src' = deparse(design_tab_proxy$react$design)
-            )
-            estimates_cachefile <- sprintf('.cache/designer_estimates_%s.RDS', digest(estimates_cache_args))
-            if (file.exists(estimates_cachefile)) {
-                cached <- readRDS(estimates_cachefile)
-                d_estimates <- cached$estimates
-                diag_info <- cached$diag_info
-            } else {
-                # create the design instance and get its estimates
-                d <- design_tab_proxy$design_instance()
-                d_estimates <- draw_estimates(d)
-                diag_info <- get_diagnosands_info(d)
-                
-                saveRDS(list('estimates' = d_estimates, 'diag_info' = diag_info), estimates_cachefile)
-            }
+            # create the design instance and get its estimates
+            d <- design_tab_proxy$design_instance()
+            d_estimates <- draw_estimates(d)
+            diag_info <- get_diagnosands_info(d)
             
             # get available diagnosands
             react$diagnosands_call <- diag_info$diagnosands_call
