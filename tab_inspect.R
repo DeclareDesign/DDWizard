@@ -51,7 +51,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                            numericInput(nspace("simconf_bootstrap_num"), label = "Num. of bootstraps",
                                                         value = default_diag_bootstrap_sims,
                                                         min = 1, max = 1000, step = 1))),
-                bsCollapsePanel('Details', uiOutput(nspace("plot_info"))),
+                uiOutput(nspace("plot_info")),
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
                     material_card("Diagnostic plots",
                                   uiOutput(nspace('plot_message')),
@@ -577,17 +577,25 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                              design_tab_proxy$input)
        
         # show the design name 
-        txt <- paste("Loaded Designer:", design_tab_proxy$react$design_id)
+        # txt <- paste("<dt>Loaded designer:</dt>", str_cap(design_tab_proxy$react$design_id), "<br>")
+        title <- str_cap(design_tab_proxy$react$design_id)
+        fixed_text <- "" 
         # show the fixed args
         if (length(design_tab_proxy$get_fixed_design_args()) > 0){
             txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
-                paste(x, "=", insp_args[[x]], collapse = "\n")
+                paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
             }))
-            txt2 <- paste("Fixed Arguments:", txt1, collapse  = "\n")
-            txt <- paste(txt, txt2, sep = "\n")
+            fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))
+            # txt <- paste(txt, txt2)
            }
-        
-        tags$pre(txt)
+        req(design_tab_proxy$react$design)
+        description <- attr(design_tab_proxy$react$design, 'description')
+
+        test <- material_card(title = title,
+                              HTML(attr(design_tab_proxy$react$design, 'description')),
+                              HTML(fixed_text))
+        print(test)
+        test
     })
     
     # center below plot: diagnosands table
