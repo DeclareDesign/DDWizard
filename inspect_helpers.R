@@ -16,17 +16,17 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
     
     sapply(names(d_args), function(argname) {
         arg_inspect_input <- input[[paste0('inspect_arg_', argname)]]
+        arg_design_val <- d_args[[argname]]
         argdef <- as.list(defs[defs$names == argname,])
         
         parsed_arg_inspect_input <- tryCatch(parse_sequence_string(arg_inspect_input),
                                              warning = function(cond) { NA },
                                              error = function(cond) { NA })
         
-        #if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
-        if (is.null(arg_inspect_input)) {
+        if (is.null(arg_inspect_input)) {   # initial state: no inputs in the "inspect" tab on the left side
+            # set a default value for "N" the first time
+            # but there are some design without N argument
             if (argname == first_arg) {
-                # set a default value for "N" the first time
-                # but there are some design without N argument
                 if (first_arg == 'N') {
                     n_int <- as.integer(d_args[[first_arg]])
                     return(sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100))
@@ -36,24 +36,24 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
                     max_int <- min_int + 4*step_int
                     return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
                 }
-            } else {
-                arg_char <- as.character(d_args[[argname]])
-                
-                # try to convert to fractions if there is a number with many repeating digits after the decimal point like "0.3333333333"
-                if (argdef$class == "numeric" && any(grepl(sprintf('\\.(%s)$', paste(sprintf('%s{10,}', 1:9), collapse = '|')), arg_char)))
-                {
-                    arg_char <- as.character(MASS::fractions(d_args[[argname]]))
-                }
-                
-                
-                if (argdef$vector) {  # vector of vectors input
-                    return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
-                } else {
-                    return(arg_char)
-                }
+            } else {  # set a default for all other arguments
+                return(designer_arg_value_to_fraction(arg_design_val, argdef$class, argdef$vector, to_char = TRUE))
             }
-        } else {
-            return(arg_inspect_input)
+        } else {   # "inspect" tab on the left side has inputs
+            # if it is the first argument (always varying by default) or if it is varying (user has entered a sequence),
+            # return this value as set by the user
+            suppressWarnings({
+                seq_input <- parse_sequence_string(arg_inspect_input)
+                seqofseq_input <- parse_sequence_of_sequences_string(arg_inspect_input)
+            })
+            
+            if (argname == first_arg || (argdef$vector && !is.null(seqofseq_input) && length(seqofseq_input) > 1)
+                || (!argdef$vector && sum(!is.na(seq_input)) > 1))
+            {
+                return(arg_inspect_input)
+            } else {  # else return the argument value from the design tab. this overwrites values set by the user in this tab
+                return(designer_arg_value_to_fraction(arg_design_val, argdef$class, argdef$vector, to_char = TRUE))
+            }
         }
     }, simplify = FALSE)
 }
