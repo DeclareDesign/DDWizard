@@ -51,6 +51,7 @@ designTabUI <- function(id, label = 'Design') {
             ),
             material_column(  # center: design output
                 width = 9,
+                uiOutput(nspace("load_design_info")),
                 material_card("Download",
                               downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                               downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
@@ -506,6 +507,15 @@ designTab <- function(input, output, session) {
        
         
     })
+    
+    # center: info about the name of loaded design
+    output$load_design_info <- renderUI({
+        req(react$design_id)
+        title = str_cap(react$design_id)
+        if (title == "Binary iv designer") title <- "Binary IV designer"
+        material_card(title = title, HTML(attr(react$design, 'description')))
+    })
+    
     
     # center: design code
     output$section_design_code <- renderUI({
