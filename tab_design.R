@@ -37,8 +37,6 @@ designTabUI <- function(id, label = 'Design') {
                 # show designer parameters if a design was loaded
                 hidden(div(id = nspace('design_params_panel_wrapper'),
                     material_card("Set design parameters",
-                        htmlOutput(nspace('design_description')),
-                        br(),
                         uiOutput(nspace('design_vignette')),
                         br(),
                         textInput(nspace('design_arg_design_name'), 'Design name'),
