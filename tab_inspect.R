@@ -587,7 +587,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
             }))
             fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))
-            # txt <- paste(txt, txt2)
            }
         req(design_tab_proxy$react$design)
         description <- attr(design_tab_proxy$react$design, 'description')
