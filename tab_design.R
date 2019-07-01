@@ -494,6 +494,7 @@ designTab <- function(input, output, session) {
         
         test <- gsub("_", " ",gsub("_designer","", option[!is.na(option)]))
         options_data <- data.frame(names = option[!is.na(option)],abbr = stri_trans_totitle(test), stringsAsFactors = FALSE)
+        if (any(options_data$names == 'binary_iv_designer')) options_data[options_data$names == 'binary_iv_designer',]$abbr = "Binary IV"
         option_list <- as.list(options_data$names)
         names(option_list) <- options_data$abbr
         
