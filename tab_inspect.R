@@ -584,6 +584,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         # show the fixed args
         if (length(design_tab_proxy$get_fixed_design_args()) > 0){
             txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
+                if (length(insp_args[[x]])> 1) insp_args[[x]] <-  sprintf('(%s)', paste(insp_args[[x]], collapse = ', '))
                 paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
             }))
             fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))

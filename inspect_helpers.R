@@ -86,6 +86,14 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- tryCatch({
+                # the format of inp_value depends on whether it is as fixed_arg, if fixed, then without brackets around the value 
+                if (d_argname %in% fixed_args) { 
+                    if (d_argdef$vector){
+                        trimws(strsplit(inp_value, ",")[[1]])
+                    }else {
+                        parse_sequence_string(inp_value, d_argclass)
+                    }
+                }else{
                 if (d_argdef$vector) {
                     # split the possible "vector or vectors" into a list of character vectors
                     split_strings <- parse_sequence_of_sequences_string(inp_value, cls = 'character')
@@ -108,6 +116,7 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
                 } else {
                     parse_sequence_string(inp_value, d_argclass)
                 }
+            }
             }, warning = function(cond) {
                 NA
             }, error = function(cond) {
