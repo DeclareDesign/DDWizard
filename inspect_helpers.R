@@ -84,30 +84,44 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         d_argclass <- d_argdef$class
         # if a value was entered, try to parse it as sequence string and add the result to the list of arguments to compare
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
+        
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- tryCatch({
-                if (d_argdef$vector) {
-                    # split the possible "vector or vectors" into a list of character vectors
-                    split_strings <- parse_sequence_of_sequences_string(inp_value, cls = 'character')
-                    
-                    if (d_argclass != 'character') {  # convert strings to numbers
-                        # eval() is evil, so make sure to include only characters that can make up integer, real or rational number:
-                        # all digits, dots, slashes and minus
-                        split_strings <- lapply(split_strings, function(s) {
-                            gsub('[^\\d\\.\\/\\-]', '', s, perl = TRUE)
-                        })
-                        
-                        lapply(split_strings, function(s) {  # outer lapply: list of vectors like ("1.3", "1/5", "-2") -> s
-                            unname(sapply(s, function(x) {   # inner sapply: parse each element in s to produce a numeric (this also handles fractions, otherwise we could use "as.numeric")
-                                eval(parse(text=x))
-                            }))
-                        })
-                    } else {  # return the strings as they are
-                        split_strings
+                # the format of inp_value depends on whether it is as fixed_arg, if fixed, then without brackets around the value 
+                if (d_argname %in% fixed_args) { 
+                    if (d_argdef$vector){
+                        # convert the fraction to decimal, if there is fraction like 1/3, 1/3, 1/3, 0
+                        trimws(strsplit(inp_value, ",")[[1]])
+                        #unname(sapply(split_strings, function(x) eval(parse(text=x))))
+                    }else {
+                        parse_sequence_string(inp_value, d_argclass)
                     }
-                } else {
-                    parse_sequence_string(inp_value, d_argclass)
+                }else{
+                    if (d_argdef$vector) {
+                        # split the possible "vector or vectors" into a list of character vectors
+                        split_strings <- parse_sequence_of_sequences_string(inp_value, cls = 'character')
+                        
+                        if (d_argclass != 'character') {  # convert strings to numbers
+                            # eval() is evil, so make sure to include only characters that can make up integer, real or rational number:
+                            # all digits, dots, slashes and minus
+                            split_strings <- lapply(split_strings, function(s) {
+                                gsub('[^\\d\\.\\/\\-]', '', s, perl = TRUE)
+                            })
+                            
+                            lapply(split_strings, function(s) {  # outer lapply: list of vectors like ("1.3", "1/5", "-2") -> s
+                                unname(sapply(s, function(x) {   # inner sapply: parse each element in s to produce a numeric (this also handles fractions, otherwise we could use "as.numeric")
+                                    eval(parse(text=x))
+                                }))
+                            })
+                        } else {  # return the strings as they are
+                            split_strings
+                        }
+                    } else {
+                        parse_sequence_string(inp_value, d_argclass)
+                    }
+                        
                 }
+               
             }, warning = function(cond) {
                 NA
             }, error = function(cond) {

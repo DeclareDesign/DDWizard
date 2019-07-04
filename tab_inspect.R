@@ -575,7 +575,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                              input,
                                              design_tab_proxy$get_fixed_design_args(),
                                              design_tab_proxy$input)
-       
         # show the design name 
         # txt <- paste("<dt>Loaded designer:</dt>", str_cap(design_tab_proxy$react$design_id), "<br>")
         title <- str_cap(design_tab_proxy$react$design_id)
@@ -583,6 +582,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         # show the fixed args
         if (length(design_tab_proxy$get_fixed_design_args()) > 0){
             txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
+                if (length(insp_args[[x]])> 1) insp_args[[x]] <-  sprintf('(%s)', paste(insp_args[[x]], collapse = ', '))
                 paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
             }))
             fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))
@@ -594,7 +594,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         test <- material_card(title = title,
                               HTML(attr(design_tab_proxy$react$design, 'description')),
                               HTML(fixed_text))
-        print(test)
+        #print(test)
         test
     })
     
