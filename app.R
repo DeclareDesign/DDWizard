@@ -77,9 +77,12 @@ ui <- function(request) {
         
         #Footer
         tags$footer(
+            actionLink("show_help_text", "Intro"),
+            span(' | '),
             actionLink('show_legal_notice', 'Legal notice'),
             span(' | '),
             actionLink('show_data_protection_policy', 'Data protection policy'),
+         
             align = "center", style = "
               bottom:0;
               width:100%;
@@ -138,8 +141,10 @@ server <- function(input, output, session) {
         # open the bookmarked tab
         shinymaterial::select_material_tab(session, state$values$current_tab)
     })
+    observeEvent(input$show_help_text,{
+        alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
+    })
     
-    alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
 }
 
 # Run the application 
