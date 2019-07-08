@@ -77,7 +77,7 @@ ui <- function(request) {
         
         #Footer
         tags$footer(
-            actionLink("show_help_text", "Intro"),
+            actionLink("show_help_text", "Help"),
             span(' | '),
             actionLink('show_legal_notice', 'Legal notice'),
             span(' | '),
