@@ -187,11 +187,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         react$diagnosands_full <- diag_results$results$diagnosands_df
         plotdf <- diag_results$results$diagnosands_df
         
-        # when the coefficients are empty 
-        if (isTruthy(input$plot_conf_coefficient)) {
-            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$term == input$plot_conf_coefficient,]   
-        } else if (isTruthy(input$plot_conf_estimator)) {
-            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator,]   
+        if (isTruthy(input$plot_conf_estimand)) {
+            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]   
         }
         
         react$diagnosands <- plotdf
@@ -228,13 +225,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
             cols <- c(cols, input$plot_conf_facets_param)
         }
-       
-        if ("term" %in% colnames(react$diagnosands)){
-            cols <- c(cols, 'estimator_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
-        } else {
-            cols <- c(cols, 'estimator_label', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
-        }
         
+        if ("term" %in% colnames(react$diagnosands)){
+            cols <- c(cols, 'estimand_label','estimator_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+        } else {
+            cols <- c(cols, 'estimand_label', 'estimator_label', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+        }
         
         # return data frame subset
         react$diagnosands[cols]
@@ -664,27 +660,31 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             available_diagnosands <- diag_info$available_diagnosands
             names(available_diagnosands) <- sapply(available_diagnosands, str_cap, USE.NAMES = FALSE)
             
-            # 1. estimator
+            # 1. estimand
+            inp_estimand_id <- paste0(inp_prefix, "estimand")
+            inp_estimand <- selectInput(nspace(inp_estimand_id), "Estimand Label",
+                                        choices = unique(d_estimates$estimand_label),
+                                        selected = input[[inp_estimand_id]])
+            boxes <- list_append(boxes, inp_estimand)
+
+            # 2. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")
             inp_estimator <- selectInput(nspace(inp_estimator_id), "Estimator Label",
-                                         choices = unique(d_estimates$estimator_label),
+                                         choices = unique(d_estimates$estimator_label[d_estimates$estimand_label == input[[inp_estimand_id]]]),
                                          selected = input[[inp_estimator_id]])
             boxes <- list_append(boxes, inp_estimator)
-            
-            # 2. coefficient
+           
+            # 3. coefficient
             if ("term" %in% names(d_estimates)) {
-                coefficients <- d_estimates$term[d_estimates$estimator_label == input[[inp_estimator_id]]]
-            } else {
-                coefficients <- ""
-            }
+                coefficients <- d_estimates$term[d_estimates$estimand_label == input[[inp_estimand_id]] & d_estimates$estimator_label == input[[inp_estimator_id]]]
+                inp_coeff_id <- paste0(inp_prefix, "coefficient")
+                inp_coeff <- selectInput(nspace(inp_coeff_id), "Coefficient",
+                                         choices = coefficients,
+                                         selected = input[[inp_coeff_id]])
+                boxes <- list_append(boxes, inp_coeff)
+            } 
             
-            inp_coeff_id <- paste0(inp_prefix, "coefficient")
-            inp_coeff <- selectInput(nspace(inp_coeff_id), "Coefficient",
-                                     choices = coefficients,
-                                     selected = input[[inp_coeff_id]])
-            boxes <- list_append(boxes, inp_coeff)
-            
-            # 3. diagnosand (y-axis)
+            # 4. diagnosand (y-axis)
             if (!all_fixed) {
                 inp_diag_param_id <- paste0(inp_prefix, "diag_param")
                 inp_diag_param <- selectInput(nspace(inp_diag_param_id), "Diagnosand (y-axis)",
@@ -693,7 +693,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 boxes <- list_append(boxes, inp_diag_param)
             }
             
-            # 3b. optional: diagnosand parameter
+            # 4b. optional: diagnosand parameter
             if (all_fixed || (length(input[[inp_diag_param_id]]) > 0 && input[[inp_diag_param_id]] == 'power')) {
                 inp_diag_param_param_id <- paste0(inp_prefix, "diag_param_param")
                 if (length(input[[inp_diag_param_param_id]]) > 0) {
@@ -708,12 +708,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             }
             
             if (!all_fixed) {
-                # 4. CI check box 
+                # 5. CI check box 
                 inp_con_int_param_id <- paste0(inp_prefix, "confi_int_id")
                 inp_con_int_param <- checkboxInput(nspace(inp_con_int_param_id), label = "Show confidence interval", value = TRUE)
                 boxes <- list_append(boxes, inp_con_int_param)
                 
-                # 5. main inspection parameter (x-axis)
+                # 6. main inspection parameter (x-axis)
                 d_args <- design_tab_proxy$design_args()
                 
                 insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
@@ -751,14 +751,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
 
 
                     boxes <- list_append(boxes, inp_x_param)
-                    # 6. secondary inspection parameter (color)
+                    # 7. secondary inspection parameter (color)
                     variable_args_optional <- c('(none)',variable_args[variable_args != input[[inp_x_param_id]]])
                     inp_color_param_id <- paste0(inp_prefix, "color_param")
                     inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
                                                    choices = variable_args_optional,
                                                    selected = input[[inp_color_param_id]])
                     boxes <- list_append(boxes, inp_color_param)
-                    # 7. tertiary inspection parameter (small multiples)
+                    # 8. tertiary inspection parameter (small multiples)
                     if (length(variable_args_optional) <= 2) {
                         variable_args_options = variable_args_optional
                     }else{
