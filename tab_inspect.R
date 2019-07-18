@@ -187,18 +187,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         react$diagnosands_full <- diag_results$results$diagnosands_df
         plotdf <- diag_results$results$diagnosands_df
         
-        
-        # when the coefficients are empty 
-        # if (isTruthy(input$plot_conf_coefficient)) {
-        #     plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]   
-        # } else if (isTruthy(input$plot_conf_estimator)) {
-        #     plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]   
-        # }
-        
         if (isTruthy(input$plot_conf_estimand)) {
-                 plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]   
-            }
-
+            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]   
+        }
+        
         react$diagnosands <- plotdf
         diag_results$results$diagnosands_df_for_plot <- plotdf
         
@@ -235,9 +227,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         if ("term" %in% colnames(react$diagnosands)){
-            cols <- c(cols, 'estimator_label','estimand_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+            cols <- c(cols, 'estimand_label','estimator_label', 'term', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
         } else {
-            cols <- c(cols, 'estimator_label', 'estimand_label',input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
+            cols <- c(cols, 'estimand_label', 'estimator_label', input$plot_conf_diag_param, paste0('se(', input$plot_conf_diag_param, ')'))
         }
         
         # return data frame subset
@@ -662,9 +654,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d_estimates <- draw_estimates(d)
             diag_info <- get_diagnosands_info(d)
             
-            # diag_res <- get_diagnoses_for_plot()
-            # plotdf <- diag_res$results$diagnosands_df_for_plot
-            # # get available diagnosands
+            # get available diagnosands
             react$diagnosands_call <- diag_info$diagnosands_call
             available_diagnosands <- diag_info$available_diagnosands
             names(available_diagnosands) <- sapply(available_diagnosands, str_cap, USE.NAMES = FALSE)
