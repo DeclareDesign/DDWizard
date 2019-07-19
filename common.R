@@ -83,6 +83,8 @@ round_df <- function(df, digits){
 # If a sequence without ellipsis that indicate range is passed, then the sequence is used as is. So
 # a string of "1, 3, 8, 2" will just be split and converted depending on `cls`.
 # Is fault tolerant to commas, so "1, 2 ... 5" is also accepted.
+# 
+# If you want to react on input errors, this function should be wrapped inside a tryCatch expression.
 parse_sequence_string <- function(s, cls = 'numeric') {
     if (cls %in% c('numeric', 'integer') && grepl('...', s, fixed = TRUE)) {   # int/num sequences with range like 1, 2, ..., 10
         start_end <- str_split(s, "\\.\\.\\.")[[1]]
@@ -138,6 +140,8 @@ parse_sequence_string <- function(s, cls = 'numeric') {
 # If `require_rectangular` is TRUE, the sequences in `s` can be of any length > 0. The output will
 # then be a list of length N, where N is the number of sequences. Each list item is then a numeric
 # vector of variable length.
+#
+# If you want to react on input errors, this function should be wrapped inside a tryCatch expression.
 #
 # If the input cannot be parsed, NULL will be returned.
 parse_sequence_of_sequences_string <- function(s, cls = 'numeric', require_rectangular = FALSE) {
