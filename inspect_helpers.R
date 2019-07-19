@@ -41,7 +41,7 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
             }
         } else {   # "inspect" tab on the left side has inputs
             # if it is the first argument (always varying by default) or if it is varying (user has entered a sequence),
-            # return this value as set by the user
+            # or if the user has entered an invalid value, return this value as set by the user
             
             seq_input <- tryCatch(parse_sequence_string(arg_inspect_input),
                                   warning = function(cond) { NA },
@@ -50,9 +50,9 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
             seqofseq_input <- tryCatch(parse_sequence_of_sequences_string(arg_inspect_input),
                                        warning = function(cond) { NA },
                                        error = function(cond) { NA })
-
+            
             if (argname == first_arg || (argdef$vector && !is.null(seqofseq_input) && length(seqofseq_input) > 1)
-                || (!argdef$vector && sum(!is.na(seq_input)) > 1))
+                || (!argdef$vector && any(is.na(seq_input))))
             {
                 return(arg_inspect_input)
             } else {  # else return the argument value from the design tab. this overwrites values set by the user in this tab

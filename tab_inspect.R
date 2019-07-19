@@ -102,7 +102,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
         diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
-        insp_args_used_in_plot = NULL,  # last used design parameters used in plot
+        insp_args_used_in_plot = NULL,    # last used design parameters used in plot
         captured_errors = NULL,     # errors to display
         custom_state = list()       # additional state values for bookmarking
     )
