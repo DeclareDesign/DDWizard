@@ -208,3 +208,53 @@ generate_plot_code <- function(plotdf, design_name, diag_param, x_param, color_p
     
     code
 }
+
+# Function to enclose string within parameters
+inpar <- function(vector){
+    sapply(vector, function(v) 
+        ifelse(is.na(v) || v == "", "", paste0("[", v , "]")))
+}
+
+# Function that weaves two matrices (first row of first matrix)
+weave <- function(mat1, mat2, inpar_mat2 = TRUE, rnames = NULL, digits = 3, excl_0 = TRUE){
+    if(!identical(dim(mat1), dim(mat2))) stop("Input matrices should be the same length")
+    
+    if(is.vector(mat1)) mat1 <- matrix(mat1, ncol = 1)
+    if(is.vector(mat2)) mat2 <- matrix(mat2, ncol = 1)
+    if(!is.matrix(mat1)) mat1 <- as.matrix(mat1)
+    if(!is.matrix(mat2)) mat2 <- as.matrix(mat2)
+    
+    matout <- matrix(NA, nrow(mat1)*2, ncol(mat1))
+    for(i in 1:nrow(mat1)){
+        matout[(2*i-1),] <- mat1[i,]
+        if(inpar_mat2) 
+            matout[(2*i),] <- inpar(mat2[i,])
+        else 
+            matout[(2*i),] <- mat2[i,]
+    }
+    
+    if(!is.null(rnames)){
+        rnames <- rep(rnames, each = 2)
+        rmn <- 1:length(rnames)%%2 == 0
+        rnames[rmn] <- ""
+    }
+    
+    if(!is.null(colnames(mat1))) colnames(matout) <- colnames(mat1)
+    matout <- cbind(rnames, matout) 
+    matout <- gsub("NaN", "", matout, fixed = TRUE)
+    if(excl_0) matout <- gsub("(0)", "", matout, fixed = TRUE)
+    
+    return(matout)
+}
+
+# Make diagnositic table long (used in download long option of diagnosis tab)
+
+make_diagnosis_long <- function(tab){
+    nc <- ncol(tab)
+    to_export <- cbind(weave(tab[,-c(nc, nc-1)], 
+                             matrix("", nrow(tab), nc-2)),
+                       weave(round(as.numeric(tab[,(nc-1)]), 3), 
+                             round(as.numeric(tab[,nc]), 3)))
+    colnames(to_export) <- colnames(tab)[-nc]
+    return(to_export)
+}

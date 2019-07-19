@@ -65,6 +65,8 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                                checkboxInput(nspace("reshape_diagnosands_full"), label = "Reshape full diagnosands table"),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
                                                               label = "Download above table", disabled = "disabled"),
+                                               downloadButton(nspace("section_diagnosands_download_subset_long"),
+                                                              label = "Download above table (long)", disabled = "disabled"),
                                                downloadButton(nspace("section_diagnosands_download_full"),
                                                               label = "Download full diagnosands table", disabled = "disabled"))
                     )
@@ -410,6 +412,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 incProgress(1/n_steps)
                 
                 shinyjs::enable('section_diagnosands_download_subset')
+                shinyjs::enable('section_diagnosands_download_subset_long')
                 shinyjs::enable('section_diagnosands_download_full')
                 
                 p
@@ -585,6 +588,20 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
     )
     
+    output$section_diagnosands_download_subset_long <- downloadHandler(
+        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_diagnosands-long.csv')
+        },
+        content = function(file) {
+            write.csv(make_diagnosis_long(get_diagnosands_for_display()), file = file, row.names = FALSE)
+        }
+    )
     output$section_diagnosands_download_full <- downloadHandler(
         filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
             design_name <- input$design_arg_design_name
