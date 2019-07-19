@@ -1,7 +1,8 @@
 # UI related utility functions.
 #
-# Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
 #
 # Dec. 2018
 #
@@ -249,7 +250,7 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
     boxes
 }
 
-#Remove underscore
+# Remove underscore
 rm_usc <- function(str) gsub("_", " ", str, fixed = TRUE)
 
 # Default plot theme for Declare Design.

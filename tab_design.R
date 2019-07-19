@@ -3,6 +3,7 @@
 # designTab function returns a list of objects that allow to access its reactive values and some functions (see end of file).
 #
 # Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
 #
 # Dec. 2018
@@ -36,8 +37,6 @@ designTabUI <- function(id, label = 'Design') {
                 # show designer parameters if a design was loaded
                 hidden(div(id = nspace('design_params_panel_wrapper'),
                     material_card("Set design parameters",
-                        htmlOutput(nspace('design_description')),
-                        br(),
                         uiOutput(nspace('design_vignette')),
                         br(),
                         textInput(nspace('design_arg_design_name'), 'Design name'),
@@ -50,6 +49,7 @@ designTabUI <- function(id, label = 'Design') {
             ),
             material_column(  # center: design output
                 width = 9,
+                uiOutput(nspace("load_design_info")),
                 material_card("Download",
                               downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                               downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
@@ -75,8 +75,6 @@ designTabUI <- function(id, label = 'Design') {
 
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
-    
-    welcome_alert()
     
     ### reactive values  ###
     
@@ -220,6 +218,7 @@ designTab <- function(input, output, session) {
                     react$simdata <- NULL
                     react$error_occurred <- TRUE
                 }
+                
             }
             
             print('design instance changed')
@@ -415,12 +414,12 @@ designTab <- function(input, output, session) {
     
     # unfold the message panel
     observeEvent(message_open(),ignoreInit = TRUE,{
-        updateCollapse(session, "sections_container", open = "Messages")
+        updateCollapse(session, "sections_container", open = 'Warnings or errors')
     })
     
     # fold back the message panel
     observeEvent(message_close(),ignoreInit = TRUE,{
-        updateCollapse(session, "sections_container", close = "Messages")
+        updateCollapse(session, "sections_container", close = 'Warnings or errors')
     })
     
     
@@ -494,6 +493,7 @@ designTab <- function(input, output, session) {
         
         test <- gsub("_", " ",gsub("_designer","", option[!is.na(option)]))
         options_data <- data.frame(names = option[!is.na(option)],abbr = stri_trans_totitle(test), stringsAsFactors = FALSE)
+        if (any(options_data$names == 'binary_iv_designer')) options_data[options_data$names == 'binary_iv_designer',]$abbr = "Binary IV"
         option_list <- as.list(options_data$names)
         names(option_list) <- options_data$abbr
         
@@ -506,6 +506,15 @@ designTab <- function(input, output, session) {
        
         
     })
+    
+    # center: info about the name of loaded design
+    output$load_design_info <- renderUI({
+        req(react$design_id)
+        title = str_cap(react$design_id)
+        if (title == "Binary iv designer") title <- "Binary IV designer"
+        material_card(title = title, HTML(attr(react$design, 'description')))
+    })
+    
     
     # center: design code
     output$section_design_code <- renderUI({

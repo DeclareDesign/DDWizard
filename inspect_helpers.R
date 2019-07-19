@@ -1,5 +1,9 @@
 # Inspect tab related utility functions.
 #
+# Clara Bicalho <clara.bicalho@wzb.eu>
+# Sisi Huang <sisi.huang@wzb.eu>
+# Markus Konrad <markus.konrad@wzb.eu>
+#
 # March 2019
 #
 
@@ -12,17 +16,17 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
     
     sapply(names(d_args), function(argname) {
         arg_inspect_input <- input[[paste0('inspect_arg_', argname)]]
+        arg_design_val <- d_args[[argname]]
         argdef <- as.list(defs[defs$names == argname,])
         
         parsed_arg_inspect_input <- tryCatch(parse_sequence_string(arg_inspect_input),
                                              warning = function(cond) { NA },
                                              error = function(cond) { NA })
         
-        #if (is.null(arg_inspect_input) || (!any(is.na(parsed_arg_inspect_input)) && length(parsed_arg_inspect_input) < 2)) {
-        if (is.null(arg_inspect_input)) {
+        if (is.null(arg_inspect_input)) {   # initial state: no inputs in the "inspect" tab on the left side
+            # set a default value for "N" the first time
+            # but there are some design without N argument
             if (argname == first_arg) {
-                # set a default value for "N" the first time
-                # but there are some design without N argument
                 if (first_arg == 'N') {
                     n_int <- as.integer(d_args[[first_arg]])
                     return(sprintf('%d, %d ... %d', n_int, n_int + 10, n_int + 100))
@@ -32,19 +36,24 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
                     max_int <- min_int + 4*step_int
                     return(sprintf('%d, %d ... %d', min_int, min_int + step_int, max_int))
                 }
-            } else {
-                if(any(vapply(d_args[[argname]], nchar, FUN.VALUE=numeric(1)) > 10) && argdef[["class"]] == "numeric"){
-                    d_args[[argname]] <- fractions(d_args[[argname]])
-                }
-                arg_char <- as.character(d_args[[argname]])
-                if (argdef$vector) {  # vector of vectors input
-                    return(sprintf('(%s)', paste(arg_char, collapse = ', ')))
-                } else {
-                    return(arg_char)
-                }
+            } else {  # set a default for all other arguments
+                return(designer_arg_value_to_fraction(arg_design_val, argdef$class, argdef$vector, to_char = TRUE))
             }
-        } else {
-            return(arg_inspect_input)
+        } else {   # "inspect" tab on the left side has inputs
+            # if it is the first argument (always varying by default) or if it is varying (user has entered a sequence),
+            # return this value as set by the user
+            suppressWarnings({
+                seq_input <- parse_sequence_string(arg_inspect_input)
+                seqofseq_input <- parse_sequence_of_sequences_string(arg_inspect_input)
+            })
+            
+            if (argname == first_arg || (argdef$vector && !is.null(seqofseq_input) && length(seqofseq_input) > 1)
+                || (!argdef$vector && sum(!is.na(seq_input)) > 1))
+            {
+                return(arg_inspect_input)
+            } else {  # else return the argument value from the design tab. this overwrites values set by the user in this tab
+                return(designer_arg_value_to_fraction(arg_design_val, argdef$class, argdef$vector, to_char = TRUE))
+            }
         }
     }, simplify = FALSE)
 }
@@ -77,11 +86,32 @@ get_args_for_inspection <- function(design, d_argdefs, inspect_input, fixed_args
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- tryCatch({
-                if (d_argdef$vector) {
-                    # convert fractions to decimals
-                    inp_value <-  unname(sapply(trimws(strsplit(gsub("[()]","", inp_value), ",")[[1]]), function(x) eval(parse(text=x))))
-                    inp_value <- sprintf('(%s)', paste(inp_value, collapse = ', '))
-                    parse_sequence_of_sequences_string(inp_value, d_argclass)
+                # the format of inp_value depends on whether it is as fixed_arg, if fixed, then without brackets around the value 
+                if (d_argname %in% fixed_args) { 
+                    if (d_argdef$vector) {
+                        trimws(strsplit(inp_value, ",")[[1]])
+                    } else {
+                        parse_sequence_string(inp_value, d_argclass)
+                    }
+                } else if (d_argdef$vector) {
+                    # split the possible "vector or vectors" into a list of character vectors
+                    split_strings <- parse_sequence_of_sequences_string(inp_value, cls = 'character')
+                    
+                    if (d_argclass != 'character') {  # convert strings to numbers
+                        # eval() is evil, so make sure to include only characters that can make up integer, real or rational number:
+                        # all digits, dots, slashes and minus
+                        split_strings <- lapply(split_strings, function(s) {
+                            gsub('[^\\d\\.\\/\\-]', '', s, perl = TRUE)
+                        })
+                        
+                        lapply(split_strings, function(s) {  # outer lapply: list of vectors like ("1.3", "1/5", "-2") -> s
+                            unname(sapply(s, function(x) {   # inner sapply: parse each element in s to produce a numeric (this also handles fractions, otherwise we could use "as.numeric")
+                                eval(parse(text=x))
+                            }))
+                        })
+                    } else {  # return the strings as they are
+                        split_strings
+                    }
                 } else {
                     parse_sequence_string(inp_value, d_argclass)
                 }
@@ -136,7 +166,7 @@ str_cap <- function(str, hard_code = c("rmse" = "RMSE",
         hard_code[[str]]
     else {
         str_ret <- rm_usc(str)
-        paste0(toupper(substr(str_ret, 1, 1)), 
+        paste0(toupper(substr(str_ret, 1, 1)),
                substr(str_ret, 2, nchar(str_ret)))
     }
         
