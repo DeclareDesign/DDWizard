@@ -66,7 +66,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                                downloadButton(nspace("section_diagnosands_download_subset"),
                                                               label = "Download above table", disabled = "disabled"),
                                                downloadButton(nspace("section_diagnosands_download_subset_long"),
-                                                              label = "Download above table (long)", disabled = "disabled"),
+                                                              label = "Download above table (long format)", disabled = "disabled"),
                                                downloadButton(nspace("section_diagnosands_download_full"),
                                                               label = "Download full diagnosands table", disabled = "disabled"))
                     )
