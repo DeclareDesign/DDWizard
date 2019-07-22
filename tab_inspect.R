@@ -658,7 +658,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d <- design_tab_proxy$design_instance()
             d_estimates <- draw_estimates(d)
             diag_info <- get_diagnosands_info(d)
-            
+            print("____")
+            print(diag_info)
+            print("_____")
             # get available diagnosands
             react$diagnosands_call <- diag_info$diagnosands_call
             available_diagnosands <- diag_info$available_diagnosands
@@ -726,7 +728,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 
                     insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
                     insp_args_lens<- sapply(insp_args, function(arg) {any(length(arg) > 1)})
-
+                    
                     if (sum(insp_args_NAs) > 0||sum(insp_args_lens) == 0) {
                         shinyjs::disable('update_plot')
                         if (sum(insp_args_NAs) > 0){
@@ -735,7 +737,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                         }else{
                             react$captured_errors <- paste('Please vary one or more of the following arguments:')
                         }
-                    }else{
+                    }else if (sum(insp_args_lens) > 3){
+                        react$captured_errors <- paste('Warning: Diagnosis might take several minutes as there are many designs to diagnose. 
+                                                       Try varying fewer arguments on the left column before running the diagnosis.')
+                    } else{
                         react$captured_errors <- NULL
                         shinyjs::enable('update_plot')
                     }

@@ -1,12 +1,19 @@
+---
+title: "Benchmark code test"
+author: "Sisi"
+date: "7/18/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 # load the package
 library(tictoc)
 library(DesignLibrary)
-library(data.table)
-
+library(dplyr)
 source('uihelpers.R')
 source('common.R')
 source('inspect_helpers.R')
-
 # ---------------------------- functions -----------------------------------
 # return args which are not vectors, num cannot be larger than 3 
 args_index <- function(name, num, arg_defs){
@@ -66,29 +73,7 @@ get_designs <- function(id){
     return(list(design = design, arg_defs = arg_defs , args_eval = args_eval))
 }
 
-
-# get all the design names 
-cached <- str_replace(grep("designer$", ls(as.environment("package:DesignLibrary")), value = TRUE), "_designer", "")
-option <- c()
-for (i in 1:length(cached)){
-    if (is.null(attr(getFromNamespace(paste(cached[i], sep = "_", "designer"), 'DesignLibrary'), "shiny"))){
-        next()
-    }else{
-        option[i] <- paste(cached[i], sep = "_", "designer")
-    }
-}
-option <- option[complete.cases(option)]
-
-# find the slowest design by simulation 
-for (id in option){
-    tic(id)
-    sim_design <- getFromNamespace(id, 'DesignLibrary')
-    simulate_design(sim_design(), sims = 100)
-    toc()
-}
-
 # running time by different no. of combination arguments and id of design 
-# num can be only 1, 2, 3
 diagnose_varying_args <- function(num, id){
     
     design <- get_designs(id)[["design"]]
@@ -170,22 +155,39 @@ diagnose_varying_args <- function(num, id){
         }
     }
 }
-    
-# example of randomized_response_designer
-# diagnose_varying_args(num = 2, id = option[9])
-   
+```
 
+## Running Code Time 
+### Slowest simulation of design
 
+Compare the running time of simulations of all the designs, design parameters are initialized with default values. It's easy to see that the slowest is cluster_sampling_designer, and the fastes is randomized_response_designer.
 
+```{r default sim, echo=F, warning=FALSE}
+# get all the design names 
+cached <- str_replace(grep("designer$", ls(as.environment("package:DesignLibrary")), value = TRUE), "_designer", "")
+option <- c()
+for (i in 1:length(cached)){
+    if (is.null(attr(getFromNamespace(paste(cached[i], sep = "_", "designer"), 'DesignLibrary'), "shiny"))){
+        next()
+    }else{
+        option[i] <- paste(cached[i], sep = "_", "designer")
+    }
+}
+option <- option[complete.cases(option)]
 
+# find the slowest design by simulation 
+for (id in option){
+    tic(id)
+    sim_design <- getFromNamespace(id, 'DesignLibrary')
+    simulate_design(sim_design(), sims = 100)
+    toc()
+}
 
+```
 
+Binary IV design
 
-
-
-
-
-
-
-
+```{r cars, echo=F, warning=FALSE}
+diagnose_varying_args(num = 2, id = option[1])
+```
 
