@@ -64,11 +64,10 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                bsCollapsePanel('Diagnosis',
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
-                                               checkboxInput(nspace("reshape_diagnosands_full"), label = "Reshape full diagnosands table"),
+                                               checkboxInput(nspace("reshape_diagnosands"), 
+                                                             label = "Download long format table"),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
                                                               label = "Download above table", disabled = "disabled"),
-                                               downloadButton(nspace("section_diagnosands_download_subset_long"),
-                                                              label = "Download above table (long format)", disabled = "disabled"),
                                                downloadButton(nspace("section_diagnosands_download_full"),
                                                               label = "Download full diagnosands table", disabled = "disabled"))
                     )
@@ -303,6 +302,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             react$diagnosands_full <- NULL
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
+            react$available_diagnosands <- NULL
             react$design_params_used_in_plot <- NULL
             shinyjs::disable('update_plot')
         }
@@ -339,6 +339,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             list(tags$div(reset_btn, param_boxes))
         }
+    })
+    
+    #disable reshaping of table if diagnosis not available
+    observeEvent(react$diagnosands, {
+        req(react$diagnosands)
+        if(is.null(react$diagnosands)) shinyjs::disable('reshape_diagnosands')
     })
     
     # make the plot reactive
@@ -409,8 +415,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 
                 incProgress(1/n_steps)
                 
+                shinyjs::enable('reshape_diagnosands')
                 shinyjs::enable('section_diagnosands_download_subset')
-                shinyjs::enable('section_diagnosands_download_subset_long')
                 shinyjs::enable('section_diagnosands_download_full')
                 
                 p
@@ -615,24 +621,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands.csv')
         },
         content = function(file) {
-            write.csv(get_diagnosands_for_display(), file = file, row.names = FALSE)
+            if (input$reshape_diagnosands == TRUE){
+                download_data <- make_diagnosis_long(get_diagnosands_for_display(), 
+                                                     input$plot_conf_diag_param,
+                                                     within_col = TRUE)
+            }else{
+                download_data <- get_diagnosands_for_display()
+            }
+            write.csv(download_data, file = file, row.names = FALSE)
         }
     )
     
-    output$section_diagnosands_download_subset_long <- downloadHandler(
-        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
-            design_name <- input$design_arg_design_name
-            
-            if (!isTruthy(design_name)) {
-                design_name <- paste0("design-", Sys.Date())
-            }
-            
-            paste0(design_name, '_diagnosands-long.csv')
-        },
-        content = function(file) {
-            write.csv(make_diagnosis_long(get_diagnosands_for_display()), file = file, row.names = FALSE)
-        }
-    )
     output$section_diagnosands_download_full <- downloadHandler(
         filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
             design_name <- input$design_arg_design_name
@@ -643,8 +642,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands_full.csv')
         },
         content = function(file) {
-            if (input$reshape_diagnosands_full == TRUE){
-                download_data <- reshape_data(react$diagnosands)
+            if (input$reshape_diagnosands == TRUE){
+                download_data <- make_diagnosis_long(react$diagnosands, 
+                                                     react$available_diagnosands, 
+                                                     within_col = FALSE)
             }else{
                 download_data <- react$diagnosands
             }
@@ -679,7 +680,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             
             # get available diagnosands
             react$diagnosands_call <- diag_info$diagnosands_call
-            available_diagnosands <- diag_info$available_diagnosands
+            react$available_diagnosands <- diag_info$available_diagnosands
+            available_diagnosands <- react$available_diagnosands
             names(available_diagnosands) <- sapply(available_diagnosands, str_cap, USE.NAMES = FALSE)
             
             # 1. estimand

@@ -78,31 +78,6 @@ round_df <- function(df, digits){
     df
 }
 
-
-# reshape the diagnosis table
-reshape_data <- function(data){
-    # coefficients
-    coef_var <- DeclareDesign:::default_diagnosands(NULL)$diagnosand_label
-    # standrad errors of coefficients
-    se_var <- paste0("se(", coef_var, ")")
-    # remove all the NA 
-    if(any(is.na(data))) data <- data[complete.cases(data[c(coef_var, se_var)]),]
-    # melt data to the long shape
-    newdata <- melt(data, id = colnames(data)[!colnames(data) %in% c(coef_var, se_var)])
-    # add bracket on the values of se
-    newdata$value[grepl("^se", newdata$variable)] <- paste0("(",newdata$value[grepl("^se", newdata$variable)],")")
-    # remove "se()" in the variable name 
-    newdata$variable <- gsub("^se\\(|\\)", "", newdata$variable)
-    # spread single columns into mutiple columns  
-    reshape_data <- as.data.frame(newdata %>% group_by(variable) %>% mutate(i = row_number()) %>% spread(variable, value))
-    reshape_data$i <- NULL
-    to_delete <- seq(2,nrow(reshape_data),2)
-    reshape_data[] <- lapply(reshape_data, as.character)
-    reshape_data[to_delete, !names(reshape_data) %in% coef_var] <- " "
-    return(reshape_data)
-}
-
-
 # Parse a sequence string `s` in the form of "n, n+s, ..., m", e.g. "1, 2, ..., 5" or "0, 0.25, ..., 1", etc.
 # Convert the result to a vector of class `cls`.
 # Finds the step `s` and generates the sequence using `seq()`.

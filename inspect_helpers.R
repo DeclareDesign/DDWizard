@@ -152,6 +152,7 @@ get_diagnosands_info <- function(designer) {
         quick_diagnosis <- suppressWarnings(diagnose_design(designer, sims = 2, bootstrap_sims = 0)$diagnosands_df)
         res$available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
                                                                        "term", "n_sims"))
+        res$available_diagnosands <- grep("se(", res$available_diagnosands, fixed = TRUE, invert = TRUE)
     }
     
     res
@@ -246,11 +247,17 @@ inpar <- function(vector){
 }
 
 # Function that weaves two matrices (first row of first matrix)
-weave <- function(mat1, mat2, inpar_mat2 = TRUE, rnames = NULL, digits = 3, excl_0 = TRUE){
+weave <- function(mat1, mat2, inpar_mat2 = TRUE, rnames = NULL, excl_0 = TRUE, within_col = TRUE){
     if(!identical(dim(mat1), dim(mat2))) stop("Input matrices should be the same length")
-    
-    if(is.vector(mat1)) mat1 <- matrix(mat1, ncol = 1)
-    if(is.vector(mat2)) mat2 <- matrix(mat2, ncol = 1)
+    if(is.vector(mat1)){
+        if(within_col){
+            mat1 <- matrix(mat1, ncol = 1)
+            mat2 <- matrix(mat2, ncol = 1)  
+        }else{
+            mat1 <- matrix(mat1, nrow = 1)
+            mat2 <- matrix(mat2, nrow = 1)
+        }
+    }
     if(!is.matrix(mat1)) mat1 <- as.matrix(mat1)
     if(!is.matrix(mat2)) mat2 <- as.matrix(mat2)
     
@@ -279,12 +286,16 @@ weave <- function(mat1, mat2, inpar_mat2 = TRUE, rnames = NULL, digits = 3, excl
 
 # Make diagnositic table long (used in download long option of diagnosis tab)
 
-make_diagnosis_long <- function(tab){
-    nc <- ncol(tab)
-    to_export <- cbind(weave(tab[,-c(nc, nc-1)], 
-                             matrix("", nrow(tab), nc-2)),
-                       weave(round(as.numeric(tab[,(nc-1)]), 3), 
-                             round(as.numeric(tab[,nc]), 3)))
-    colnames(to_export) <- colnames(tab)[-nc]
+make_diagnosis_long <- function(tab, diagnosand_labels, within_col = FALSE){
+    mains <- diagnosand_labels
+    ses  <- paste0('se(', mains, ')')
+    
+    tab_args <- tab[, !names(tab) %in% c(mains, ses)]
+    tab_means <- tab[,names(tab) %in% mains]
+    tab_ses   <- tab[,names(tab) %in% ses]
+    
+    to_export <- cbind(weave(tab_args, matrix("", nrow(tab_args), ncol(tab_args))),
+                       weave(round(tab_means, 3), round(tab_ses, 3), within_col = within_col))
+    colnames(to_export) <- c(names(tab_args), mains)
     return(to_export)
 }
