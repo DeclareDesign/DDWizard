@@ -103,6 +103,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
         diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
         insp_args_used_in_plot = NULL,    # last used design parameters used in plot
+        insp_args_changed = character(),  # arguments that were changed in the inspector by the user
         captured_errors = NULL,     # errors to display
         custom_state = list()       # additional state values for bookmarking
     )
@@ -257,6 +258,45 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
     })
     
+    # return a character vector with names of arguments that the user changed in the inspect tab, i.e.
+    # those arguments where the values differ from those in the design tab.
+    get_changed_args <- reactive({
+        # get current designer arguments and argument definitions
+        d_args <- design_tab_proxy$design_args()
+        defs <- defs <- design_tab_proxy$react$design_argdefinitions
+        
+        # record changed arguments
+        changed_args <- character()
+        for (argname in names(d_args)) {
+            # get input names for respective tabs
+            inp_name_design <- paste0('design_arg_', argname)
+            inp_name_inspect <- paste0('inspect_arg_', argname)
+            
+            argdef <- as.list(defs[defs$names == argname,])
+            
+            insp_inp_value <- input[[inp_name_inspect]]
+            
+            # skip on initial NULL values
+            if (!is.null(insp_inp_value)) {
+                # get input value from design tab and convert it to a string as it would be used in the inspect tab
+                design_inp_value <- design_tab_proxy$input[[inp_name_design]]
+                design_inp_value_str <- designer_arg_value_to_fraction(design_inp_value, argdef$class, argdef$vector, to_char = TRUE)
+                
+                if (insp_inp_value != design_inp_value_str) {   # record if values differ
+                    changed_args <- c(changed_args, argname)
+                }
+            }
+        }
+        
+        return(changed_args)
+    })
+    
+    # set the names of arguments which were changed by the user.
+    # this is evoked from "outside" from app.R once the user switches from design to inspect tab
+    set_changed_args <- function(changed_args) {
+        react$insp_args_changed <- changed_args
+    }
+    
     # message to be displayed if results were loaded from cache
     results_cached_message <- reactive({
         if (react$diagnosands_cached) {
@@ -320,9 +360,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         d_args <- design_tab_proxy$design_args()
         defs <- design_tab_proxy$react$design_argdefinitions
         isolate({
-            # set defaults: use value from design args in design tab unless a sequence of values for arg comparison
-            # was defined in inspect tab
-            defaults <- get_inspect_input_defaults(d_args, defs, input)
+            # set defaults: use value from design args in design tab unless the value was changed in the inspector tab
+            defaults <- get_inspect_input_defaults(d_args, defs, input, react$insp_args_changed)
         })
         
         
@@ -775,4 +814,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         do.call(material_card, c(title="Plot configuration", boxes))
     })
+    
+    # return reactive values and some functions to be accessed from other modules
+    return(list(
+        get_changed_args = get_changed_args,
+        set_changed_args = set_changed_args
+    ))
 }
