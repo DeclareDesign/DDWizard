@@ -563,35 +563,38 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # center upon plot: plot information
     output$plot_info <- renderUI({
-        # get the values from the inspect tab
-        d_args <- design_tab_proxy$design_args()
-        
-        insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
-                                             design_tab_proxy$react$design_argdefinitions,
-                                             input,
-                                             design_tab_proxy$get_fixed_design_args(),
-                                             design_tab_proxy$input)
-       
-        # show the design name 
-        # txt <- paste("<dt>Loaded designer:</dt>", str_cap(design_tab_proxy$react$design_id), "<br>")
-        title <- str_cap(design_tab_proxy$react$design_id)
-        if (title == "Binary iv designer") title <- "Binary IV designer"
-        fixed_text <- "" 
-        # show the fixed args
-        if (length(design_tab_proxy$get_fixed_design_args()) > 0){
-            txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
-                if (length(insp_args[[x]])> 1) insp_args[[x]] <-  sprintf('(%s)', paste(insp_args[[x]], collapse = ', '))
-                paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
-            }))
-            fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))
-           }
-        req(design_tab_proxy$react$design)
-        description <- attr(design_tab_proxy$react$design, 'description')
-
-        test <- material_card(title = title,
-                              HTML(attr(design_tab_proxy$react$design, 'description')),
-                              HTML(fixed_text))
-        test
+        if (is.null(design_tab_proxy$react$design)) {
+            return(material_card(title = "No designer loaded",
+                                 p('Please load a designer first in the "Design" tab.')))
+        } else {
+            # get the values from the inspect tab
+            d_args <- design_tab_proxy$design_args()
+            
+            insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_argdefinitions,
+                                                 input,
+                                                 design_tab_proxy$get_fixed_design_args(),
+                                                 design_tab_proxy$input)
+           
+            # show the design name 
+            title <- str_cap(design_tab_proxy$react$design_id)
+            if (title == "Binary iv designer") title <- "Binary IV designer"
+            fixed_text <- "" 
+            # show the fixed args
+            if (length(design_tab_proxy$get_fixed_design_args()) > 0){
+                txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
+                    if (length(insp_args[[x]])> 1) insp_args[[x]] <-  sprintf('(%s)', paste(insp_args[[x]], collapse = ', '))
+                    paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
+                }))
+                fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))
+               }
+            req(design_tab_proxy$react$design)
+            description <- attr(design_tab_proxy$react$design, 'description')
+    
+            return(material_card(title = title,
+                                 HTML(attr(design_tab_proxy$react$design, 'description')),
+                                 HTML(fixed_text)))
+        }
     })
     
     # center below plot: diagnosands table
@@ -639,9 +642,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # right: inspection plot configuration
     output$plot_conf <- renderUI({
-        if (is.null(design_tab_proxy$react$design) || is.null(design_tab_proxy$react$design_argdefinitions)) {
-            boxes <- list(p('Load a design first'))
-        } else {
+        boxes <- list()
+        
+        if (!is.null(design_tab_proxy$react$design) && !is.null(design_tab_proxy$react$design_argdefinitions)) {
             # create list of input elements, all with a common prefix
             nspace <- NS('tab_inspect')
             inp_prefix <- 'plot_conf_'
