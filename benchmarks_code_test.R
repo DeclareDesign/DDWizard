@@ -127,7 +127,7 @@ diagnose_varying_args <- function(num, id){
             args_eval[[first_arg]] <- seq(min_int,  max_int, step_int)
         }
         
-        if (!is.null(second_arg) & !is.null(thrid_arg)){
+        if (!is.null(second_arg) & !is.null(thrid_arg) & !is.null(first_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
             thrid_arg <- agrname_novec[arg_index[i,][[3]]]
             # vary the second args
@@ -150,7 +150,7 @@ diagnose_varying_args <- function(num, id){
             
             toc()
             args_eval <- get_designs(id)[["args_eval"]]
-        }else{
+        }else if(!is.null(second_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
             # vary the second args
             min_int <- arg_defs[arg_defs$names == second_arg,]$inspector_min
@@ -159,6 +159,16 @@ diagnose_varying_args <- function(num, id){
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
             
             tic(paste(first_arg, second_arg, id, sep = ","))
+            
+            all_designs <- eval_bare(expr(expand_design(designer = design, expand = TRUE, !!!args_eval)))
+            simdata <- simulate_designs(all_designs, sims = 100)
+            diag_info <- get_diagnosands_info(design)$diagnosands_call
+            diag_res <- diagnose_designs(simdata, bootstrap_sims = 30)
+            
+            toc()
+            args_eval <- get_designs(id)[["args_eval"]]
+        }else{
+            tic(paste(first_arg,id, sep = ","))
             
             all_designs <- eval_bare(expr(expand_design(designer = design, expand = TRUE, !!!args_eval)))
             simdata <- simulate_designs(all_designs, sims = 100)

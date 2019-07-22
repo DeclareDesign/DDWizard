@@ -52,28 +52,6 @@ args_index <- function(name, num, arg_defs){
 }
 
 # get design, arguments definition, arguments evaluation
-get_designs <- function(id){
-    design <- getFromNamespace(id, 'DesignLibrary')
-    args_design <- get_designer_args(design)
-    arg_defs <- attr(design, 'definitions') 
-    args_eval <- evaluate_designer_args(args_design, attr(design, 'definitions'))
-    args_eval[sapply(args_eval, is.null)] <- NULL
-    argname <- names(args_eval)
-    # set the right class of args 
-    for(i  in (1: length(argname))){
-        if (arg_defs[arg_defs$names == argname[i], ]$class != class(args_eval[[argname[i]]])){
-            if (arg_defs[arg_defs$names == argname[i], ]$vector == T){
-                arg_value <- trimws(strsplit(args_eval[[argname[i]]], ",")[[1]])
-                arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
-                args_eval[[argname[i]]] <- list(arg_value)
-            }       
-        }
-    }
-    
-    return(list(design = design, arg_defs = arg_defs , args_eval = args_eval))
-}
-
-# running time by different no. of combination arguments and id of design 
 diagnose_varying_args <- function(num, id){
     
     design <- get_designs(id)[["design"]]
@@ -112,7 +90,7 @@ diagnose_varying_args <- function(num, id){
             args_eval[[first_arg]] <- seq(min_int,  max_int, step_int)
         }
         
-        if (!is.null(second_arg) & !is.null(thrid_arg)){
+        if (!is.null(second_arg) & !is.null(thrid_arg) & !is.null(first_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
             thrid_arg <- agrname_novec[arg_index[i,][[3]]]
             # vary the second args
@@ -135,7 +113,7 @@ diagnose_varying_args <- function(num, id){
             
             toc()
             args_eval <- get_designs(id)[["args_eval"]]
-        }else{
+        }else if(!is.null(second_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
             # vary the second args
             min_int <- arg_defs[arg_defs$names == second_arg,]$inspector_min
@@ -144,6 +122,16 @@ diagnose_varying_args <- function(num, id){
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
             
             tic(paste(first_arg, second_arg, id, sep = ","))
+            
+            all_designs <- eval_bare(expr(expand_design(designer = design, expand = TRUE, !!!args_eval)))
+            simdata <- simulate_designs(all_designs, sims = 100)
+            diag_info <- get_diagnosands_info(design)$diagnosands_call
+            diag_res <- diagnose_designs(simdata, bootstrap_sims = 30)
+            
+            toc()
+            args_eval <- get_designs(id)[["args_eval"]]
+        }else{
+            tic(paste(first_arg,id, sep = ","))
             
             all_designs <- eval_bare(expr(expand_design(designer = design, expand = TRUE, !!!args_eval)))
             simdata <- simulate_designs(all_designs, sims = 100)
