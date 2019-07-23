@@ -365,9 +365,27 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
     list(results = diag_res, from_cache = from_cache)
 }
 
+where <- function(name, env = parent.frame()) {
+    if (identical(env, emptyenv())) {
+        # Base case
+        stop("Can't find ", name, call. = FALSE)
+        
+    } else if (exists(name, envir = env, inherits = FALSE)) {
+        # Success case
+        env
+        
+    } else {
+        # Recursive case
+        where(name, parent.env(env))
+        
+    }
+}
 # Show a shinyalert message box with title `title` and content loaded from `html_file`.
 # Set label of the confirmation button to `confirm_btn_label`.
 alert_with_content_from_html_file <- function(title, html_file, confirm_btn_label = 'OK', className = '') {
+    # assign("shown_intro", TRUE, envir = parent.frame())
+    # print("inTRO SHOWN")
+    # where('intro_shown')
     shinyalert(
         title = title,
         text = readChar(html_file, file.info(html_file)$size),

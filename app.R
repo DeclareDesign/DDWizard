@@ -28,6 +28,9 @@ source('uihelpers.R')
 source('tab_design.R')
 source('tab_inspect.R')
 
+# generate a sessionid
+sessionid <- paste(sample(x = c(letters, LETTERS, 0:9), 
+                          size = 64, replace = TRUE), collapse = '')
 
 #######################################
 # Frontend: User interface definition #
@@ -41,7 +44,10 @@ if (file.exists(piwik_code_file)) {
     piwik_code <- ''
 }
 
+addResourcePath("js", "www")
+
 ui <- function(request) {
+
     material_page(
         # title
         title = app_title,
@@ -54,9 +60,11 @@ ui <- function(request) {
         tags$head(
             tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
             HTML(piwik_code),
-            includeScript('www/custom.js')
+            includeScript('www/custom.js'),
+            tags$script(src = 'js/js.cookie.js')
         ),
         shinyjs::useShinyjs(),
+        extendShinyjs(text = jsCode),
         
         bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
         
@@ -98,12 +106,35 @@ ui <- function(request) {
 # Backend: Input handling and output generation on server #
 ###########################################################
 
-server <- function(input, output, session) {
+server <- function(input, output, session, id = sessionid) {
     insp_changed_args <- character()
+    # print(id)
     
     design_tab_proxy <- callModule(designTab, 'tab_design')
     inspect_tab_proxy <- callModule(inspectTab, 'tab_inspect', design_tab_proxy)
     
+    # Create session ID for cookie.js
+    # check if a cookie is present and matching existing sessionid
+    # if `input$jscookie == id`, do not show intro modal 
+    observe({
+        js$getcookie()
+        if(!is.null(input$js_cookie)) print(paste0("cookie found: ", input$jscookie))
+        else print("Cookie not found")
+        if (!is.null(input$jscookie) && 
+            input$jscookie == id) {
+            message(paste0('Cookie found: ', input$jscookie))
+            intro_shown <<- TRUE
+        } else {
+            if(!exists('intro_shown')){
+                message('out showing modal')
+                alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
+                intro_shown <<- TRUE
+                js$setcookie(sessionid)
+                message("Cookie set")   
+            }
+        }
+    })
+
     ### observers global events ###
     
     # legal notice button clicked
@@ -114,6 +145,11 @@ server <- function(input, output, session) {
     # data protection button clicked
     observeEvent(input$show_data_protection_policy, {
         alert_with_content_from_html_file('Data protection policy', 'www/data_protection_policy.html', className = 'wide')
+    })
+    
+    # help text button clicked
+    observeEvent(input$show_help_text,{
+        alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
     })
     
     # observe changes between tabs
@@ -164,12 +200,15 @@ server <- function(input, output, session) {
         # open the bookmarked tab
         shinymaterial::select_material_tab(session, state$values$current_tab)
     })
-    # once the app is loaded, intro page will come out 
-    alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
-    observeEvent(input$show_help_text,{
-        alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
-    })
     
+    onStart = function() {
+        cat("Application setup\n")
+        
+        onStop(function() {
+            cat("Application cleanup\n")
+            js$rmcookie(id)
+        })
+    }
 }
 
 # Run the application 

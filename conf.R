@@ -18,3 +18,24 @@ n_diagnosis_workers <- availableCores() - 1   # number of parallel processes whe
 
 default_diag_sims <- 100
 default_diag_bootstrap_sims <- 30
+
+# Cookie configuration
+jsCode <- '
+  shinyjs.getcookie = function(params) {
+var cookie = Cookies.get("id");
+if (typeof cookie !== "undefined") {
+Shiny.onInputChange("jscookie", cookie);
+} else {
+var cookie = "";
+Shiny.onInputChange("jscookie", cookie);
+}
+}
+shinyjs.setcookie = function(params) {
+Cookies.set("id", escape(params), { expires: 0.5 });
+Shiny.onInputChange("jscookie", params);
+}
+shinyjs.rmcookie = function(params) {
+Cookies.remove("id");
+Shiny.onInputChange("jscookie", "");
+}
+'
