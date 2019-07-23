@@ -158,6 +158,7 @@ get_diagnosands_info <- function(designer) {
         quick_diagnosis <- suppressWarnings(diagnose_design(designer, sims = 2, bootstrap_sims = 0)$diagnosands_df)
         res$available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
                                                                        "term", "n_sims"))
+        res$available_diagnosands <- grep("se(", res$available_diagnosands, fixed = TRUE, invert = TRUE)
     }
     
     res
@@ -243,4 +244,64 @@ generate_plot_code <- function(plotdf, design_name, diag_param, x_param, color_p
     }
     
     code
+}
+
+# Function to enclose string within parameters
+inpar <- function(vector){
+    sapply(vector, function(v) 
+        ifelse(is.na(v) || v == "", "", paste0("[", v , "]")))
+}
+
+# Function that weaves two matrices (first row of first matrix)
+weave <- function(mat1, mat2, inpar_mat2 = TRUE, rnames = NULL, excl_0 = TRUE, within_col = TRUE){
+    if(!identical(dim(mat1), dim(mat2))) stop("Input matrices should be the same length")
+    if(is.vector(mat1)){
+        if(within_col){
+            mat1 <- matrix(mat1, ncol = 1)
+            mat2 <- matrix(mat2, ncol = 1)  
+        }else{
+            mat1 <- matrix(mat1, nrow = 1)
+            mat2 <- matrix(mat2, nrow = 1)
+        }
+    }
+    if(!is.matrix(mat1)) mat1 <- as.matrix(mat1)
+    if(!is.matrix(mat2)) mat2 <- as.matrix(mat2)
+    
+    matout <- matrix(NA, nrow(mat1)*2, ncol(mat1))
+    for(i in 1:nrow(mat1)){
+        matout[(2*i-1),] <- mat1[i,]
+        if(inpar_mat2) 
+            matout[(2*i),] <- inpar(mat2[i,])
+        else 
+            matout[(2*i),] <- mat2[i,]
+    }
+    
+    if(!is.null(rnames)){
+        rnames <- rep(rnames, each = 2)
+        rmn <- 1:length(rnames)%%2 == 0
+        rnames[rmn] <- ""
+    }
+    
+    if(!is.null(colnames(mat1))) colnames(matout) <- colnames(mat1)
+    matout <- cbind(rnames, matout) 
+    matout <- gsub("NaN", "", matout, fixed = TRUE)
+    if(excl_0) matout <- gsub("(0)", "", matout, fixed = TRUE)
+    
+    return(matout)
+}
+
+# Make diagnositic table long (used in download long option of diagnosis tab)
+
+make_diagnosis_long <- function(tab, diagnosand_labels, within_col = FALSE){
+    mains <- diagnosand_labels
+    ses  <- paste0('se(', mains, ')')
+    
+    tab_args <- tab[, !names(tab) %in% c(mains, ses)]
+    tab_means <- tab[,names(tab) %in% mains]
+    tab_ses   <- tab[,names(tab) %in% ses]
+    
+    to_export <- cbind(weave(tab_args, matrix("", nrow(tab_args), ncol(tab_args))),
+                       weave(round(tab_means, 3), round(tab_ses, 3), within_col = within_col))
+    colnames(to_export) <- c(names(tab_args), mains)
+    return(to_export)
 }

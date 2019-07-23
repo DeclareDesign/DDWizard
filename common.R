@@ -76,7 +76,6 @@ round_df <- function(df, digits){
     df
 }
 
-
 # Parse a sequence string `s` in the form of "n, n+s, ..., m", e.g. "1, 2, ..., 5" or "0, 0.25, ..., 1", etc.
 # Convert the result to a vector of class `cls`.
 # Finds the step `s` and generates the sequence using `seq()`.
