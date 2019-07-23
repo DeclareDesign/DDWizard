@@ -7,10 +7,12 @@
 # March 2019
 #
 
-# get defaults for inputs in inspect tab: use value from design args `d_args` in design tab unless a sequence of values
-# for arg comparison was defined in inspect tab (`input` is the input object for the inspect tab).
+# get defaults for inputs in inspect tab: use value from design args `d_args` in design tab unless the argument
+# is in the set of previously changed arguments `insp_changed_args`, a sequence of values for arg comparison was
+# defined in inspect tab (`input` is the input object for the inspect tab) or the input is invalid and needs to
+# be fixed by the user.
 # `defs` is the argument definitions table for the current designer
-get_inspect_input_defaults <- function(d_args, defs, input) {
+get_inspect_input_defaults <- function(d_args, defs, input, insp_changed_args) {
     first_arg <- names(d_args)[1]
     if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
     
@@ -40,15 +42,19 @@ get_inspect_input_defaults <- function(d_args, defs, input) {
                 return(designer_arg_value_to_fraction(arg_design_val, argdef$class, argdef$vector, to_char = TRUE))
             }
         } else {   # "inspect" tab on the left side has inputs
-            # if it is the first argument (always varying by default) or if it is varying (user has entered a sequence),
-            # return this value as set by the user
-            suppressWarnings({
-                seq_input <- parse_sequence_string(arg_inspect_input)
-                seqofseq_input <- parse_sequence_of_sequences_string(arg_inspect_input)
-            })
+            # if it is in the set of previously changed arguments or if it is varying (user has entered a sequence),
+            # or if the user has entered an invalid value, return this value as set by the user
             
-            if (argname == first_arg || (argdef$vector && !is.null(seqofseq_input) && length(seqofseq_input) > 1)
-                || (!argdef$vector && sum(!is.na(seq_input)) > 1))
+            seq_input <- tryCatch(parse_sequence_string(arg_inspect_input),
+                                  warning = function(cond) { NA },
+                                  error = function(cond) { NA })
+
+            seqofseq_input <- tryCatch(parse_sequence_of_sequences_string(arg_inspect_input),
+                                       warning = function(cond) { NA },
+                                       error = function(cond) { NA })
+            
+            if (argname %in% insp_changed_args || (argdef$vector && !is.null(seqofseq_input) && length(seqofseq_input) > 1)
+                || (!argdef$vector && any(is.na(seq_input))))
             {
                 return(arg_inspect_input)
             } else {  # else return the argument value from the design tab. this overwrites values set by the user in this tab

@@ -450,7 +450,7 @@ designTab <- function(input, output, session) {
         nspace <- NS('tab_design')
         
         defaults <- isolate({ design_args() })
-     
+        
         param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
                                                   input = input, defaults = defaults,
                                                   create_fixed_checkboxes = design_supports_fixed_arg())
