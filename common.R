@@ -12,8 +12,6 @@ library(stringr)
 library(future)
 library(rlang)
 library(digest)
-library(tidyr)
-library(reshape)
 library(DeclareDesign)
 
 

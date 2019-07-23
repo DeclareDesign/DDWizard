@@ -299,7 +299,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         if (!is.null(react$cur_design_id) && react$cur_design_id != design_tab_proxy$react$design_id) {
             # if the designer was changed, reset the reactive values
             react$diagnosands <- NULL
-            react$available_diagnosands <- NULL
             react$diagnosands_full <- NULL
             react$diagnosands_cached <- FALSE
             react$diagnosands_call <- NULL
