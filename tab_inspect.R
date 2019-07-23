@@ -102,8 +102,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
         diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
-        insp_args_used_in_plot = NULL,    # last used design parameters used in plot
-        insp_args_changed = character(),  # arguments that were changed in the inspector by the user
+        insp_args_used_in_plot = NULL,           # last used design parameters used in plot
+        insp_args_changed = character(),         # arguments that were changed in the inspector by the user
+        insp_args_set_after_tab_switch = FALSE,  # records if the the above vector was just set after switching to this tab again
         captured_errors = NULL,     # errors to display
         custom_state = list()       # additional state values for bookmarking
     )
@@ -295,6 +296,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # this is evoked from "outside" from app.R once the user switches from design to inspect tab
     set_changed_args <- function(changed_args) {
         react$insp_args_changed <- changed_args
+        react$insp_args_set_after_tab_switch <- TRUE
     }
     
     # message to be displayed if results were loaded from cache
@@ -361,7 +363,18 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         defs <- design_tab_proxy$react$design_argdefinitions
         isolate({
             # set defaults: use value from design args in design tab unless the value was changed in the inspector tab
-            defaults <- get_inspect_input_defaults(d_args, defs, input, react$insp_args_changed)
+            
+            if (react$insp_args_set_after_tab_switch) {
+                # if we just switched over from the design tab, take over the values from there as long as they were
+                # not recorded as "changed" before switching
+                insp_args_changed <- react$insp_args_changed
+                react$insp_args_set_after_tab_switch <- FALSE   # reset
+            } else {
+                # otherwise respect the changes at the point where we switched to this tab *and* the changes done since then
+                insp_args_changed <- union(react$insp_args_changed, get_changed_args())
+            }
+            
+            defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed)
         })
         
         
