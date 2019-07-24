@@ -44,7 +44,7 @@ source("ddwizard_post_helpers.R")
 
 text1 <- c(
   add_title("Load a design template", 
-            "Select and load the 'Multi-arm' design. To learn about this design template in more detail, click on <code>Read more</code>. <p> <p> The <code>?</code> button will redirect to the full database of design templates."),
+            "Select and load the 'Factorial' design. To learn about this design template in more detail, click on <code>Read more</code>. <p> <p> The <code>?</code> button will redirect to the full database of design templates."),
   
   add_title("Set values of design parameters", 
             "This creates a design with <code>N</code> observations in which each of the three factors (<code>k</code>) are assigned with probabilities given by <code>assignment probs</code>. We can ex ante declare our expectations of outcome means and standard deviations for each combination of factors in <code>outcome means</code> and <code>outcome sds</code> from which to draw normally distributed potential outcomes. Users can also customize <code>outcome name</code> and <code>treatment names</code>. <p><p> Values for all these parameters can be specified in 'Set design parameters'. </p>"),
@@ -84,7 +84,7 @@ source("ddwizard_post_helpers.R")
 
 text3 <- c(
   add_title("Create a plot", 
-            "Select the estimator and term to be displayed, the parameter to appear on the x-axis and any other parameters to be displayed in the color aesthetics (optional) or along different plots (optional)."),
+            "Select the estimand, estimator and term to be displayed, the parameter to appear on the x-axis and any other parameters to be displayed in the color aesthetics (optional) or along different plots (optional)."),
   
   add_title("Download graph or R code", 
             "Download the graph as .png OR download the plot code."),
@@ -93,7 +93,7 @@ text3 <- c(
             "After downloading the R code for the plot and opening it with R or RStudio, users can customize features of the plot by editing the code directly. To add custom title and axes labels, for example, replace line <code>labs(x = 'N', y = 'power')</code> with <code>labs(title = 'Power of mixed class treatment estimate', x = 'Sample size', y = 'Power')</code>, rerun the code, and voilà."
             ))
 
-imageGallery("ex1", text3)
+imageGallery("ex2", text3)
 ```
 
 ### 4) Use it as a didactic tool in class
@@ -118,7 +118,7 @@ text4 <- c(
   add_title("Violating the exclusion restriction", 
             ""))
 
-imageGallery("ex1", text4)
+imageGallery("ex2", text4)
 ```
 
 ### 5) Advanced:  use this interactive tool to examine your own design. 
