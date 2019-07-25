@@ -19,7 +19,13 @@ source('inspect_helpers.R')
 args_index <- function(name, num, arg_defs){
     # find out all the vector parameters in 
     for (index in 1:length(name)){
-        if (arg_defs[arg_defs$names == name[index],]$vector == T){
+       if (arg_defs[arg_defs$names == name[index],]$vector == T ||
+            arg_defs[arg_defs$names == name[index],]$class == "logical" || 
+            "outcome_name"  ==  name[index] || 
+            "k" == name[index] ||
+            "m_arms" == name[index] ||
+            "sd_i_0" == name[index] ||
+           "icc" == name[index]){
             name[index] <- NA
         }else{
             next()
@@ -61,7 +67,7 @@ get_designs <- function(id){
     argname <- names(args_eval)
     # set the right class of args 
     for(i  in (1: length(argname))){
-        if (arg_defs[arg_defs$names == argname[i], ]$class != class(args_eval[[argname[i]]])){
+        if (arg_defs[arg_defs$names == argname[i], ]$class != class(args_eval[[argname[i]]]) & is.character(args_eval[[argname[i]]])){
             if (arg_defs[arg_defs$names == argname[i], ]$vector == T){
                 arg_value <- trimws(strsplit(args_eval[[argname[i]]], ",")[[1]])
                 arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
@@ -195,87 +201,100 @@ for (id in option){
 
 Binary IV design
 
-```{r cars, echo=F, warning=FALSE}
-# diagnose_varying_args(num = 1, id = option[1])
-sapply(1:2, diagnose_varying_args, id = option[1])
+```{r binary_iv, echo=F, warning=FALSE}
+diagnose_varying_args(num = 1, id = option[1])
+diagnose_varying_args(num = 2, id = option[1])
+# sapply(1:2, diagnose_varying_args, id = option[1])
 ```
 
 Block Cluster Two Arm design
 
-# ```{r echo=F, warning=FALSE}
-# sapply(1:2, diagnose_varying_args, id = option[2])
-# 
-# ```
+```{r block_cluster_two_arm, echo=F, warning=FALSE}
+diagnose_varying_args(num = 1, id = option[2])
+# diagnose_varying_args(num = 2, id = option[2])
+#sapply(1:2, diagnose_varying_args, id = option[2])
+```
 
-Cluster Sampling design
+Cluster Sampling design, "N_blocks" is only varied.
 
-# ```{r echo=F, warning=FALSE}
-# sapply(1:2, diagnose_varying_args, id = option[3])
-# ```
+```{r cluster_sampling, echo=F, warning=FALSE}
+diagnose_varying_args(num = 1, id = option[3])
+```
 
 Factorial design
 
-# ```{r echo=F, warning=FALSE}
-# # sapply(1:2, diagnose_varying_args, id = option[4])
-# ```
+```{r echo=F, warning=FALSE}
+diagnose_varying_args(num = 1, id = option[4])
+# diagnose_varying_args(num =2, id = option[4])
+# sapply(1:2, diagnose_varying_args, id = option[4])
+```
 
 Mediation Analysis design
 
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[5])
+diagnose_varying_args(num = 1, id = option[4])
 ```
 
-Multi Arm design
+<!-- Multi Arm design -->
 
-#```{r echo=F, warning=FALSE}
-#sapply(1:2, diagnose_varying_args, id = option[6])
-#```
+<!-- #```{r echo=F, warning=FALSE} -->
+<!-- #sapply(1:2, diagnose_varying_args, id = option[6]) -->
+<!-- #``` -->
 
 Pretest Posttest design
 
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[7])
+diagnose_varying_args(num = 1, id = option[7])
+# sapply(1:2, diagnose_varying_args, id = option[7])
 ```
 
 Process Tracing design
 
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[8])
+diagnose_varying_args(num = 1, id = option[8])
+# sapply(1:2, diagnose_varying_args, id = option[8])
 ```
 
 Randomized Response design
 
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[9])
+diagnose_varying_args(num = 1, id = option[9])
+#sapply(1:2, diagnose_varying_args, id = option[9])
 ```
 
 Regression Discontinuity design
 
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[10])
+diagnose_varying_args(num = 1, id = option[10])
+# sapply(1:2, diagnose_varying_args, id = option[10])
 ```
 
 Spillover design
-# ```{r echo=F, warning=FALSE}
-# sapply(1:2, diagnose_varying_args, id = option[11])
-# ```
+```{r echo=F, warning=FALSE}
+diagnose_varying_args(num = 1, id = option[11])
+#sapply(1:2, diagnose_varying_args, id = option[11])
+```
 
 Two Arm Attrition design
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[12])
+diagnose_varying_args(num = 1, id = option[12])
+#sapply(1:2, diagnose_varying_args, id = option[12])
 ```
 
 Two Arm Covariate design
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[13])
+diagnose_varying_args(num = 1, id = option[13])
+# sapply(1:2, diagnose_varying_args, id = option[13])
 ```
 
 Two Arm design
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[14])
+# diagnose_varying_args(num = 1, id = option[14])
+#sapply(1:2, diagnose_varying_args, id = option[14])
 ```
 
 Two by Two design
 ```{r echo=F, warning=FALSE}
-sapply(1:2, diagnose_varying_args, id = option[15])
+#diagnose_varying_args(num = 1, id = option[15])
+# sapply(1:2, diagnose_varying_args, id = option[15])
 ```

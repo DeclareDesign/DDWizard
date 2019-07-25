@@ -189,27 +189,601 @@ summary {
 <h2>Running Code Time</h2>
 <div id="slowest-simulation-of-design" class="section level3">
 <h3>Slowest simulation of design</h3>
-<p>Compare the running time of simulations of all the designs, design parameters are all defaut. It’s easy to see that the slowest is cluster_sampling_designer, and the fastes is randomized_response_designer.</p>
-<pre><code>## binary_iv_designer: 2.458 sec elapsed
+<p>Compare the running time of simulations of all the designs, design parameters are initialized with default values. It’s easy to see that the slowest is cluster_sampling_designer, and the fastes is randomized_response_designer.</p>
+<pre><code>## binary_iv_designer: 2.409 sec elapsed
 ## [1] &quot;The implied ICC in (control) is 0.667&quot;
 ## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
 ## [1] &quot;The implied ICC in (control) is 0.667&quot;
 ## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
-## block_cluster_two_arm_designer: 2.181 sec elapsed
-## cluster_sampling_designer: 7.887 sec elapsed
-## factorial_designer: 1.63 sec elapsed
-## mediation_analysis_designer: 3.993 sec elapsed
-## multi_arm_designer: 2.004 sec elapsed
-## pretest_posttest_designer: 2.26 sec elapsed
-## process_tracing_designer: 1.058 sec elapsed
-## randomized_response_designer: 0.827 sec elapsed
-## regression_discontinuity_designer: 1.189 sec elapsed
-## spillover_designer: 1.627 sec elapsed
-## two_arm_attrition_designer: 2.381 sec elapsed
-## two_arm_covariate_designer: 1.781 sec elapsed
-## two_arm_designer: 1.101 sec elapsed
-## two_by_two_designer: 1.875 sec elapsed</code></pre>
-<p>Binary_design as example, based on two varied variables</p>
+## block_cluster_two_arm_designer: 1.837 sec elapsed
+## cluster_sampling_designer: 7.755 sec elapsed
+## factorial_designer: 1.618 sec elapsed
+## mediation_analysis_designer: 3.184 sec elapsed
+## multi_arm_designer: 1.716 sec elapsed
+## pretest_posttest_designer: 2.119 sec elapsed
+## process_tracing_designer: 0.92 sec elapsed
+## randomized_response_designer: 0.846 sec elapsed
+## regression_discontinuity_designer: 1.178 sec elapsed
+## spillover_designer: 1.595 sec elapsed
+## two_arm_attrition_designer: 2.354 sec elapsed
+## two_arm_covariate_designer: 1.677 sec elapsed
+## two_arm_designer: 0.99 sec elapsed
+## two_by_two_designer: 1.746 sec elapsed</code></pre>
+<p>Binary IV design</p>
+<pre><code>## N,binary_iv_designer: 21.884 sec elapsed
+## a_Y,binary_iv_designer: 9.867 sec elapsed
+## b_Y,binary_iv_designer: 9.796 sec elapsed
+## d_Y,binary_iv_designer: 9.788 sec elapsed
+## outcome_sd,binary_iv_designer: 9.687 sec elapsed</code></pre>
+<p>Block Cluster Two Arm design</p>
+<pre><code>## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## N_blocks,block_cluster_two_arm_designer: 12.393 sec elapsed
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 1, which differs from overall specified sd of 0&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 1, which differs from overall specified sd of 0.2&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 1, which differs from overall specified sd of 0.4&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 1, which differs from overall specified sd of 0.6&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 1, which differs from overall specified sd of 0.8&quot;
+## sd,block_cluster_two_arm_designer: 9.205 sec elapsed
+## [1] &quot;The implied ICC in (control) is 0.5&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 0.817, which differs from overall specified sd of 1&quot;
+## [1] &quot;The implied ICC in (control) is 0.528&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 0.841, which differs from overall specified sd of 1&quot;
+## [1] &quot;The implied ICC in (control) is 0.597&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 0.909, which differs from overall specified sd of 1&quot;
+## [1] &quot;The implied ICC in (control) is 0.675&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 1.013, which differs from overall specified sd of 1&quot;
+## [1] &quot;The implied ICC in (control) is 0.745&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;Overall sd is 1.143, which differs from overall specified sd of 1&quot;
+## sd_block,block_cluster_two_arm_designer: 9.338 sec elapsed
+## [1] &quot;The implied ICC in (control) is 0.5&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0&quot;
+## [1] &quot;Overall sd is 0.816, which differs from overall specified sd of 1&quot;
+## [1] &quot;The implied ICC in (control) is 0.528&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.107&quot;
+## [1] &quot;Overall sd is 0.841, which differs from overall specified sd of 1&quot;
+## [1] &quot;The implied ICC in (control) is 0.597&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.324&quot;
+## [1] &quot;Overall sd is 0.909, which differs from overall specified sd of 1&quot;
+## [1] &quot;The implied ICC in (control) is 0.675&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.519&quot;
+## [1] &quot;Overall sd is 1.013, which differs from overall specified sd of 1&quot;
+## [1] &quot;The implied ICC in (control) is 0.745&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.658&quot;
+## [1] &quot;Overall sd is 1.143, which differs from overall specified sd of 1&quot;
+## sd_cluster,block_cluster_two_arm_designer: 9.355 sec elapsed
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## sd_i_1,block_cluster_two_arm_designer: 11.124 sec elapsed
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## rho,block_cluster_two_arm_designer: 9.508 sec elapsed
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## control_mean,block_cluster_two_arm_designer: 9.24 sec elapsed
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## ate,block_cluster_two_arm_designer: 9.45 sec elapsed
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## [1] &quot;The implied ICC in (control) is 0.667&quot;
+## [1] &quot;The implied ICC in (control) conditional on block is  0.5&quot;
+## treatment_mean,block_cluster_two_arm_designer: 9.336 sec elapsed</code></pre>
+<p>Cluster Sampling design, “N_blocks” is only varied.</p>
+<pre><code>## N_blocks,cluster_sampling_designer: 124.859 sec elapsed</code></pre>
+<p>Factorial design</p>
+<pre><code>## N,factorial_designer: 21.579 sec elapsed
+## sd,factorial_designer: 9.77 sec elapsed</code></pre>
+<p>Mediation Analysis design</p>
+<pre><code>## N,factorial_designer: 21.167 sec elapsed
+## sd,factorial_designer: 9.827 sec elapsed</code></pre>
+<!-- Multi Arm design -->
+<!-- #```{r echo=F, warning=FALSE} -->
+<!-- #sapply(1:2, diagnose_varying_args, id = option[6]) -->
+<!-- #``` -->
+<p>Pretest Posttest design</p>
+<pre><code>## N,pretest_posttest_designer: 26.182 sec elapsed
+## ate,pretest_posttest_designer: 11.872 sec elapsed</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient
+## 
+## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 3 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## 2 coefficients  not defined because the design matrix is rank deficient</code></pre>
+<pre><code>## sd_1,pretest_posttest_designer: 11.734 sec elapsed
+## sd_2,pretest_posttest_designer: 11.899 sec elapsed
+## rho,pretest_posttest_designer: 12.027 sec elapsed
+## attrition_rate,pretest_posttest_designer: 12.122 sec elapsed</code></pre>
+<p>Process Tracing design</p>
+<p>Randomized Response design</p>
+<pre><code>## N,randomized_response_designer: 11.092 sec elapsed
+## prob_forced_yes,randomized_response_designer: 5.071 sec elapsed
+## prevalence_rate,randomized_response_designer: 5.068 sec elapsed
+## withholding_rate,randomized_response_designer: 5.088 sec elapsed</code></pre>
+<p>Regression Discontinuity design</p>
+<pre><code>## N,regression_discontinuity_designer: 14.937 sec elapsed
+## tau,regression_discontinuity_designer: 6.858 sec elapsed
+## outcome_sd,regression_discontinuity_designer: 6.58 sec elapsed
+## cutoff,regression_discontinuity_designer: 6.284 sec elapsed
+## bandwidth,regression_discontinuity_designer: 6.388 sec elapsed
+## poly_reg_order,regression_discontinuity_designer: 6.574 sec elapsed</code></pre>
+<p>Spillover design</p>
+<pre><code>## N_groups,spillover_designer: 16.769 sec elapsed
+## sd_i,spillover_designer: 8.948 sec elapsed
+## gamma,spillover_designer: 8.633 sec elapsed</code></pre>
+<p>Two Arm Attrition design</p>
+<pre><code>## N,two_arm_attrition_designer: 29.703 sec elapsed
+## a_R,two_arm_attrition_designer: 13.505 sec elapsed
+## b_R,two_arm_attrition_designer: 13.692 sec elapsed
+## a_Y,two_arm_attrition_designer: 35.794 sec elapsed
+## b_Y,two_arm_attrition_designer: 13.776 sec elapsed
+## rho,two_arm_attrition_designer: 13.775 sec elapsed</code></pre>
+<p>Two Arm Covariate design</p>
+<pre><code>## N,two_arm_covariate_designer: 23.316 sec elapsed
+## prob,two_arm_covariate_designer: 10.343 sec elapsed
+## control_mean,two_arm_covariate_designer: 10.415 sec elapsed
+## sd,two_arm_covariate_designer: 10.481 sec elapsed
+## ate,two_arm_covariate_designer: 10.493 sec elapsed
+## h,two_arm_covariate_designer: 10.613 sec elapsed
+## treatment_mean,two_arm_covariate_designer: 10.448 sec elapsed
+## rho_WY,two_arm_covariate_designer: 10.477 sec elapsed
+## rho_WZ,two_arm_covariate_designer: 10.555 sec elapsed</code></pre>
+<p>Two Arm design</p>
+<p>Two by Two design</p>
 </div>
 </div>
 
