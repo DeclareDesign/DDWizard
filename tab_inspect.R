@@ -658,9 +658,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d <- design_tab_proxy$design_instance()
             d_estimates <- draw_estimates(d)
             diag_info <- get_diagnosands_info(d)
-            print("____")
-            print(diag_info)
-            print("_____")
+
             # get available diagnosands
             react$diagnosands_call <- diag_info$diagnosands_call
             available_diagnosands <- diag_info$available_diagnosands

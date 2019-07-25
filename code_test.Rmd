@@ -10,22 +10,24 @@ knitr::opts_chunk$set(echo = TRUE)
 # load the package
 library(tictoc)
 library(DesignLibrary)
-library(dplyr)
+
+
 source('uihelpers.R')
 source('common.R')
 source('inspect_helpers.R')
+
 # ---------------------------- functions -----------------------------------
 # return args which are not vectors, num cannot be larger than 3 
 args_index <- function(name, num, arg_defs){
     # find out all the vector parameters in 
     for (index in 1:length(name)){
-       if (arg_defs[arg_defs$names == name[index],]$vector == T ||
+        if (arg_defs[arg_defs$names == name[index],]$vector == T ||
             arg_defs[arg_defs$names == name[index],]$class == "logical" || 
             "outcome_name"  ==  name[index] || 
             "k" == name[index] ||
             "m_arms" == name[index] ||
             "sd_i_0" == name[index] ||
-           "icc" == name[index]){
+            "icc" == name[index]){
             name[index] <- NA
         }else{
             next()
@@ -78,8 +80,34 @@ get_designs <- function(id){
     
     return(list(design = design, arg_defs = arg_defs , args_eval = args_eval))
 }
+# function of running  the diagnoses 
+run_diagnoses_test_code <- function(designer, args, sims, bootstrap_sims) {
+    all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
+    # simulate data
+    simdata <- simulate_designs(all_designs, sims = sims)
+    # run diagnoses using the simulated data
+    diag_res <- diagnose_designs(simdata,bootstrap_sims = bootstrap_sims)
+    return(diag_res)
+}
+
+# varying the first arg 
+varying_arg <- function(argname){
+    if (argname  == 'N') {
+        n_int <- args_eval[[argname]]
+        args_eval[[argname]] <- seq(n_int,  n_int + 100, 10)
+    } else {
+        min_int <- arg_defs[arg_defs$names == argname,]$inspector_min
+        step_int <- arg_defs[arg_defs$names == argname,]$inspector_step
+        max_int <- min_int + 4*step_int
+        args_eval[[argname]] <- seq(min_int,  max_int, step_int)
+    }
+    return(args_eval)
+}
+
+
+# running time by different no. of combination arguments and id of design 
+# num can be only 1, 2, 3
 diagnose_varying_args <- function(num, id){
-    
     design <- get_designs(id)[["design"]]
     arg_defs <- get_designs(id)[["arg_defs"]]
     args_eval <- get_designs(id)[["args_eval"]]
@@ -103,19 +131,11 @@ diagnose_varying_args <- function(num, id){
         thrid_arg <- 1
     }
 
-    
+
     for (i in 1:nrow(arg_index)){
         first_arg <- agrname_novec[arg_index[i,][[1]]]
-        if (first_arg  == 'N') {
-            n_int <- args_eval[[first_arg]]
-            args_eval[[first_arg]] <- seq(n_int,  n_int + 100, 10)
-        } else {
-            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
-            step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
-            args_eval[[first_arg]] <- seq(min_int,  max_int, step_int)
-        }
-        
+        args_eval <-  varying_arg(first_arg)
+
         if (!is.null(second_arg) & !is.null(thrid_arg) & !is.null(first_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
             thrid_arg <- agrname_novec[arg_index[i,][[3]]]
@@ -129,14 +149,11 @@ diagnose_varying_args <- function(num, id){
             step_int <- arg_defs[arg_defs$names == thrid_arg,]$inspector_step
             max_int <- min_int + 4*step_int
             args_eval[[thrid_arg]] <- seq(min_int,  max_int, step_int)
-            
+
             tic(paste(first_arg, second_arg, third_arg, id, sep = ","))
-            
-            all_designs <- eval_bare(expr(expand_design(designer = design, expand = TRUE, !!!args_eval)))
-            simdata <- simulate_designs(all_designs, sims = 100)
-            diag_info <- get_diagnosands_info(design)$diagnosands_call
-            diag_res <- diagnose_designs(simdata, bootstrap_sims = 30)
-            
+
+            diag_result <- run_diagnoses_test_code(design, args_eval, 100, 30)
+
             toc()
             args_eval <- get_designs(id)[["args_eval"]]
         }else if(!is.null(second_arg)){
@@ -146,29 +163,22 @@ diagnose_varying_args <- function(num, id){
             step_int <- arg_defs[arg_defs$names == second_arg,]$inspector_step
             max_int <- min_int + 4*step_int
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
-            
+
             tic(paste(first_arg, second_arg, id, sep = ","))
-            
-            all_designs <- eval_bare(expr(expand_design(designer = design, expand = TRUE, !!!args_eval)))
-            simdata <- simulate_designs(all_designs, sims = 100)
-            diag_info <- get_diagnosands_info(design)$diagnosands_call
-            diag_res <- diagnose_designs(simdata, bootstrap_sims = 30)
-            
+            diag_result <- run_diagnoses_test_code(design, args_eval, 100, 30)
             toc()
             args_eval <- get_designs(id)[["args_eval"]]
         }else{
             tic(paste(first_arg,id, sep = ","))
-            
-            all_designs <- eval_bare(expr(expand_design(designer = design, expand = TRUE, !!!args_eval)))
-            simdata <- simulate_designs(all_designs, sims = 100)
-            diag_info <- get_diagnosands_info(design)$diagnosands_call
-            diag_res <- diagnose_designs(simdata, bootstrap_sims = 30)
-            
+            diag_result <- run_diagnoses_test_code(design, args_eval, 100, 30)
             toc()
             args_eval <- get_designs(id)[["args_eval"]]
         }
     }
+    
+    return(diag_result)
 }
+
 ```
 
 ## Running Code Time 
@@ -251,7 +261,7 @@ diagnose_varying_args(num = 1, id = option[7])
 Process Tracing design
 
 ```{r echo=F, warning=FALSE}
-diagnose_varying_args(num = 1, id = option[8])
+# iagnose_varying_args(num = 1, id = option[8])
 # sapply(1:2, diagnose_varying_args, id = option[8])
 ```
 
