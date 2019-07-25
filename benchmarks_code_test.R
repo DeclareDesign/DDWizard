@@ -97,20 +97,6 @@ for (i in 1:length(cached)){
 }
 option <- option[complete.cases(option)]
 
-# varying args 
-varying_arg <- function(argname, args){
-    if (argname  == 'N') {
-        n_int <- args[[argname]]
-        args[[argname]] <- seq(n_int,  n_int + 100, 10)
-    } else {
-        min_int <- arg_defs[arg_defs$names == argname,]$inspector_min
-        step_int <- arg_defs[arg_defs$names == argname,]$inspector_step
-        max_int <- min_int + 4*step_int
-        args[[argname]] <- seq(min_int,  max_int, step_int)
-    }
-    return(args)
-}
-
 
 # running time by different no. of combination arguments and id of design 
 # num can be only 1, 2, 3
@@ -141,7 +127,15 @@ diagnose_varying_args <- function(num, id){
 
     for (i in 1:nrow(arg_index)){
         first_arg <- agrname_novec[arg_index[i,][[1]]]
-        args_eval <-  varying_arg(first_arg, args_eval)
+        if (first_arg  == 'N') {
+            n_int <- args[[first_arg]]
+            args[[first_arg]] <- seq(n_int,  n_int + 100, 10)
+        } else {
+            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
+            max_int <- min_int + 4*step_int
+            args[[first_arg]] <- seq(min_int,  max_int, step_int)
+        }
 
         if (!is.null(second_arg) & !is.null(thrid_arg) & !is.null(first_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
