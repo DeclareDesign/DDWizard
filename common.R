@@ -1,6 +1,7 @@
 # Common utility functions.
 #
 # Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
 # Sisi Huang <sisi.huang@wzb.eu>
 #
 # Oct. 2018
@@ -75,13 +76,14 @@ round_df <- function(df, digits){
     df
 }
 
-
 # Parse a sequence string `s` in the form of "n, n+s, ..., m", e.g. "1, 2, ..., 5" or "0, 0.25, ..., 1", etc.
 # Convert the result to a vector of class `cls`.
 # Finds the step `s` and generates the sequence using `seq()`.
 # If a sequence without ellipsis that indicate range is passed, then the sequence is used as is. So
 # a string of "1, 3, 8, 2" will just be split and converted depending on `cls`.
 # Is fault tolerant to commas, so "1, 2 ... 5" is also accepted.
+# 
+# If you want to react on input errors, this function should be wrapped inside a tryCatch expression.
 parse_sequence_string <- function(s, cls = 'numeric') {
     if (cls %in% c('numeric', 'integer') && grepl('...', s, fixed = TRUE)) {   # int/num sequences with range like 1, 2, ..., 10
         start_end <- str_split(s, "\\.\\.\\.")[[1]]
@@ -138,6 +140,8 @@ parse_sequence_string <- function(s, cls = 'numeric') {
 # then be a list of length N, where N is the number of sequences. Each list item is then a numeric
 # vector of variable length.
 #
+# If you want to react on input errors, this function should be wrapped inside a tryCatch expression.
+#
 # If the input cannot be parsed, NULL will be returned.
 parse_sequence_of_sequences_string <- function(s, cls = 'numeric', require_rectangular = FALSE) {
     if (str_trim(s) == '') return(list())
@@ -185,18 +189,43 @@ get_designer_args <- function(designer) {
     formals(designer)
 }
 
+# Take a argument value `arg_val` from a designer with class `arg_class` and `arg_is_vector` indicating if
+# the designer expects this argument to be a vector. Convert the argument to fractions for numbers with many repeating digits
+# (like 0.333... will become 1/3).
+# If `to_char` is TRUE, additionally convert the result to a character vector as formatted for an input box (e.g.
+# "(1/3, 1/3, 1/3)" for a vector input with fractions).
+designer_arg_value_to_fraction <- function(arg_val, arg_class, arg_is_vector, to_char = FALSE) {
+    # try to convert to fractions if there is a number with many repeating digits after the decimal point like "0.3333333333"
+    if (arg_class == "numeric" && any(grepl(sprintf('\\.(%s)$', paste(sprintf('%s{10,}', 1:9), collapse = '|')), as.character(arg_val)))) {
+        arg_val <- MASS::fractions(arg_val)
+    }
+    
+    if (to_char) {
+        arg_val <- as.character(arg_val)
+        
+        if (arg_is_vector) {  # vector of vectors input
+            return(sprintf('(%s)', paste(arg_val, collapse = ', ')))
+        } else {
+            return(arg_val)
+        }
+    } else {
+        arg_val
+    }
+}
+
+
 # evaluate argument defaults of designers in separate environment (because they might be "language" constructs)
 # return evaluated argument defaults
 # `args` is a list of arguments with defaults as returned from `formals(<designer>)`
 evaluate_designer_args <- function(args, definition) {
     eval_envir <- new.env()
     
-    args_eval <- lapply(1:length(args), function(a){
-        evaluated_arg <- invisible(eval(args[[a]], envir = eval_envir))
-        # convert the value to fraction 
-        if (any(vapply(evaluated_arg, nchar, FUN.VALUE=numeric(1)) > 10) && definition[a, "class"] == "numeric"){
-            evaluated_arg <- fractions(evaluated_arg)
-        }
+    args_eval <- lapply(1:length(args), function(a) {
+        argdef <- definition[a,]
+        
+        # convert the value to fraction if necessary
+        evaluated_arg <- designer_arg_value_to_fraction(invisible(eval(args[[a]], envir = eval_envir)), argdef$class, argdef$vector)
+        
         invisible(assign(x = names(args)[a], value = evaluated_arg, envir = eval_envir))
         hold <- invisible(get(names(args)[a], envir = eval_envir))
         if(length(hold) > 1) hold <- paste0(hold, collapse = ", ")
@@ -334,4 +363,24 @@ run_diagnoses <- function(designer, args, sims, bootstrap_sims, diagnosands_call
     }
 
     list(results = diag_res, from_cache = from_cache)
+}
+
+# Show a shinyalert message box with title `title` and content loaded from `html_file`.
+# Set label of the confirmation button to `confirm_btn_label`.
+alert_with_content_from_html_file <- function(title, html_file, confirm_btn_label = 'OK', className = '') {
+    shinyalert(
+        title = title,
+        text = readChar(html_file, file.info(html_file)$size),
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE,
+        html = TRUE,
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = confirm_btn_label,
+        timer = 0,
+        imageUrl = "",
+        confirmButtonCol = "light-blue darken-3", 
+        animation = FALSE,
+        className = className
+    )
 }

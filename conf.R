@@ -1,6 +1,9 @@
 # Configuration options
 #
+# Sisi Huang <sisi.huang@wzb.eu>
 # Markus Konrad <markus.konrad@wzb.eu>
+# Clara Bicalho <clara.bicalho@wzb.eu>
+#
 # Oct. 2018
 #
 
