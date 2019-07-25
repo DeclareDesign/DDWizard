@@ -58,6 +58,7 @@ get_designs <- function(id){
     args_eval <- evaluate_designer_args(args_design, attr(design, 'definitions'))
     args_eval[sapply(args_eval, is.null)] <- NULL
     argname <- names(args_eval)
+    # if ("conditions" %in% argname) argname <- argname[argname != "conditions"]
     # set the right class of args 
     for(i  in (1: length(argname))){
         if (arg_defs[arg_defs$names == argname[i], ]$class != class(args_eval[[argname[i]]]) & is.character(args_eval[[argname[i]]])){
@@ -66,17 +67,17 @@ get_designs <- function(id){
                 arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
                 args_eval[[argname[i]]] <- list(arg_value)
             }       
+        }else if (arg_defs[arg_defs$names == argname[i], ]$class == "character")){
+            args_eval[[argname[i]]] <- NULL
         }
-    }
-    
+   }
     return(list(design = design, arg_defs = arg_defs , args_eval = args_eval))
-}
+}   
 # function of running the diagnoses 
 run_diagnoses_test_code <- function(designer, args, sims, bootstrap_sims) {
     
-    log <- capture.output({
-        all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
-    })
+   
+    all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
     # simulate data
     simdata <- simulate_designs(all_designs, sims = sims)
     # run diagnoses using the simulated data
@@ -128,13 +129,13 @@ diagnose_varying_args <- function(num, id){
     for (i in 1:nrow(arg_index)){
         first_arg <- agrname_novec[arg_index[i,][[1]]]
         if (first_arg  == 'N') {
-            n_int <- args[[first_arg]]
-            args[[first_arg]] <- seq(n_int,  n_int + 100, 10)
+            n_int <- args_eval[[first_arg]]
+            args_eval[[first_arg]] <- seq(n_int,  n_int + 10, 10)
         } else {
             min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
             step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
             max_int <- min_int + 4*step_int
-            args[[first_arg]] <- seq(min_int,  max_int, step_int)
+            args_eval[[first_arg]] <- seq(min_int,  max_int, step_int)
         }
 
         if (!is.null(second_arg) & !is.null(thrid_arg) & !is.null(first_arg)){

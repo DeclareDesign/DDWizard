@@ -27,7 +27,8 @@ args_index <- function(name, num, arg_defs){
             "k" == name[index] ||
             "m_arms" == name[index] ||
             "sd_i_0" == name[index] ||
-            "icc" == name[index]){
+            "icc" == name[index] ||
+            "conditions" == name[index]){
             name[index] <- NA
         }else{
             next()
@@ -75,9 +76,12 @@ get_designs <- function(id){
                 arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
                 args_eval[[argname[i]]] <- list(arg_value)
             }       
+        }else if (arg_defs[arg_defs$names == argname[i], ]$class == "character"){
+            args_eval[[argname[i]]] <- NULL
         }
-    }
     
+    
+    }
     return(list(design = design, arg_defs = arg_defs , args_eval = args_eval))
 }
 # function of running  the diagnoses 
@@ -121,13 +125,13 @@ diagnose_varying_args <- function(num, id){
     for (i in 1:nrow(arg_index)){
         first_arg <- agrname_novec[arg_index[i,][[1]]]
         if (first_arg  == 'N') {
-            n_int <- args[[first_arg]]
-            args[[first_arg]] <- seq(n_int,  n_int + 100, 10)
+            n_int <- args_eval[[first_arg]]
+            args_eval[[first_arg]] <- seq(n_int,  n_int + 10, 10)
         } else {
             min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
             step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
-            args[[first_arg]] <- seq(min_int,  max_int, step_int)
+            max_int <- min_int + step_int
+            args_eval[[first_arg]] <- seq(min_int,  max_int, step_int)
         }
 
         if (!is.null(second_arg) & !is.null(thrid_arg) & !is.null(first_arg)){
@@ -136,12 +140,12 @@ diagnose_varying_args <- function(num, id){
             # vary the second args
             min_int <- arg_defs[arg_defs$names == second_arg,]$inspector_min
             step_int <- arg_defs[arg_defs$names == second_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
+            max_int <- min_int + step_int
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
             # vary the thrid args
             min_int <- arg_defs[arg_defs$names == thrid_arg,]$inspector_min
             step_int <- arg_defs[arg_defs$names == thrid_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
+            max_int <- min_int + step_int
             args_eval[[thrid_arg]] <- seq(min_int,  max_int, step_int)
 
             tic(paste(first_arg, second_arg, third_arg, id, sep = ","))
@@ -155,7 +159,7 @@ diagnose_varying_args <- function(num, id){
             # vary the second args
             min_int <- arg_defs[arg_defs$names == second_arg,]$inspector_min
             step_int <- arg_defs[arg_defs$names == second_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
+            max_int <- min_int + step_int
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
 
             tic(paste(first_arg, second_arg, id, sep = ","))
@@ -207,8 +211,7 @@ Binary IV design
 
 ```{r binary_iv, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[1])
-diagnose_varying_args(num = 2, id = option[1])
-# sapply(1:2, diagnose_varying_args, id = option[1])
+# diagnose_varying_args(num = 2, id = option[1])
 ```
 
 Block Cluster Two Arm design
@@ -216,7 +219,6 @@ Block Cluster Two Arm design
 ```{r block_cluster_two_arm, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[2])
 # diagnose_varying_args(num = 2, id = option[2])
-#sapply(1:2, diagnose_varying_args, id = option[2])
 ```
 
 Cluster Sampling design, "N_blocks" is only varied.
@@ -227,7 +229,7 @@ diagnose_varying_args(num = 1, id = option[3])
 
 Factorial design
 
-```{r echo=F, warning=FALSE}
+```{r factorial, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[4])
 # diagnose_varying_args(num =2, id = option[4])
 # sapply(1:2, diagnose_varying_args, id = option[4])
@@ -235,58 +237,59 @@ diagnose_varying_args(num = 1, id = option[4])
 
 Mediation Analysis design
 
-```{r echo=F, warning=FALSE}
-diagnose_varying_args(num = 1, id = option[4])
+```{r mediation_analysis, echo=F, warning=FALSE}
+diagnose_varying_args(num = 1, id = option[5])
 ```
 
-<!-- Multi Arm design -->
+Multi Arm design
 
-<!-- #```{r echo=F, warning=FALSE} -->
-<!-- #sapply(1:2, diagnose_varying_args, id = option[6]) -->
-<!-- #``` -->
+```{r multi_arm, echo=F, warning=FALSE}
+diagnose_varying_args(num = 1, id = option[6])
+#sapply(1:2, diagnose_varying_args, id = option[6])
+```
 
 Pretest Posttest design
 
-```{r echo=F, warning=FALSE}
+```{r pretest_posttest, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[7])
 # sapply(1:2, diagnose_varying_args, id = option[7])
 ```
 
 Process Tracing design
 
-```{r echo=F, warning=FALSE}
-# iagnose_varying_args(num = 1, id = option[8])
+```{r process_tracing,echo=F, warning=FALSE}
+# diagnose_varying_args(num = 1, id = option[8])
 # sapply(1:2, diagnose_varying_args, id = option[8])
 ```
 
 Randomized Response design
 
-```{r echo=F, warning=FALSE}
+```{r randomized_response, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[9])
 #sapply(1:2, diagnose_varying_args, id = option[9])
 ```
 
 Regression Discontinuity design
 
-```{r echo=F, warning=FALSE}
+```{r regression_discontinuity, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[10])
 # sapply(1:2, diagnose_varying_args, id = option[10])
 ```
 
 Spillover design
-```{r echo=F, warning=FALSE}
+```{r spillover, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[11])
 #sapply(1:2, diagnose_varying_args, id = option[11])
 ```
 
 Two Arm Attrition design
-```{r echo=F, warning=FALSE}
+```{r two_arm_attrition, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[12])
 #sapply(1:2, diagnose_varying_args, id = option[12])
 ```
 
 Two Arm Covariate design
-```{r echo=F, warning=FALSE}
+```{r two_arm_covariate, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[13])
 # sapply(1:2, diagnose_varying_args, id = option[13])
 ```
