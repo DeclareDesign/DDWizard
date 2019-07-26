@@ -215,9 +215,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         req(input$plot_conf_facets_param)
         req(input$plot_conf_diag_param)
         
-        # assign a new datdframe, then subset this dataframe by estimand or estimator variable
+        # assign a new dataframe, then subset this dataframe by estimand or estimator variable
         plotdf <- react$diagnosands
-        if (isTruthy(input$plot_conf_estimand) | isTruthy(input$plot_conf_estimator)) {
+        if (isTruthy(input$plot_conf_estimand) && isTruthy(input$plot_conf_estimator)) {
             plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
         }
 
@@ -430,7 +430,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 )
                 
                 # subset the plotdf by estimand or estimator variable
-                if (isTruthy(input$plot_conf_estimand) | isTruthy(input$plot_conf_estimator)) {
+                if (isTruthy(input$plot_conf_estimand) && isTruthy(input$plot_conf_estimator)) {
                         plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
                 }
                 # if the "color" parameter is set, add it to the aeshetics definition
