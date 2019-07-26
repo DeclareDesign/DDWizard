@@ -178,7 +178,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         react$insp_args_used_in_plot <- insp_args
         react$insp_args_used_in_plot$simconf_sim_num <- input$simconf_sim_num
         react$insp_args_used_in_plot$simconf_bootstrap_num <- input$simconf_bootstrap_num
-        
+
         # run diagnoses and get results
         diag_results <- run_diagnoses_using_inspection_args(insp_args, advance_progressbar = 1/6)
         
@@ -190,11 +190,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         react$diagnosands_cached <- diag_results$from_cache
         react$diagnosands_full <- diag_results$results$diagnosands_df
         plotdf <- diag_results$results$diagnosands_df
-        
-        if (isTruthy(input$plot_conf_estimand)) {
-            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]   
-        }
-        
         react$diagnosands <- plotdf
         diag_results$results$diagnosands_df_for_plot <- plotdf
         
@@ -219,7 +214,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         req(input$plot_conf_color_param)
         req(input$plot_conf_facets_param)
         req(input$plot_conf_diag_param)
-   
+        
+        # assign a new dataframe, then subset this dataframe by estimand or estimator variable
+        plotdf <- react$diagnosands
+        if (isTruthy(input$plot_conf_estimand) && isTruthy(input$plot_conf_estimator)) {
+            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
+        }
+
         # set columns to show
         cols <- c(input$plot_conf_x_param)
         
@@ -237,7 +238,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         
         # return data frame subset
-        react$diagnosands[cols]
+        plotdf[cols]
     })
     
     # determines whether it is necessary to re-run the diagnoses (i.e. when also the comparison parameters
@@ -253,10 +254,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
                                                  design_tab_proxy$input)
-            
+       
             insp_args$simconf_sim_num <- input$simconf_sim_num
             insp_args$simconf_bootstrap_num <- input$simconf_bootstrap_num
-            
             return(!lists_equal_shallow(react$insp_args_used_in_plot, insp_args, na.rm = TRUE))
         }
     })
@@ -429,6 +429,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     
                 )
                 
+                # subset the plotdf by estimand or estimator variable
+                if (isTruthy(input$plot_conf_estimand) && isTruthy(input$plot_conf_estimator)) {
+                        plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
+                }
                 # if the "color" parameter is set, add it to the aeshetics definition
                 if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
                     plotdf[[input$plot_conf_color_param]] <- factor(plotdf[[input$plot_conf_color_param]])

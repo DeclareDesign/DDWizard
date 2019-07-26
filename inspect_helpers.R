@@ -158,7 +158,7 @@ get_diagnosands_info <- function(designer) {
         quick_diagnosis <- suppressWarnings(diagnose_design(designer, sims = 2, bootstrap_sims = 0)$diagnosands_df)
         res$available_diagnosands <- setdiff(names(quick_diagnosis), c("design_label", "estimand_label", "estimator_label",
                                                                        "term", "n_sims"))
-        res$available_diagnosands <- grep("se(", res$available_diagnosands, fixed = TRUE, invert = TRUE)
+        res$available_diagnosands <- grep("se(", res$available_diagnosands, fixed = TRUE, invert = TRUE, value = TRUE)
     }
     
     res
