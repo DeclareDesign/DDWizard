@@ -55,6 +55,14 @@ This shiny app displays several tabs, each of which is a separate shiny module (
 - `uihelpers.R`: UI related utility functions
 - `conf.R`: Configuration options
 
+## Documentation
+
+The `_docs` folder contains the following documentation files that provide an overview:
+
+- `ddnotes.Rmd`: introduces designers from the DesignLibrary package from a DDWizard development perspective; read this first
+- `app_structure.Rmd`: gives and overview about the source code structure for DDWizard
+
+
 ## Tests
 
 ### Unit tests

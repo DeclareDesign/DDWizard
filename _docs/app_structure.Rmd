@@ -1,0 +1,31 @@
+---
+title: "DDWizard source code structure"
+author: "Markus Konrad"
+date: "July 29, 2019"
+output: html_document
+---
+
+## Introduction
+
+DDWizard is an [R shiny app](https://shiny.rstudio.com/). Since it is a fairly large shiny app we divided it into two [modules](https://shiny.rstudio.com/articles/modules.html) which reflect the (currently) two main uses of the app:
+
+- design: load a design*er* from the DesignLibrary, specify design parameters, simulate design, get its code, etc.; implemented in `tab_design.R`
+- diagnose (aka "inspect"): vary design parameters and investigate their effects on different diagnostic properties; implemented in `tab_inspect.R`
+
+UI-wise, these modules are represented as two tabs, "Design" and "Diagnose".
+
+The main Shiny app file `app.R` defines the overall layout, "global" input elements and actions (e.g. showing the help text or the bookmark feature) and calls both modules as depicted below:
+
+![Module structure](modules.png)
+
+The design module exports several functions and objects (this is done in the final `return` statement in the last lines of `tab_design.R`) so that the diagnosis module can get access to specific parts of the design module. For example, the design module exports a function to get the current design instance. For more information on communication between R shiny modules see [this article](https://shiny.rstudio.com/articles/communicate-bet-modules.html).
+
+
+## UI Design
+
+
+## Reactivity
+
+
+## Share / bookmark feature
+
