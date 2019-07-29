@@ -211,9 +211,31 @@ $(document).ready(function () {
 <p class="caption">Module structure</p>
 </div>
 <p>The design module exports several functions and objects (this is done in the final <code>return</code> statement in the last lines of <code>tab_design.R</code>) so that the diagnosis module can get access to specific parts of the design module. For example, the design module exports a function to get the current design instance. For more information on communication between R shiny modules see <a href="https://shiny.rstudio.com/articles/communicate-bet-modules.html">this article</a>.</p>
+<p>Each module has its own <em>namespace</em> for UI inputs/outputs, named <code>tab_design</code> and <code>tab_inspect</code> respectively.</p>
+<!--
+## App information flow by example
+
+The following should provide an illustrative example depicting the internal information flow and the triggered actions for a common use case: loading a designer (the Two Arm designer), setting some design parameters, getting the design code, drawing simulated samples and finally diagnosing the design by varying some of its parameters.
+
+### 1. Initial state
+
+The app starts with the "design" tab without a designer being loaded.
+
+### 2. Loading the Two Arm designer
+
+### 3. Setting parameters
+-->
 </div>
 <div id="ui-design" class="section level2">
 <h2>UI Design</h2>
+<p>We use the following extension packages for Shiny for specific UI components:</p>
+<ul>
+<li><a href="https://ericrayanderson.github.io/shinymaterial/">shinymaterial</a> for pages, tabs and “cards” (boxes of content)</li>
+<li><a href="https://ebailey78.github.io/shinyBS/">shinyBS</a> (“Twitter Bootstrap components for Shiny”) for collapsible panels and help texts in “popover” boxes</li>
+<li><a href="https://cran.r-project.org/web/packages/shinyalert/index.html">shinyalert</a> for popup messages (modals)</li>
+<li><a href="https://deanattali.com/shinyjs/">shinyjs</a> mostly for enabling / disabling buttons interactively</li>
+</ul>
+<p>The whole app is a <code>material_page</code> with two tabs, each defined in a separate module as <code>material_tab_content</code>. In both tabs, there is one <code>material_row</code> defined with two (design tab) or three (diagnose tab) <code>material_column</code>s. In each column, the UI components are placed inside boxes (<code>material_card</code>s).</p>
 </div>
 <div id="reactivity" class="section level2">
 <h2>Reactivity</h2>

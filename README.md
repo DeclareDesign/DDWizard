@@ -22,7 +22,6 @@ Authors:
 - datapasta
 - shiny
 - shinyalert
-- shinythemes
 - shinyBS
 - shinyjs
 - stringr

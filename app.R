@@ -13,7 +13,6 @@
 library(DesignLibrary)
 library(shiny)
 library(shinymaterial)
-library(shinythemes)
 library(shinyalert)
 library(shinyBS)
 library(shinyjs)

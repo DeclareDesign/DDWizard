@@ -20,9 +20,32 @@ The main Shiny app file `app.R` defines the overall layout, "global" input eleme
 
 The design module exports several functions and objects (this is done in the final `return` statement in the last lines of `tab_design.R`) so that the diagnosis module can get access to specific parts of the design module. For example, the design module exports a function to get the current design instance. For more information on communication between R shiny modules see [this article](https://shiny.rstudio.com/articles/communicate-bet-modules.html).
 
+Each module has its own *namespace* for UI inputs/outputs, named `tab_design` and `tab_inspect` respectively.
+
+<!--
+## App information flow by example
+
+The following should provide an illustrative example depicting the internal information flow and the triggered actions for a common use case: loading a designer (the Two Arm designer), setting some design parameters, getting the design code, drawing simulated samples and finally diagnosing the design by varying some of its parameters.
+
+### 1. Initial state
+
+The app starts with the "design" tab without a designer being loaded.
+
+### 2. Loading the Two Arm designer
+
+### 3. Setting parameters
+-->
 
 ## UI Design
 
+We use the following extension packages for Shiny for specific UI components:
+
+- [shinymaterial](https://ericrayanderson.github.io/shinymaterial/) for pages, tabs and "cards" (boxes of content)
+- [shinyBS](https://ebailey78.github.io/shinyBS/) ("Twitter Bootstrap components for Shiny") for collapsible panels and help texts in "popover" boxes
+- [shinyalert](https://cran.r-project.org/web/packages/shinyalert/index.html) for popup messages (modals)
+- [shinyjs](https://deanattali.com/shinyjs/) mostly for enabling / disabling buttons interactively
+
+The whole app is a `material_page` with two tabs, each defined in a separate module as `material_tab_content`. In both tabs, there is one `material_row` defined with two (design tab) or three (diagnose tab) `material_column`s. In each column, the UI components are placed inside boxes (`material_card`s).
 
 ## Reactivity
 
