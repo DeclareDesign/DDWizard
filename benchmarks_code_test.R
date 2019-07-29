@@ -18,7 +18,8 @@ args_index <- function(name, num, arg_defs){
             "k" == name[index] ||
             "m_arms" == name[index] ||
             "sd_i_0" == name[index] ||
-            "icc" == name[index]){
+            "icc" == name[index] ||
+            "cor_E1E2_H" == name[index]){
             name[index] <- NA
         }else{
             next()
@@ -67,21 +68,23 @@ get_designs <- function(id){
                 arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
                 args_eval[[argname[i]]] <- list(arg_value)
             }       
-        }else if (arg_defs[arg_defs$names == argname[i], ]$class == "character")){
+        }else if (arg_defs[arg_defs$names == argname[i], ]$class == "character"){
             args_eval[[argname[i]]] <- NULL
         }
    }
     return(list(design = design, arg_defs = arg_defs , args_eval = args_eval))
-}   
+}
+
 # function of running the diagnoses 
 run_diagnoses_test_code <- function(designer, args, sims, bootstrap_sims) {
-    
-   
-    all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
-    # simulate data
-    simdata <- simulate_designs(all_designs, sims = sims)
-    # run diagnoses using the simulated data
-    diag_res <- diagnose_designs(simdata,bootstrap_sims = bootstrap_sims)
+   # slience the message from all_designs 
+    m <- capture.output({
+        all_designs <- eval_bare(expr(expand_design(designer = designer, expand = TRUE, !!!args)))
+        # simulate data
+        simdata <- simulate_designs(all_designs, sims = sims)
+        # run diagnoses using the simulated data
+        diag_res <- diagnose_designs(simdata,bootstrap_sims = bootstrap_sims)
+    })
     return(diag_res)
 }
 
@@ -114,15 +117,15 @@ diagnose_varying_args <- function(num, id){
     if (num == 1){
         first_arg <- 1
         second_arg <- NULL
-        thrid_arg <- NULL
+        third_arg <- NULL
     }else if(num == 2){
         first_arg <- 1
         second_arg <- 1
-        thrid_arg <- NULL
+        third_arg <- NULL
     }else{
         first_arg <- 1
         second_arg <- 1
-        thrid_arg <- 1
+        third_arg <- 1
     }
 
 
@@ -130,27 +133,31 @@ diagnose_varying_args <- function(num, id){
         first_arg <- agrname_novec[arg_index[i,][[1]]]
         if (first_arg  == 'N') {
             n_int <- args_eval[[first_arg]]
-            args_eval[[first_arg]] <- seq(n_int,  n_int + 10, 10)
+            args_eval[[first_arg]] <- seq(n_int,  n_int + 100, 10)
         } else {
-            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            # aviod probabilty to start with 0
             step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
+            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            if (min_int == 0) min_int <- min_int + step_int
+            max_int <- min_int + step_int
             args_eval[[first_arg]] <- seq(min_int,  max_int, step_int)
         }
 
-        if (!is.null(second_arg) & !is.null(thrid_arg) & !is.null(first_arg)){
+        if (!is.null(second_arg) & !is.null(third_arg) & !is.null(first_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
-            thrid_arg <- agrname_novec[arg_index[i,][[3]]]
+            third_arg <- agrname_novec[arg_index[i,][[3]]]
             # vary the second args
-            min_int <- arg_defs[arg_defs$names == second_arg,]$inspector_min
-            step_int <- arg_defs[arg_defs$names == second_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
+            step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
+            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            if (min_int == 0) min_int <- min_int + step_int
+            max_int <- min_int + step_int
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
             # vary the thrid args
-            min_int <- arg_defs[arg_defs$names == thrid_arg,]$inspector_min
-            step_int <- arg_defs[arg_defs$names == thrid_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
-            args_eval[[thrid_arg]] <- seq(min_int,  max_int, step_int)
+            step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
+            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            if (min_int == 0) min_int <- min_int + step_int
+            max_int <- min_int + step_int
+            args_eval[[third_arg]] <- seq(min_int,  max_int, step_int)
 
             tic(paste(first_arg, second_arg, third_arg, id, sep = ","))
 
@@ -161,9 +168,10 @@ diagnose_varying_args <- function(num, id){
         }else if(!is.null(second_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
             # vary the second args
-            min_int <- arg_defs[arg_defs$names == second_arg,]$inspector_min
-            step_int <- arg_defs[arg_defs$names == second_arg,]$inspector_step
-            max_int <- min_int + 4*step_int
+            step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
+            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            if (min_int == 0) min_int <- min_int + step_int
+            max_int <- min_int + step_int
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
 
             tic(paste(first_arg, second_arg, id, sep = ","))
