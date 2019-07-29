@@ -14,7 +14,7 @@ By loading a design in the `DESIGN` tab, users can:
 
 * customize design parameters (`Set design parameters` panel);
 * inspect design features (`Summary` panel);
-* visualize and download the R code that produces the design in either ".R" or ".RDS" format (`Code output` panel) ; and
+* visualize and download the R code that produces the design in either ".R" or ".RDS" format (`Code output` panel); and
 * visualize and download simulated data for the design (`Simulated data` panel).
 
 On the `DIAGNOSE` tab, users can further:
@@ -26,7 +26,7 @@ On the `DIAGNOSE` tab, users can further:
 
 <!-- These features allow researchers to better communicate trade-offs in design choices and visualize, download, and share diagnostic statistics of those designs. -->
 
-At its core, DDWizard was conceived as a tool to make it easier for researchers and practioners to communicate design properties. In line with this, users are able to visualize, download, and share their designs and diagnostic properties. Additionally, users can also share the status of the DDWizard by using the url provided by the `Share` button on top right corner. Value inputs and simulations are cached and loaded upon re-entering the token link on the browser.
+At its core, DDWizard was conceived as a tool to make it easier for researchers and practioners to communicate design properties. In line with this, users are able to visualize, download, and share their designs and diagnostic properties. Additionally, users can also share the status of the DDWizard by using the URL provided by the `Share` button on top right corner. Value inputs and simulations are cached and loaded upon re-entering the token link on the browser.
 
 ### Five Practical Examples
 
@@ -50,7 +50,7 @@ text1 <- c(
             "This creates a design with <code>N</code> observations in which each of the three factors (<code>k</code>) are assigned with probabilities given by <code>assignment probs</code>. We can ex ante declare our expectations of outcome means and standard deviations for each combination of factors in <code>outcome means</code> and <code>outcome sds</code> from which to draw normally distributed potential outcomes. Users can also customize <code>outcome name</code> and <code>treatment names</code>. <p><p> Values for all these parameters can be specified in 'Set design parameters'. </p>"),
   
     add_title("Fix parameter", 
-            "When creating a design, users can specify whether they want to hard code any or all parameters in design code. This means that the R code exported will prevent other users to easily redefine the values of these parameters. Any parameters set to 'fixed' will also be omitted "),
+            "When creating a design, users can specify whether they want to hard code any or all parameters in design code. This means that the R code exported will prevent other users to easily redefine the values of these parameters. Any parameters set to 'fixed' will also be omitted from design diagnosis."),
   
   add_title("See summary of design", 
             "Having specified values for all arguments of the design, users can inspect the design step-by-step such as which variables are created by the design, number of units assigned to each treatment condition, a single draw of the estimands and a single draw of the estimates."),
