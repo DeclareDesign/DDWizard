@@ -17,7 +17,7 @@ By loading a design in the `DESIGN` tab, users can:
 * visualize and download the R code that produces the design in either ".R" or ".RDS" format (`Code output` panel); and
 * visualize and download simulated data for the design (`Simulated data` panel).
 
-On the `DIAGNOSE` tab, users can further:
+In the `DIAGNOSE` tab, users can compare the effect of different design parameters on a variety of diagnostic properties such as power or bias. Specifically, users may:
 
 * vary design parameters (`Compare design parameters` panel);
 * customize the number of simulations used in the design diagnosis (`Configure simulations` panel); 
@@ -26,7 +26,7 @@ On the `DIAGNOSE` tab, users can further:
 
 <!-- These features allow researchers to better communicate trade-offs in design choices and visualize, download, and share diagnostic statistics of those designs. -->
 
-At its core, DDWizard was conceived as a tool to make it easier for researchers and practioners to communicate design properties. In line with this, users are able to visualize, download, and share their designs and diagnostic properties. Additionally, users can also share the status of the DDWizard by using the URL provided by the `Share` button on top right corner. Value inputs and simulations are cached and loaded upon re-entering the token link on the browser.
+At its core, DDWizard was conceived as a tool to make it easier for researchers and practioners to communicate design properties. In line with this, users are able to visualize, download, and share their designs and diagnostic properties. Additionally, users can share the current state of the DDWizard app by using the URL provided by the `Share` button on top right corner. When someone else (e.g. a co-author) visits this URL, the app's state will be completely restored including design parameters, simulation data and diagnostic outputs.
 
 ### Five Practical Examples
 
