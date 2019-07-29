@@ -1,6 +1,6 @@
 # DeclareDesign Wizard
 
-A [Shiny app](http://shiny.rstudio.com/) for creating, editing and inspecting designs.
+A [Shiny app](http://shiny.rstudio.com/) for creating, editing and diagnosing research designs.
 
 Authors: 
 
@@ -25,10 +25,13 @@ Authors:
 - shinythemes
 - shinyBS
 - shinyjs
-- ggplot2
 - stringr
+- stringi
+- dplyr
+- ggplot2
 - rlang
 - digest
+- MASS
 
 Optional for parallel processing during simulation:
 
@@ -46,7 +49,7 @@ This shiny app displays several tabs, each of which is a separate shiny module (
 
 - `app.R`: Shiny application skeleton
 - `tab_design.R`: "Design" tab for loading and manipulating existing designs
-- `tab_inspect.R`: "Inspect" tab for visual design inspection
+- `tab_inspect.R`: "Diagnose" tab for visual design inspection
 - `common.R`: Common utility functions
 - `inspect_helpers.R`: Utility functions for design inspection
 - `uihelpers.R`: UI related utility functions
@@ -58,16 +61,26 @@ This shiny app displays several tabs, each of which is a separate shiny module (
 
 Unit tests are implemented in the *tests* folder with [RUnit](https://cran.r-project.org/web/packages/RUnit/index.html).
 
-A shortcut to run all tests was added to the Makefile so you can run:
+A shortcut to run all tests was added to the Makefile so you can run in the console:
 
 ```
 make run_tests
 ```
 
-### Functional tests
+### Functional tests with shinytest
 
-tbd.
+We tried to setup [shinytest](https://rstudio.github.io/shinytest/) for DDWizard to record app states and then replay them to check automatically if (and where) the app doesn't provide the expected output if we changed the source or updated one of its dependency packages. Unfortunately, shinytest doesn't work well with our app and will fail with [an already reported error](https://github.com/rstudio/shinytest/issues/144) for all but the very simplest test, which is available in `tests/startup.R`.
 
-## TODOs
+Once the shinytest package works with our package, we should generate more test cases like this:
 
-See "Issues" page on GitHub.
+```R
+library(shinytest)
+recordTest(seed = 1234)    # setting a seed is important since simulations need to be the same
+```
+
+And test them via:
+
+```R
+library(shinytest)
+testApp()                  # optionally provide `testnames = ...`
+```
