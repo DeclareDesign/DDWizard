@@ -147,14 +147,14 @@ diagnose_varying_args <- function(num, id){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
             third_arg <- agrname_novec[arg_index[i,][[3]]]
             # vary the second args
-            step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
-            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            step_int <- arg_defs[arg_defs$names == second_arg,]$inspector_step
+            min_int <- arg_defs[arg_defs$names == second_arg,]$inspector_min
             if (min_int == 0) min_int <- min_int + step_int
             max_int <- min_int + step_int
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
             # vary the thrid args
-            step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
-            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            step_int <- arg_defs[arg_defs$names == third_arg,]$inspector_step
+            min_int <- arg_defs[arg_defs$names == third_arg,]$inspector_min
             if (min_int == 0) min_int <- min_int + step_int
             max_int <- min_int + step_int
             args_eval[[third_arg]] <- seq(min_int,  max_int, step_int)
@@ -168,8 +168,8 @@ diagnose_varying_args <- function(num, id){
         }else if(!is.null(second_arg)){
             second_arg <- agrname_novec[arg_index[i,][[2]]]
             # vary the second args
-            step_int <- arg_defs[arg_defs$names == first_arg,]$inspector_step
-            min_int <- arg_defs[arg_defs$names == first_arg,]$inspector_min
+            step_int <- arg_defs[arg_defs$names == second_arg,]$inspector_step
+            min_int <- arg_defs[arg_defs$names == second_arg,]$inspector_min
             if (min_int == 0) min_int <- min_int + step_int
             max_int <- min_int + step_int
             args_eval[[second_arg]] <- seq(min_int,  max_int, step_int)
