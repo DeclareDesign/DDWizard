@@ -25,14 +25,10 @@ Authors:
 - shinyBS
 - shinyjs
 - stringr
-<<<<<<< HEAD
 - stringi
 - dplyr
 - ggplot2
-- rlang
-=======
 - rlang **<= 0.3.4 (>= 0.4.0 produces problems)** 
->>>>>>> master
 - digest
 - MASS
 
