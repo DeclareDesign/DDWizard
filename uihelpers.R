@@ -29,16 +29,25 @@ inpector_help_text <- '<dl>
                         display the updated plot.<br><br></dd>'
 
 # Create an input element for a design argument with name `argname`, with a default value `argdefault`.
-# Use min/max and class definition from `argdefinition` (comes from designer "definitions" attrib.).
+# `argvalue` is the current value of the input element (string or numeric).
+# `argvalue_parsed` is the *parsed* current value of the input element (e.g. a vector input with
+# `argvalue = "1, 2"` (a string) will have `argvalue_parsed = c(1, 2)` (a numeric vector of length 2))
+# `argdefinition` is the argument definition list from the DesignLibrary for this designer's argument.
+# Uses min/max and class definition from `argdefinition`.
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
+# `nspace` is the namespace function to be used to set the element's input ID.
 # Returns NULL if argument class is not supported.
-input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed, argdefault, argdefinition, nspace = function(x) { x }, width = '70%', idprefix = 'design') {
+input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed, argdefault, argdefinition,
+                                      nspace = function(x) { x }, width = '70%', idprefix = 'design') {
     # extract the tips from library
     tips <- get_tips(design)
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
     
+    # collect properties of this argument
     argclass <- class(argdefault)
     argtype <- typeof(argdefault)
+    arglang <- argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')  # is TRUE if argument is "language" construct (R formula/code)
+    argvec <- argdefinition$vector  # is TRUE if argument accepts a vector of values (char string like "1, 2, 3" etc.)
     
     inp_elem_constructor <- NULL
     inp_elem_args <- list(
@@ -51,25 +60,42 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     # this allows us to evaluate 'language' class default arguments and convert resulting vectors to string inputs
     args_eval <- evaluate_designer_args(get_designer_args(design), attr(design, 'definitions'))
     
+    # set allowed minimum / maximum for this input
     argmin <- ifelse(is.finite(argdefinition$min), argdefinition$min, NA)
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
     
-    if (argdefinition$vector && !is.null(argvalue_parsed) && any(is.na(argvalue_parsed))) {
-        inp_elem_args$value <- argvalue
-    } else {
-        if (argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol')) {  # "language" constructs (R formula/code)
+    # set the displayed value of the input
+    if (is.null(argvalue)) {   # if argvalue is NULL, initialize the input with a default value
+        if (arglang) {  # default for R formula arguments is the evaluated default argument expression
             inp_elem_args$value <- args_eval[[argname]]
-        } else if (argclass == 'NULL' && argtype == 'NULL') {
-            inp_elem_args$value <- ''
-        } else {
+        } else {        # otherwise set default as passed to this func.
             inp_elem_args$value <- argdefault
         }
+    } else {   # else, use either argvalue or the parsed version of it
+        if (arglang && !argvec && idprefix != 'inspect') {   # use the parsed version if we have a R formula
+                                                             # in "inspect" tab never use the parsed version because here the parsing happens before
+                                                             # and argvalue is already parsed
+            inp_elem_args$value <- argvalue_parsed
+        } else {
+            inp_elem_args$value <- argvalue
+        }
     }
-    
+
     if ('class' %in% names(argdefinition)) {
-        if (argdefinition$class == 'character' || argdefinition$vector) {
-            inp_elem_constructor <- textInput
+        if (argdefinition$class == 'character' || argdefinition$vector || idprefix == 'inspect') {
+            # create a text input
+            # this is always the case when we're creating an input for the inspect tab
+            
+            if (idprefix == 'inspect' && argvec) {   # in inspect tab, the inputs for vectors are textarea inputs
+                inp_elem_constructor <- textAreaInput
+                inp_elem_args$width <- '100%'
+                inp_elem_args$rows <- 2
+                inp_elem_args$resize <- 'vertical'
+            } else {
+                inp_elem_constructor <- textInput
+            }
         } else if (argdefinition$class %in% c('numeric', 'integer') && class(args_eval[[argname]]) %in% c('numeric', 'integer', 'NULL')) {
+            # create a numeric input
             inp_elem_constructor <- numericInput
             inp_elem_args$min = argmin
             inp_elem_args$max = argmax
@@ -85,17 +111,24 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     
     # escape the single quotes in the tips for Javascript
     if(str_detect(tips[[argname]], '\'')) tips[[argname]] <- gsub('\'', "\"", tips[[argname]])
-    
+
     # create the input element and return it
     if (is.function(inp_elem_constructor)) {
         ret <- do.call(inp_elem_constructor, inp_elem_args)
         if (is.character(tips[[argname]])) {
-            ret <- list(ret, dd_tipify(inp_id, rm_usc(argname), tips[[argname]]))
+            argtips <- tips[[argname]]
+            
+            if (idprefix == 'inspect' && argvec) {  # additional information in inspect tab for vectors
+                argtips <- paste0(argtips, ". Vary by enclosing values within parentheses, separated by a comma.")
+            }
+            
+            ret <- list(ret, dd_tipify(inp_id, rm_usc(argname), argtips))
         }
     } else { 
         # return NULL if argument class is not supported
         ret <- NULL
     }
+    
     ret
 }
 
@@ -122,7 +155,14 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
                 if (is.character(inp_value)) {
                     arg_value <- trimws(strsplit(inp_value, ",")[[1]])
                     # convert the fractions to the decimals
-                    arg_value <- unname(sapply(arg_value, function(x) eval(parse(text=x))))
+                    arg_value <- unname(sapply(arg_value, function(x) {
+                        parsed <- try(eval(parse(text = x)), silent = TRUE)   # couldn't get that running with tryCatch()
+                        if (class(parsed) == 'try-error') {
+                            NA
+                        } else {
+                            parsed
+                        }
+                    }))
                 } else {
                     arg_value <- as.numeric(inp_value)
                 }
@@ -179,13 +219,15 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
         
         arglabel <- rm_usc(argname)
         
+        argvalue <- input[[paste0(type, '_arg_', argname)]]
+        
         if (type == 'design') {
             # for the "design" tab, create two input elements for each argument:
             # 1. the argument value input box
             # 2. the "fixed" checkbox next to it
             inp_elem_width <- ifelse(create_fixed_checkboxes, '70%', '100%')
             
-            inp_elem <- input_elem_for_design_arg(react$design, argname, input[[paste0('design_arg_', argname)]],
+            inp_elem <- input_elem_for_design_arg(react$design, argname, argvalue,
                                                   defaults[[argname]], argdefault, argdefinition,
                                                   width = inp_elem_width, nspace = nspace, idprefix = type)
             
@@ -208,36 +250,14 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
         } else {   # type == 'inspect'
             # omit character or logical arguments as they only determine label names or options that are useless for inspection
             if (!(argdefinition$class %in% c('character', 'logical'))) {
-                if (!is.null(defaults) && argname %in% names(defaults)) {
-                    argvalue <- as.character(defaults[[argname]])
-                } else {
-                    if (typeof(argdefault) %in% c('language', 'symbol')) {
-                        argvalue <- ''
-                    } else {
-                        argvalue <- as.character(argdefault)
-                    }
-                }
-                # in "inspect" tab, the input is always a text input in order to support input of sequences
-                inp_id <- nspace(paste0('inspect_arg_', argname))
-
-                                # add input instruction to vector argument tips in inspector
-                if (arg_defs$vector[arg_defs$names == argname]) tips[[argname]] <- 
-                        paste0(tips[[argname]], ". Vary by enclosing values within parameters, separated by a space.")
+                inp_elem <- input_elem_for_design_arg(react$design, argname, argvalue, NULL,  # argvalue is already parsed, so pass NULL for argvalue_parsed
+                                                      defaults[[argname]], argdefinition,
+                                                      nspace = nspace, idprefix = type)
                 
-                # escape the single quotes in the tips for Javascript
-                if(str_detect(tips[[argname]], '\'')) tips[[argname]] <- gsub('\'', "\"", tips[[argname]])
-                
-                if (argdefinition$vector) {
-                    inp_elem_complete <- list(
-                        textAreaInput(inp_id, rm_usc(argname), value = argvalue, width = '100%', rows = 2, resize = 'vertical'),
-                        dd_tipify(inp_id, rm_usc(argname), tips[[argname]])
-                    )
+                if (!is.null(inp_elem)) {
+                    inp_elem_complete <- inp_elem
                 } else {
-                    inp_elem_complete <- list(
-                        textInput(inp_id, rm_usc(argname), value = argvalue, width = '100%'),
-                        dd_tipify(inp_id, rm_usc(argname), tips[[argname]])
-                    )
-                    
+                    warning(paste('input element could not be created for argument', argname))
                 }
             }
         }

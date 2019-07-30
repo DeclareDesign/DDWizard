@@ -25,16 +25,20 @@ Authors:
 - shinyBS
 - shinyjs
 - stringr
+<<<<<<< HEAD
 - stringi
 - dplyr
 - ggplot2
 - rlang
+=======
+- rlang **<= 0.3.4 (>= 0.4.0 produces problems)** 
+>>>>>>> master
 - digest
 - MASS
 
 Optional for parallel processing during simulation:
 
-- future
+- future **<= 1.12.0 (>= 1.13.0 produces problems)**
 - future.apply
 
 Optional for running tests:

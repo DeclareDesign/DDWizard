@@ -98,17 +98,40 @@ ui <- function(request) {
 ###########################################################
 
 server <- function(input, output, session) {
+    insp_changed_args <- character()
+    
     design_tab_proxy <- callModule(designTab, 'tab_design')
-    callModule(inspectTab, 'tab_inspect', design_tab_proxy)
+    inspect_tab_proxy <- callModule(inspectTab, 'tab_inspect', design_tab_proxy)
     
-    ### observers for legal notice / data protection policy links on top right ###
+    ### observers global events ###
     
+    # legal notice button clicked
     observeEvent(input$show_legal_notice, {
         alert_with_content_from_html_file('Legal notice', 'www/legal_notice.html', className = 'wide')
     })
 
+    # data protection button clicked
     observeEvent(input$show_data_protection_policy, {
         alert_with_content_from_html_file('Data protection policy', 'www/data_protection_policy.html', className = 'wide')
+    })
+    
+    # observe changes between tabs
+    observe({
+        if (!is.null(input$current_tab)) {  # initially, currentTab is NULL; it only gets a value after the first tab change
+            if (input$current_tab == 'tab_inspect') {          # check if change to "inspect" tab occurred
+                # when switching from design to inspect tab, pass the recorded arguments from below (i.e. those that the
+                # user changed previously in the inspect tab). we will not override these arguments' values with values
+                # from the design tab.
+                inspect_tab_proxy$set_changed_args(insp_changed_args)
+            } else if (input$current_tab == 'tab_design') {    # check if change to "design" tab occurred
+                # when switching from inspect to design tab, record which arguments the user changed in the inspect tab,
+                # i.e. which of the values in the inspect tab differ from those in the design tab.
+                # when switching back to the inspect tab, we will not override these with values from the design tab.
+                isolate({
+                    insp_changed_args <<- inspect_tab_proxy$get_changed_args()
+                })
+            }
+        }
     })
     
     ### handling of bookmarking via "SHARE" button on top right ###
