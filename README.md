@@ -59,7 +59,7 @@ This shiny app displays several tabs, each of which is a separate shiny module (
 The `_docs` folder contains the following documentation files that provide an overview:
 
 - `ddnotes.Rmd`: introduces designers from the DesignLibrary package from a DDWizard development perspective; read this first
-- `app_structure.Rmd`: gives and overview about the source code structure for DDWizard
+- `app_structure.Rmd`: gives and overview about the source code structure for DDWizard and some details that are quite specific for this app such as use of namespaces, use of Shiny UI extension packages as well as some notes on reactivity and running diagnoses
 
 
 ## Tests

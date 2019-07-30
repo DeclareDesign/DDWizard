@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Markus Konrad" />
+<meta name="author" content="Markus Konrad markus.konrad@wzb.eu" />
 
 <meta name="date" content="2019-07-29" />
 
@@ -191,11 +191,28 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">DDWizard source code structure</h1>
-<h4 class="author">Markus Konrad</h4>
+<h4 class="author">Markus Konrad <a href="mailto:markus.konrad@wzb.eu">markus.konrad@wzb.eu</a></h4>
 <h4 class="date">July 29, 2019</h4>
 
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a><ul>
+<li><a href="#namespaces">Namespaces</a></li>
+</ul></li>
+<li><a href="#ui-design">UI Design</a></li>
+<li><a href="#reactivity">Reactivity</a><ul>
+<li><a href="#design-tab">“Design” tab</a></li>
+<li><a href="#diagnose-tab">“Diagnose” tab</a></li>
+</ul></li>
+<li><a href="#running-diagnoses">Running diagnoses</a><ul>
+<li><a href="#parallel-processing">Parallel processing</a></li>
+<li><a href="#caching">Caching</a></li>
+</ul></li>
+<li><a href="#share-bookmark-feature">Share / bookmark feature</a></li>
+</ul>
+</div>
 
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
@@ -211,20 +228,14 @@ $(document).ready(function () {
 <p class="caption">Module structure</p>
 </div>
 <p>The design module exports several functions and objects (this is done in the final <code>return</code> statement in the last lines of <code>tab_design.R</code>) so that the diagnosis module can get access to specific parts of the design module. For example, the design module exports a function to get the current design instance. For more information on communication between R shiny modules see <a href="https://shiny.rstudio.com/articles/communicate-bet-modules.html">this article</a>.</p>
-<p>Each module has its own <em>namespace</em> for UI inputs/outputs, named <code>tab_design</code> and <code>tab_inspect</code> respectively.</p>
-<!--
-## App information flow by example
-
-The following should provide an illustrative example depicting the internal information flow and the triggered actions for a common use case: loading a designer (the Two Arm designer), setting some design parameters, getting the design code, drawing simulated samples and finally diagnosing the design by varying some of its parameters.
-
-### 1. Initial state
-
-The app starts with the "design" tab without a designer being loaded.
-
-### 2. Loading the Two Arm designer
-
-### 3. Setting parameters
--->
+<div id="namespaces" class="section level3">
+<h3>Namespaces</h3>
+<p>Each module has its own <em>namespace</em> for UI inputs/outputs, named <code>tab_design</code> and <code>tab_inspect</code> respectively. A namespace function is generated per module via <code>nspace &lt;- NS(id)</code> where <code>id</code> is the module ID (<code>tab_design</code> or <code>tab_inspect</code>). Two general main rules apply when working with namespaces in Shiny:</p>
+<ol style="list-style-type: decimal">
+<li>When <strong>creating</strong> an UI element (either dynamically during runtime or statically as defined in a UI function of the module) or when <strong>updating</strong> an UI element’s value (e.g. <code>updateTextInput()</code>), <strong>you must wrap the element ID in a namespace function</strong>, e.g. <code>checkboxInput(nspace('my_checkbox'), label = 'On')</code>.</li>
+<li>When <strong>reading</strong> the value of an UI element using the <code>input</code> object within a module’s server definition, <strong>you shall not use a namespace function</strong> (e.g. you can use <code>input$my_checkbox</code> as usual).</li>
+</ol>
+</div>
 </div>
 <div id="ui-design" class="section level2">
 <h2>UI Design</h2>
@@ -239,9 +250,129 @@ The app starts with the "design" tab without a designer being loaded.
 </div>
 <div id="reactivity" class="section level2">
 <h2>Reactivity</h2>
+<div id="design-tab" class="section level3">
+<h3>“Design” tab</h3>
+<p>Once a designer is loaded, UI elements with inputs for each parameter are created dynamically in the “Design” tab on the left side. The UI elements depend on the parameters (their type, range, etc.) that the designer excepts. For example, when the designer excepts a parameter “assignment probability” of type numeric in range [0, 1], then a numeric input with minimum 0 and maximum 1 is created for that parameter. All these parameter inputs are reactive, i.e. whenever the user changes one of these values, everything that depends on such a value gets updated. This includes:</p>
+<ul>
+<li>messages, summary, code output and simulated data in the “Design” tab</li>
+<li>default values for parameters in the “Diagnose” tab <strong>that were not changed before by the user</strong></li>
+</ul>
+<p>In the background, each parameter value change triggers the creation of a new design instance from the designer given the parameters the user entered. Design instance creation may fail, e.g. when the user enters invalid values. This in turn triggers messages that are displayed in the output.</p>
+</div>
+<div id="diagnose-tab" class="section level3">
+<h3>“Diagnose” tab</h3>
+<p>The UI in the “Diagnose” tab is a bit more complex. In the left side, varying parameter values can be specified as list of elements like “1, 2, 3” or sequences with step size like “10, 20, …, 50” which will create the sequence 10, 20, 30, 40, 50. <strong>Since all parameters can be potentially a sequence of numbers, each input is a text input, no matter what the actual type of the parameter is.</strong> Some parameters except (or even require) vector inputs. For these parameters, users can enter a sequence of vectors in a text area field, e.g.:</p>
+<pre><code>(1, 2, 3),
+(5, 5, 5),
+(3, 2, 1, -10),
+(10, 20, ..., 100)</code></pre>
+<p>As you can see, sequences of vectors don’t require the individual vectors to have the same length (however, a specific designer may have this requirement). Furthermore, sequences with step sizes as shown in the last row can be defined.</p>
+<p>The values entered by the user are parsed in <code>get_args_for_inspection()</code> (see <code>inspect_helpers.R</code>) and are converted to the expected type. Again, this may fail and raise error messages, e.g. when the user enters invalid values.</p>
+<p>The inputs for the parameters are parsed directly when the user changes a value (they are reactive), but they only come into effect once the user clicks “Run diagnoses / update plot” because of the potentially long running diagnosis process. The plot configuration on the right side behaves the same. Diagnoses will only be re-run if a parameter value or the simulation configuration changed, otherwise only the plot gets updated with the same data but different visual properties as defined in the plot configuration.</p>
+</div>
+</div>
+<div id="running-diagnoses" class="section level2">
+<h2>Running diagnoses</h2>
+<p>Running diagnoses for a given designer and a given set of varying parameters is done in <code>run_diagnoses()</code> in <code>common.R</code>. For each combination of the parameters, a design instance is created using <code>expand_design()</code> from DeclareDesign. For example, this will create two designs from the designer <code>two_arm_designer</code> included in DesignLibrary, one with <span class="math inline">\(N = 10\)</span>, the other with <span class="math inline">\(N = 20\)</span> (won’t show the full output of the designs here because it is too long):</p>
+<pre class="r"><code>library(DeclareDesign)
+library(DesignLibrary)
+
+
+all_designs &lt;- expand_design(two_arm_designer, expand = TRUE, N = c(10, 20))
+length(all_designs)</code></pre>
+<pre><code>## [1] 2</code></pre>
+<p>In order to generate designs from an arbitrary list of (varying) parameters that come from the user input, we can use rlang’s <code>eval_bare()</code> as below:</p>
+<pre class="r"><code>library(rlang)
+
+params &lt;- list(
+    'N' = c(10, 20, 30, 40),
+    'assignment_prob' = c(0.5, 0.7),
+    'ate' = c(0.1, 1, 2),
+    'control_sd' = 0.1                 # this is constant across all designs
+)
+
+all_designs &lt;- eval_bare(expr(expand_design(designer = two_arm_designer, expand = TRUE, !!!params)))
+length(all_designs)</code></pre>
+<pre><code>## [1] 24</code></pre>
+<p>As a result of the combination of all parameter values, this created <span class="math inline">\(4 \cdot 2 \cdot 3 \cdot 1 = 24\)</span> designs.</p>
+<p>After that, simulations can be run for all designs using <code>simulate_designs()</code> from DeclareDesign. Here, we run a very low number of simulations (10) for each of the 24 designs because it takes quite some time:</p>
+<pre class="r"><code>simdata &lt;- simulate_designs(all_designs, sims = 10)
+head(simdata)</code></pre>
+<pre><code>##   design_label  N assignment_prob ate control_sd sim_ID estimand_label
+## 1     design_1 10             0.5 0.1        0.1      1            ATE
+## 2     design_1 10             0.5 0.1        0.1      2            ATE
+## 3     design_1 10             0.5 0.1        0.1      3            ATE
+## 4     design_1 10             0.5 0.1        0.1      4            ATE
+## 5     design_1 10             0.5 0.1        0.1      5            ATE
+## 6     design_1 10             0.5 0.1        0.1      6            ATE
+##   estimand estimator_label term   estimate  std.error statistic    p.value
+## 1      0.1       estimator    Z 0.08379034 0.04359652 1.9219502 0.09238617
+## 2      0.1       estimator    Z 0.08942478 0.05036106 1.7756729 0.11384944
+## 3      0.1       estimator    Z 0.12280213 0.04921245 2.4953467 0.04104153
+## 4      0.1       estimator    Z 0.07683618 0.05761048 1.3337190 0.23397043
+## 5      0.1       estimator    Z 0.03803741 0.07197499 0.5284809 0.61418331
+## 6      0.1       estimator    Z 0.03440459 0.06865210 0.5011440 0.63229312
+##       conf.low conf.high       df outcome
+## 1 -0.017488647 0.1850693 7.675258       Y
+## 2 -0.026789445 0.2056390 7.967934       Y
+## 3  0.006598745 0.2390055 7.049540       Y
+## 4 -0.066606977 0.2202793 5.600257       Y
+## 5 -0.133652474 0.2097273 6.711187       Y
+## 6 -0.129378179 0.1981874 6.707466       Y</code></pre>
+<p>The final step is to run the diagnoses. Again, we use a very small number of bootstrap simulations:</p>
+<pre class="r"><code>diag_results &lt;- diagnose_designs(simdata, bootstrap_sims = 10)
+head(diag_results$diagnosands_df)</code></pre>
+<pre><code>##   design_label  N assignment_prob ate control_sd estimand_label
+## 1     design_1 10             0.5 0.1        0.1            ATE
+## 2     design_2 20             0.5 0.1        0.1            ATE
+## 3     design_3 30             0.5 0.1        0.1            ATE
+## 4     design_4 40             0.5 0.1        0.1            ATE
+## 5     design_5 10             0.7 0.1        0.1            ATE
+## 6     design_6 20             0.7 0.1        0.1            ATE
+##   estimator_label term         bias    se(bias)       rmse    se(rmse)
+## 1       estimator    Z -0.019232510 0.012645802 0.04144808 0.005388672
+## 2       estimator    Z -0.011197307 0.018427455 0.05361970 0.009850338
+## 3       estimator    Z  0.015481560 0.010918538 0.02734981 0.004689365
+## 4       estimator    Z  0.002906078 0.007191111 0.02781116 0.004001513
+## 5       estimator    Z  0.026762440 0.015239642 0.06253243 0.007527489
+## 6       estimator    Z  0.003799525 0.010599135 0.03876538 0.003494035
+##   power  se(power) coverage se(coverage) mean_estimate se(mean_estimate)
+## 1   0.1 0.07888106      1.0   0.00000000    0.08076749       0.012645802
+## 2   0.6 0.19888579      0.9   0.06666667    0.08880269       0.018427455
+## 3   1.0 0.00000000      1.0   0.00000000    0.11548156       0.010918538
+## 4   1.0 0.00000000      1.0   0.00000000    0.10290608       0.007191111
+## 5   0.5 0.09428090      0.9   0.07888106    0.12676244       0.015239642
+## 6   0.7 0.13333333      1.0   0.00000000    0.10379953       0.010599135
+##   sd_estimate se(sd_estimate)    mean_se se(mean_se) type_s_rate
+## 1  0.03870191     0.004498201 0.06106810 0.004629662           0
+## 2  0.05527398     0.009317509 0.04129435 0.001430005           0
+## 3  0.02376584     0.003748081 0.03311911 0.001024987           0
+## 4  0.02915505     0.003903953 0.03219962 0.001236194           0
+## 5  0.05957326     0.010665178 0.05249103 0.005765422           0
+## 6  0.04066555     0.003499574 0.04812314 0.003429101           0
+##   se(type_s_rate) mean_estimand se(mean_estimand) n_sims
+## 1              NA           0.1                 0     10
+## 2               0           0.1                 0     10
+## 3               0           0.1                 0     10
+## 4               0           0.1                 0     10
+## 5               0           0.1                 0     10
+## 6               0           0.1                 0     10</code></pre>
+<p>As already mentioned, these steps take quite some time to compute. We employ parallel processing and caching to reduce the runtime as explained below.</p>
+<div id="parallel-processing" class="section level3">
+<h3>Parallel processing</h3>
+<p>Simulation and diagnoses are implemented to run in parallel in DeclareDesign when the packages “future” and “future.apply” are installed and a parallel processing “plan” is created using <code>plan()</code>. Currently, this is done using the “multicore” strategy which spawns R child processes.</p>
+</div>
+<div id="caching" class="section level3">
+<h3>Caching</h3>
+<p>Both of the above steps are cached. This means, with the exact same input (designer and the user defined parameter space) we will load a file from disk that contains the already calculated results and return these results instead of running the computations. If such a cache file doesn’t exist, the computations are run and the results are stored to disk so that they can be retrieved the next time when a diagnosis should be run with the exact same input arguments.</p>
+<p>In order to check if a cache file exists for the same input arguments, a unique code string (an MD5 hash) is generated for the given parameter set, the simulation configuration (num. of simulations and bootstraps), the <strong>source code of the designer</strong> and a cache version (see <code>get_diagnosis_cache_filename()</code> in <code>common.R</code>). Whenever one of these elements changes only a little bit, the MD5 hash is completely different.</p>
+<p>The cache is stored in the <code>.cache</code> folder.</p>
+</div>
 </div>
 <div id="share-bookmark-feature" class="section level2">
 <h2>Share / bookmark feature</h2>
+<p>We use Shiny’s <a href="https://shiny.rstudio.com/articles/bookmarking-state.html">bookmarking feature</a> (see also <a href="https://shiny.rstudio.com/articles/bookmarking-modules.html">“Bookmarking and modules”</a>) to let users share a state of the app via a generated URL. This means the user can work with DDWizard, e.g. create a diagnosis for a design, and then press the “Share” button in the top left corner which will generate an URL that the user can share. When someone else visits that URL, the same state of the app will be restored, e.g. it will show the same diagnosis results with the same inputs, settings, etc. as entered by the user before that shared the URL.</p>
+<p>Custom bookmarking code is implemented at “global” level in <code>app.R</code> and at module level in <code>tab_design.R</code> and <code>tab_inspect.R</code> in the respective <code>onBookmark()</code> / <code>onRestore()</code> functions.</p>
 </div>
 
 

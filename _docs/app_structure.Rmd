@@ -1,9 +1,12 @@
 ---
 title: "DDWizard source code structure"
-author: "Markus Konrad"
+author: "Markus Konrad <markus.konrad@wzb.eu>"
 date: "July 29, 2019"
-output: html_document
+output: 
+  html_document: 
+    toc: yes
 ---
+
 
 ## Introduction
 
@@ -20,21 +23,12 @@ The main Shiny app file `app.R` defines the overall layout, "global" input eleme
 
 The design module exports several functions and objects (this is done in the final `return` statement in the last lines of `tab_design.R`) so that the diagnosis module can get access to specific parts of the design module. For example, the design module exports a function to get the current design instance. For more information on communication between R shiny modules see [this article](https://shiny.rstudio.com/articles/communicate-bet-modules.html).
 
-Each module has its own *namespace* for UI inputs/outputs, named `tab_design` and `tab_inspect` respectively.
+### Namespaces
 
-<!--
-## App information flow by example
+Each module has its own *namespace* for UI inputs/outputs, named `tab_design` and `tab_inspect` respectively. A namespace function is generated per module via `nspace <- NS(id)` where `id` is the module ID (`tab_design` or `tab_inspect`). Two general main rules apply when working with namespaces in Shiny:
 
-The following should provide an illustrative example depicting the internal information flow and the triggered actions for a common use case: loading a designer (the Two Arm designer), setting some design parameters, getting the design code, drawing simulated samples and finally diagnosing the design by varying some of its parameters.
-
-### 1. Initial state
-
-The app starts with the "design" tab without a designer being loaded.
-
-### 2. Loading the Two Arm designer
-
-### 3. Setting parameters
--->
+1. When **creating** an UI element (either dynamically during runtime or statically as defined in a UI function of the module) or when **updating** an UI element's value (e.g. `updateTextInput()`), **you must wrap the element ID in a namespace function**, e.g. `checkboxInput(nspace('my_checkbox'), label = 'On')`.
+2. When **reading** the value of an UI element using the `input` object within a module's server definition, **you shall not use a namespace function** (e.g. you can use `input$my_checkbox` as usual).
 
 ## UI Design
 
@@ -47,8 +41,99 @@ We use the following extension packages for Shiny for specific UI components:
 
 The whole app is a `material_page` with two tabs, each defined in a separate module as `material_tab_content`. In both tabs, there is one `material_row` defined with two (design tab) or three (diagnose tab) `material_column`s. In each column, the UI components are placed inside boxes (`material_card`s).
 
+
 ## Reactivity
+
+### "Design" tab
+
+Once a designer is loaded, UI elements with inputs for each parameter are created dynamically in the "Design" tab on the left side. The UI elements depend on the parameters (their type, range, etc.) that the designer excepts. For example, when the designer excepts a parameter "assignment probability" of type numeric in range [0, 1], then a numeric input with minimum 0 and maximum 1 is created for that parameter. All these parameter inputs are reactive, i.e. whenever the user changes one of these values, everything that depends on such a value gets updated. This includes:
+
+- messages, summary, code output and simulated data in the "Design" tab
+- default values for parameters in the "Diagnose" tab **that were not changed before by the user**
+
+In the background, each parameter value change triggers the creation of a new design instance from the designer given the parameters the user entered. Design instance creation may fail, e.g. when the user enters invalid values. This in turn triggers messages that are displayed in the output.
+
+### "Diagnose" tab
+
+The UI in the "Diagnose" tab is a bit more complex. In the left side, varying parameter values can be specified as list of elements like "1, 2, 3" or sequences with step size like "10, 20, ..., 50" which will create the sequence 10, 20, 30, 40, 50. **Since all parameters can be potentially a sequence of numbers, each input is a text input, no matter what the actual type of the parameter is.** Some parameters except (or even require) vector inputs. For these parameters, users can enter a sequence of vectors in a text area field, e.g.:
+
+```
+(1, 2, 3),
+(5, 5, 5),
+(3, 2, 1, -10),
+(10, 20, ..., 100)
+```
+
+As you can see, sequences of vectors don't require the individual vectors to have the same length (however, a specific designer may have this requirement). Furthermore, sequences with step sizes as shown in the last row can be defined.
+
+The values entered by the user are parsed in `get_args_for_inspection()` (see `inspect_helpers.R`) and are converted to the expected type. Again, this may fail and raise error messages, e.g. when the user enters invalid values.
+
+The inputs for the parameters are parsed directly when the user changes a value (they are reactive), but they only come into effect once the user clicks "Run diagnoses / update plot" because of the potentially long running diagnosis process. The plot configuration on the right side behaves the same. Diagnoses will only be re-run if a parameter value or the simulation configuration changed, otherwise only the plot gets updated with the same data but different visual properties as defined in the plot configuration.
+
+
+## Running diagnoses
+
+Running diagnoses for a given designer and a given set of varying parameters is done in `run_diagnoses()` in `common.R`. For each combination of the parameters, a design instance is created using `expand_design()` from DeclareDesign. For example, this will create two designs from the designer `two_arm_designer` included in DesignLibrary, one with $N = 10$, the other with $N = 20$ (won't show the full output of the designs here because it is too long):
+
+```{r, message=FALSE}
+library(DeclareDesign)
+library(DesignLibrary)
+
+
+all_designs <- expand_design(two_arm_designer, expand = TRUE, N = c(10, 20))
+length(all_designs)
+```
+
+In order to generate designs from an arbitrary list of (varying) parameters that come from the user input, we can use rlang's `eval_bare()` as below:
+
+```{r}
+library(rlang)
+
+params <- list(
+    'N' = c(10, 20, 30, 40),
+    'assignment_prob' = c(0.5, 0.7),
+    'ate' = c(0.1, 1, 2),
+    'control_sd' = 0.1                 # this is constant across all designs
+)
+
+all_designs <- eval_bare(expr(expand_design(designer = two_arm_designer, expand = TRUE, !!!params)))
+length(all_designs)
+```
+
+As a result of the combination of all parameter values, this created $4 \cdot 2 \cdot 3 \cdot 1 = 24$ designs.
+
+After that, simulations can be run for all designs using `simulate_designs()` from DeclareDesign. Here, we run a very low number of simulations (10) for each of the 24 designs because it takes quite some time:
+
+```{r, warning=FALSE}
+simdata <- simulate_designs(all_designs, sims = 10)
+head(simdata)
+```
+
+The final step is to run the diagnoses. Again, we use a very small number of bootstrap simulations:
+
+```{r}
+diag_results <- diagnose_designs(simdata, bootstrap_sims = 10)
+head(diag_results$diagnosands_df)
+```
+
+As already mentioned, these steps take quite some time to compute. We employ parallel processing and caching to reduce the runtime as explained below.
+
+### Parallel processing
+
+Simulation and diagnoses are implemented to run in parallel in DeclareDesign when the packages "future" and "future.apply" are installed and a parallel processing "plan" is created using `plan()`. Currently, this is done using the "multicore" strategy which spawns R child processes.
+
+### Caching
+
+Both of the above steps are cached. This means, with the exact same input (designer and the user defined parameter space) we will load a file from disk that contains the already calculated results and return these results instead of running the computations. If such a cache file doesn't exist, the computations are run and the results are stored to disk so that they can be retrieved the next time when a diagnosis should be run with the exact same input arguments.
+
+In order to check if a cache file exists for the same input arguments, a unique code string (an MD5 hash) is generated for the given parameter set, the simulation configuration (num. of simulations and bootstraps), the **source code of the designer** and a cache version (see `get_diagnosis_cache_filename()` in `common.R`). Whenever one of these elements changes only a little bit, the MD5 hash is completely different.
+
+The cache is stored in the `.cache` folder.
 
 
 ## Share / bookmark feature
+
+We use Shiny's [bookmarking feature](https://shiny.rstudio.com/articles/bookmarking-state.html) (see also ["Bookmarking and modules"](https://shiny.rstudio.com/articles/bookmarking-modules.html)) to let users share a state of the app via a generated URL. This means the user can work with DDWizard, e.g. create a diagnosis for a design, and then press the "Share" button in the top left corner which will generate an URL that the user can share. When someone else visits that URL, the same state of the app will be restored, e.g. it will show the same diagnosis results with the same inputs, settings, etc. as entered by the user before that shared the URL.
+
+Custom bookmarking code is implemented at "global" level in `app.R` and at module level in `tab_design.R` and `tab_inspect.R` in the respective `onBookmark()` / `onRestore()` functions.
 
