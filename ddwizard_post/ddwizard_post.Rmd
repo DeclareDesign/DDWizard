@@ -8,29 +8,28 @@ runtime: shiny
 
 ### Overview of the DDWizard
 
-[DDWizard](https://eos.wzb.eu/ipi/DDWizard) is a web app interface that allows users to apply the [_DeclareDesign_ framework](https://declaredesign.org/declare.pdf) to easily define, customize, and examine designs from an existing library of templates (available in the R package [_DesignLibrary_](https://cran.r-project.org/web/packages/DesignLibrary/DesignLibrary.pdf)). It is a tool built for researchers and practicioners who have different levels of familiarity with R and/or _DeclareDesign_ packages.
+[DDWizard](https://eos.wzb.eu/ipi/DDWizard) is a web app interface that allows users to easily define, examine, and communicate research designs. It is built using the [_DeclareDesign_ framework](https://declaredesign.org/declare.pdf) and draws from an existing library of design templates (available in the R package [_DesignLibrary_](https://cran.r-project.org/web/packages/DesignLibrary/DesignLibrary.pdf)). It is designed to make these softwares accessible to researchers and practicioners alike with varying levels of familiarity with R or _DeclareDesign_ packages.
 
-By loading a design in the `DESIGN` tab, users can:
+#### How does it work?
 
-* customize design parameters (`Set design parameters` panel);
+`DESIGN` tab:
+
+* load an existing design template from the library and customize it (`Set design parameters` panel);
 * inspect design features (`Summary` panel);
-* visualize and download the R code that produces the design in either ".R" or ".RDS" format (`Code output` panel); and
+* visualize and download the R code that produces the design in either ".R" or ".RDS" format (`Code output` panel) ; and
 * visualize and download simulated data for the design (`Simulated data` panel).
 
-In the `DIAGNOSE` tab, users can compare the effect of different design parameters on a variety of diagnostic properties such as power or bias. Specifically, users may:
+`DIAGNOSE` tab:
 
-* vary design parameters (`Compare design parameters` panel);
-* customize the number of simulations used in the design diagnosis (`Configure simulations` panel); 
-* graph a comparison of design properties (`Diagnostic plots` panel) by selecting specific estimators, design parameters, and properties of interest, or diagnosands, (`Plot configuration` panel);
-* visualize and download a table with diagnostic properties of designs (`Diagnosis` panel)
+* compare the properties of different designs by varying one or more parameters (`Compare design parameters` panel) and configuring simulations (`Configure simulations` panel);
+* 
+* visualize above comparison in graph (`Diagnostic plots` panel) or table format (`Diagnosis` panel) by selecting specific estimands, estimators, coefficients, and diagnosands of interest (`Plot configuration` panel).
 
-<!-- These features allow researchers to better communicate trade-offs in design choices and visualize, download, and share diagnostic statistics of those designs. -->
-
-At its core, DDWizard was conceived as a tool to make it easier for researchers and practioners to communicate design properties. In line with this, users are able to visualize, download, and share their designs and diagnostic properties. Additionally, users can share the current state of the DDWizard app by using the URL provided by the `Share` button on top right corner. When someone else (e.g. a co-author) visits this URL, the app's state will be completely restored including design parameters, simulation data and diagnostic outputs.
+Additionally, users can also share the status of their inputs and outputs (simulated data, graphs and tables) by using the url provided by the `SHARE` button on top right corner. Value inputs and simulations are cached and loaded upon re-entering the token link on the browser.
 
 ### Five Practical Examples
 
-Below we guide users on how to use these features on their daily research through five examples.
+Below we suggest five applications for the DDWizard for common research needs and offer a step-by-step of each.
 
 ### 1) Create and export a design from existing templates
 
@@ -50,7 +49,7 @@ text1 <- c(
             "This creates a design with <code>N</code> observations in which each of the three factors (<code>k</code>) are assigned with probabilities given by <code>assignment probs</code>. We can ex ante declare our expectations of outcome means and standard deviations for each combination of factors in <code>outcome means</code> and <code>outcome sds</code> from which to draw normally distributed potential outcomes. Users can also customize <code>outcome name</code> and <code>treatment names</code>. <p><p> Values for all these parameters can be specified in 'Set design parameters'. </p>"),
   
     add_title("Fix parameter", 
-            "When creating a design, users can specify whether they want to hard code any or all parameters in design code. This means that the R code exported will prevent other users to easily redefine the values of these parameters. Any parameters set to 'fixed' will also be omitted from design diagnosis."),
+            "When creating a design, users can specify whether they want to hard code any or all parameters in design code. This means that the R code exported will prevent other users to easily redefine the values of these parameters. Any parameters set to 'fixed' will also be omitted "),
   
   add_title("See summary of design", 
             "Having specified values for all arguments of the design, users can inspect the design step-by-step such as which variables are created by the design, number of units assigned to each treatment condition, a single draw of the estimands and a single draw of the estimates."),
@@ -69,8 +68,6 @@ imageGallery("ex1", text1)
 For any design selected, users can then either diagnose the properties of a single design, or vary design parameters to examine how these affect diagnostic properties (or "diagnosands") such as the power of the estimate of the interaction effect, or the bias of each of the treatment effect estimates. Interactive graphs and tables make it easy for users to visualize trends or trade-offs between select choices.
 
 See below for a walk through of how we can use this and other diagnostic tool as a way to compare a multi-arm set up with a factorial design in the context of the study described in 1).
-
-
 
 ### 3) Export and customize power graphs
 
@@ -96,9 +93,9 @@ text3 <- c(
 imageGallery("ex2", text3)
 ```
 
-### 4) Use it as a didactic tool in class
+### 4) Demonstrate concepts in causal inference
 
-The ability to examine and share design choices also facilitates the presentation and discussion of particular estimation and experimental concepts. For example, users can use the instrumental variable design with binary outcome (`Binary IV`) and examine the effect of violating the following assumptions needed for a strong instrumental variable:
+The ability to examine and share design choices also facilitates the presentation and discussion of particular estimation and experimental concepts. For example, users can use the instrumental variable design with binary outcome (`Binary IV`) to examine the effect of violating the following assumptions needed for a strong instrumental variable:
 
 
 * *Relevance*: The instrument $Z$ has a causal effect on the treatment $X$.
@@ -121,13 +118,13 @@ text4 <- c(
 imageGallery("ex2", text4)
 ```
 
-### 5) Advanced:  use this interactive tool to examine your own design. 
+### 5) Advanced: Use this interactive tool to examine your own design. 
 
 For more advanced R and _DeclareDesign_ users, the DDWizard can serve as an interactive interface for exploring the properties of any custom-made designer function. Exploring this functionality of the DDWizard for that purpose requires users to:
 
 1. Add new designer function(s) to _DesignLibrary_ by following instructions [here](https://declaredesign.org/library/articles/how_to_write_and_contribute_designers.html) and saving function(s) in the `"R/"` directory of the package;
 2. Reinstall _DesignLibrary_ containing the new designer function(s);
-3. Download _DDWizard_ [here](https://github.com/DeclareDesign/DDWizard) and run `runApp()` on the app directory.
+3. Download or clone _DDWizard_ [here](https://github.com/DeclareDesign/DDWizard) and run `runApp()` on the app directory.
 
 A version of the DDWizard should then run locally with new function(s) appearing in the dropdown menu below `Choose design`.
 
