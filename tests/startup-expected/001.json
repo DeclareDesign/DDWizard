@@ -1,0 +1,71 @@
+{
+  "input": {
+    "._bookmark_": 0,
+    "learn_more": 0,
+    "show_data_protection_policy": 0,
+    "show_help_text": 0,
+    "show_legal_notice": 0,
+    "tab_design-design_arg_design_name": "",
+    "tab_design-import_design_library": "two_arm_designer",
+    "tab_design-import_design_library-selectized": "",
+    "tab_design-import_from_design_lib": 0,
+    "tab_design-sections_container": null,
+    "tab_design-simdata_redraw": 0,
+    "tab_inspect-inspect_sections_container": null,
+    "tab_inspect-inspect_sections_simconf_container": null,
+    "tab_inspect-simconf_bootstrap_num": 30,
+    "tab_inspect-simconf_force_rerun": false,
+    "tab_inspect-simconf_sim_num": 100,
+    "tab_inspect-update_plot": 0,
+    "tab_inspect-update_plot_all_fixed": 0
+  },
+  "output": {
+    "tab_design-design_supports_fixed_arg": {
+      "message": "",
+      "call": "NULL",
+      "type": [
+        "shiny.silent.error",
+        "validation"
+      ]
+    },
+    "tab_design-import_design_lib_id": {
+      "html": "<div class=\"form-group shiny-input-container\">\n  <label class=\"control-label\" for=\"tab_design-import_design_library\"><\/label>\n  <div>\n    <select id=\"tab_design-import_design_library\"><option value=\"binary_iv_designer\">Binary IV<\/option>\n<option value=\"block_cluster_two_arm_designer\">Block Cluster Two Arm<\/option>\n<option value=\"cluster_sampling_designer\">Cluster Sampling<\/option>\n<option value=\"factorial_designer\">Factorial<\/option>\n<option value=\"mediation_analysis_designer\">Mediation Analysis<\/option>\n<option value=\"multi_arm_designer\">Multi Arm<\/option>\n<option value=\"pretest_posttest_designer\">Pretest Posttest<\/option>\n<option value=\"process_tracing_designer\">Process Tracing<\/option>\n<option value=\"randomized_response_designer\">Randomized Response<\/option>\n<option value=\"regression_discontinuity_designer\">Regression Discontinuity<\/option>\n<option value=\"spillover_designer\">Spillover<\/option>\n<option value=\"two_arm_attrition_designer\">Two Arm Attrition<\/option>\n<option value=\"two_arm_covariate_designer\">Two Arm Covariate<\/option>\n<option value=\"two_arm_designer\" selected>Two Arm<\/option>\n<option value=\"two_by_two_designer\">Two By Two<\/option><\/select>\n    <script type=\"application/json\" data-for=\"tab_design-import_design_library\" data-nonempty=\"\">{}<\/script>\n  <\/div>\n<\/div>",
+      "deps": [
+        {
+          "name": "selectize",
+          "version": "0.11.2",
+          "src": {
+            "href": "shared/selectize"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "css/selectize.bootstrap3.css",
+          "head": "<!--[if lt IE 9]>\n<script src=\"shared/selectize/js/es5-shim.min.js\"><\/script>\n<![endif]-->\n<script src=\"shared/selectize/js/selectize.min.js\"><\/script>",
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "tab_design-load_design_info": {
+      "message": "",
+      "call": "NULL",
+      "type": [
+        "shiny.silent.error",
+        "validation"
+      ]
+    },
+    "tab_inspect-all_design_args_fixed": {
+      "message": "",
+      "call": "NULL",
+      "type": [
+        "shiny.silent.error",
+        "validation"
+      ]
+    },
+    "tab_inspect-cur_design_id": null
+  },
+  "export": {
+
+  }
+}
