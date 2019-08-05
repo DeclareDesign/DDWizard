@@ -43,6 +43,7 @@ if (file.exists(piwik_code_file)) {
 
 ui <- function(request) {
     material_page(
+        introjsUI(),
         # title
         title = app_title,
         nav_bar_color = nav_bar_color,
@@ -61,12 +62,16 @@ ui <- function(request) {
         bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
         
         # tabs
+        introBox(
         material_tabs(
             tabs = c(
                 "Design" = "tab_design",
                 "Diagnose" = "tab_inspect"
             )
         ),
+        data.step = 12,
+        data.intro = "Switch to diagnose tab",
+        data.position = "auto"),
         
         # "Design" tab
         useShinyalert(),
@@ -75,6 +80,7 @@ ui <- function(request) {
         # "Inspect" tab
         inspectTabUI('tab_inspect'),
         
+        introBox(
         #Footer
         tags$footer(
             actionLink("show_help_text", "Help"),
@@ -90,7 +96,10 @@ ui <- function(request) {
               padding: 10px;
               background-color: #F5F5F5;
               z-index: 1000;"
-        )
+        ),
+        data.step = 11,
+        data.intro = "Any question?",
+        data.position = "auto")
     )
 }
 
@@ -110,7 +119,7 @@ server <- function(input, output, session) {
     observeEvent(input$show_legal_notice, {
         alert_with_content_from_html_file('Legal notice', 'www/legal_notice.html', className = 'wide')
     })
-
+    
     # data protection button clicked
     observeEvent(input$show_data_protection_policy, {
         alert_with_content_from_html_file('Data protection policy', 'www/data_protection_policy.html', className = 'wide')
@@ -142,7 +151,7 @@ server <- function(input, output, session) {
         state$values$current_tab <- input$current_tab
         print(state$values$current_tab)
     })
-
+    
     onBookmarked(function(url) {
         shinyalert(
             sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
@@ -157,7 +166,7 @@ server <- function(input, output, session) {
             imageUrl = "",
             confirmButtonCol = "light-blue darken-3", 
             animation = TRUE
-        )
+            )
     })
     
     onRestore(function(state) {

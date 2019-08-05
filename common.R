@@ -15,7 +15,7 @@ library(digest)
 library(DeclareDesign)
 
 
-# Append `v` to list `l` and return the resulting list. Appending is slow, don't use that often!
+# Append `v` to list `l` and return the resulting list. Appending is slow, don't use that often! 
 list_append <- function(l, v) {
     l[[length(l)+1]] <- v
     l
