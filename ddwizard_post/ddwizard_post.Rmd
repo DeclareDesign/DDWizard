@@ -115,7 +115,7 @@ text4 <- c(
   add_title("Violating the exclusion restriction", 
             ""))
 
-imageGallery("ex2", text4)
+imageGallery("ex3", text4)
 ```
 
 ### 5) Advanced: Use this interactive tool to examine your own design. 
