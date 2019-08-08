@@ -29,6 +29,7 @@ Authors:
 - stringr
 - rlang **<= 0.3.4 (>= 0.4.0 produces problems)** 
 - digest
+- rintrojs
 
 Optional for parallel processing during simulation:
 

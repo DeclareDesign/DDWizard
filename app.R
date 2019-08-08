@@ -21,6 +21,7 @@ library(stringr)
 library(stringi)
 library(dplyr)
 library(MASS)
+library(rintrojs)
 
 source('conf.R')
 source('common.R')
