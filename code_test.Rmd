@@ -28,7 +28,8 @@ args_index <- function(name, num, arg_defs){
             "m_arms" == name[index] ||
             "sd_i_0" == name[index] ||
             "icc" == name[index]||
-            "cor_E1E2_H" == name[index]){
+            "cor_E1E2_H" == name[index]||
+            "cor_E1E2_not_H" == name[index]){
             name[index] <- NA
         }else{
             next()
@@ -249,12 +250,11 @@ diagnose_varying_args(num = 3, id = option[2])
 diagnose_varying_args(num = 1, id = option[3])
 ```
 
-### Factorial design
+### Factorial design, only two arguments can be varied.
 
 ```{r factorial, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[4])
 diagnose_varying_args(num = 2, id = option[4])
-diagnose_varying_args(num = 3, id = option[4])
 ```
 
 ### Mediation Analysis design
@@ -265,12 +265,11 @@ diagnose_varying_args(num = 2, id = option[5])
 diagnose_varying_args(num = 3, id = option[5])
 ```
 
-### Multi Arm design
+### Multi Arm design, only two arguments can be varied.
 
 ```{r multi_arm, echo=F, warning=FALSE}
 diagnose_varying_args(num = 1, id = option[6])
 diagnose_varying_args(num = 2, id = option[6])
-diagnose_varying_args(num = 3, id = option[6])
 ```
 
 ### Pretest Posttest design

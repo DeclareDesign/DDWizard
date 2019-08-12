@@ -19,7 +19,8 @@ args_index <- function(name, num, arg_defs){
             "m_arms" == name[index] ||
             "sd_i_0" == name[index] ||
             "icc" == name[index] ||
-            "cor_E1E2_H" == name[index]){
+            "cor_E1E2_H" == name[index]||
+            "cor_E1E2_not_H" == name[index]){
             name[index] <- NA
         }else{
             next()
