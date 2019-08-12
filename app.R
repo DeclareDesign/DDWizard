@@ -69,9 +69,9 @@ ui <- function(request) {
                 "Diagnose" = "tab_inspect"
             )
         ),
-        data.step = 12,
-        data.intro = "Switch to diagnose tab",
-        data.position = "auto"),
+        data.step = 13,
+        data.intro = "Please switch to diagnose tab",
+        data.position = "left"),
         
         # "Design" tab
         useShinyalert(),
@@ -97,7 +97,7 @@ ui <- function(request) {
               background-color: #F5F5F5;
               z-index: 1000;"
         ),
-        data.step = 11,
+        data.step = 12,
         data.intro = "Any question?",
         data.position = "auto")
     )

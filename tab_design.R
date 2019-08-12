@@ -21,6 +21,9 @@ designTabUI <- function(id, label = 'Design') {
             material_column(  # left: input and design parameters
                 width = 3,
                 material_card("Choose design",
+                        div(style="text-align: center;", 
+                            actionButton(nspace("intro_tutorial"), 
+                                         label = "tutorial")),
                               # tagList("Read about the library ", a("here", href="https://declaredesign.org/library/")),
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
@@ -28,16 +31,21 @@ designTabUI <- function(id, label = 'Design') {
                                   introBox(
                                       uiOutput(nspace("import_design_lib_id")),
                                       data.step = 1,
-                                      data.intro = "Select the design you want"
+                                      data.intro = "Choose the design you want"
                                   ),
+                                  
+                                  introBox(
                                   actionButton(nspace("import_from_design_lib"), 
                                                label = "Load", 
                                                disabled = "disabled"),
                                  
+                                 
                                   actionButton(inputId='learn_more', label= NULL,
                                                icon = icon("question-circle"),
                                                style = "text-align: center; padding-left: 8px; padding-right: 8px",
-                                               onclick = "window.open('https://declaredesign.org/library', '_blank')")
+                                               onclick = "window.open('https://declaredesign.org/library', '_blank')"),
+                                  data.step = 2,
+                                  data.intro = "Click on 'LOAD' button to load the design you selected")
                                   
                               )
                 ),
@@ -47,8 +55,8 @@ designTabUI <- function(id, label = 'Design') {
                                   introBox(
                                       introBox(
                                           uiOutput(nspace('design_vignette')),
-                                          data.step = 3,
-                                          data.intro = "Check more details about the design"
+                                          data.step = 4,
+                                          data.intro = "Check out more details about the design"
                                       ),
                                       
                                       br(),
@@ -59,12 +67,12 @@ designTabUI <- function(id, label = 'Design') {
                                       conditionalPanel(paste0("output['", nspace('design_supports_fixed_arg'), "'] != ''"),
                                                        div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn')))
                                       ),
-                                      data.step = 4,
-                                      data.intro = "Fix all the arguments or not"
-                                      ),
+                                      data.step = 5,
+                                      data.intro = "Once you click on 'FIX ALL', the values of arguments cannot be changed in the 'Diagnose' tab,
+                                      of course, you can unfix all the arguments unless you click on 'UNFIX ALL'"),
                                       uiOutput(nspace("design_parameters")), # display *all* arguments of an imported design
-                                      data.step = 2,
-                                      data.intro = "Display all arguments of the imported design"
+                                      data.step = 3,
+                                      data.intro = "Display all arguments of the imported design and you can change the values if you want"
                                 )
                         )
                 ))
@@ -73,31 +81,31 @@ designTabUI <- function(id, label = 'Design') {
                 width = 9,
                 introBox(
                 uiOutput(nspace("load_design_info")),
-                data.step = 5,
+                data.step = 6,
                 data.intro = "Brief description of design"),
                 
                 material_card("Download",
                               introBox(
                                 downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
                                 downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled'),
-                                data.step = 6,
-                                data.intro = "Download R script & RDS file"
+                                data.step = 7,
+                                data.intro = "Download R script & RDS file if you want"
                             )
                      ),
                 bsCollapse(id=nspace('sections_container'), multiple = TRUE,
                            
                            bsCollapsePanel(introBox('Warnings or errors',   
-                                                    data.step = 7,
+                                                    data.step = 8,
                                                     data.intro = "Check out the warnings or errors"), uiOutput(nspace("section_messages"))),
                            bsCollapsePanel(introBox('Summary',
-                                                    data.step = 8,
+                                                    data.step = 9,
                                                     data.intro = "Check out the summary of design"), uiOutput(nspace("section_summary"))),
                            bsCollapsePanel(introBox('Code output',
-                                                    data.step = 9,
+                                                    data.step = 10,
                                                     data.intro = "Check out the output of code"
                                                     ), uiOutput(nspace('section_design_code'))),
                            bsCollapsePanel(introBox('Simulated data',
-                                                    data.step = 10,
+                                                    data.step = 11,
                                                     data.intro = "Check out the simulated data of design"
                                                     ),
                                            p("The following table shows a single draw of the data."),
@@ -394,15 +402,17 @@ designTab <- function(input, output, session) {
     
     # input observer for click on design import
     observeEvent(input$import_from_design_lib, {
-        
-        introjs(session, options = list("nextLabel"="next",
-                                        "prevLabel"="back",
-                                        "skipLabel"="skip"))
         # loads a pre-defined designer from the library
         if (!is.null(input$import_design_library)) {
             load_designer(input$import_design_library)
         }
 
+    })
+    
+    observeEvent(input$intro_tutorial,{
+        introjs(session, options = list("nextLabel"="next",
+                                        "prevLabel"="back",
+                                        "skipLabel"="skip"))
     })
     
     
