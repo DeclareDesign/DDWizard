@@ -70,7 +70,7 @@ ui <- function(request) {
             )
         ),
         data.step = 13,
-        data.intro = "Please switch to diagnose tab",
+        data.intro = "Please switch to diagnose tab, click on 'DIAGNOSE'",
         data.position = "left"),
         
         # "Design" tab

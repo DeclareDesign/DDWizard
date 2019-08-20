@@ -60,7 +60,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                   uiOutput(nspace('plot_message')),
                                   introBox(div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"), 
                                       data.step = 17, 
-                                      data.intro = "click on it and wait for several seconds"),
+                                      data.intro = "click on it if you want the diagnostic plot"),
                                   uiOutput(nspace('plot_output')),
                                   introBox(
                                   downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled"),
@@ -69,7 +69,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                   data.intro = "Download the plot & code if you want")
                     ),
                     bsCollapse(id = nspace('inspect_sections_container'),
-                               bsCollapsePanel(introBox('Diagnosis', data.step = 19, data.intro = "Check out the dignosis"),
+                               bsCollapsePanel(introBox('Diagnosis', data.step = 19, data.intro = "Check out the table of dignosis"),
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
                                                checkboxInput(nspace("reshape_diagnosands"), 

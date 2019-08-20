@@ -96,13 +96,13 @@ designTabUI <- function(id, label = 'Design') {
                            
                            bsCollapsePanel(introBox('Warnings or errors',   
                                                     data.step = 8,
-                                                    data.intro = "Check out the warnings or errors"), uiOutput(nspace("section_messages"))),
+                                                    data.intro = "Check out the warnings or errors, if the panel is open"), uiOutput(nspace("section_messages"))),
                            bsCollapsePanel(introBox('Summary',
                                                     data.step = 9,
-                                                    data.intro = "Check out the summary of design"), uiOutput(nspace("section_summary"))),
+                                                    data.intro = "Check out the summary of design, you will see how you set the parameters in the design"), uiOutput(nspace("section_summary"))),
                            bsCollapsePanel(introBox('Code output',
                                                     data.step = 10,
-                                                    data.intro = "Check out the output of code"
+                                                    data.intro = "Check out the output of code, which can be applied independently"
                                                     ), uiOutput(nspace('section_design_code'))),
                            bsCollapsePanel(introBox('Simulated data',
                                                     data.step = 11,
