@@ -69,7 +69,8 @@ designTabUI <- function(id, label = 'Design') {
                                       of course, you can unfix all the arguments unless you click on 'UNFIX ALL'"),
                                       uiOutput(nspace("design_parameters")), # display *all* arguments of an imported design
                                       data.step = 3,
-                                      data.intro = "Display all arguments of the imported design and you can change the values if you want"
+                                      data.intro = "Display all arguments of the imported design and you can change the values if you want",
+                                      data.position = 'right'
                                 )
                         )
                 ))
