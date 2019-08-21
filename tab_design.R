@@ -21,9 +21,6 @@ designTabUI <- function(id, label = 'Design') {
             material_column(  # left: input and design parameters
                 width = 3,
                 material_card("Choose design",
-                        div(style="text-align: center;", 
-                            actionButton(nspace("intro_tutorial"), 
-                                         label = "tutorial")),
                               # tagList("Read about the library ", a("here", href="https://declaredesign.org/library/")),
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
@@ -408,13 +405,6 @@ designTab <- function(input, output, session) {
         }
 
     })
-    
-    observeEvent(input$intro_tutorial,{
-        introjs(session, options = list("nextLabel"="next",
-                                        "prevLabel"="back",
-                                        "skipLabel"="skip"))
-    })
-    
     
     # input observer for click on "Fix/Unfix all" button
     observeEvent(input$fix_toggle_click, {

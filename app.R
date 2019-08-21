@@ -59,7 +59,11 @@ ui <- function(request) {
         ),
         shinyjs::useShinyjs(),
         
-        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
+        div(
+            class="btns_top_right",
+            actionButton("intro_tutorial", label = "Start tutorial"),
+            bookmarkButton("SHARE", title = "Share the status of your design and diagnoses")
+        ),
         
         # tabs
         introBox(
@@ -80,7 +84,6 @@ ui <- function(request) {
         # "Inspect" tab
         inspectTabUI('tab_inspect'),
         
-        introBox(
         #Footer
         tags$footer(
             actionLink("show_help_text", "Help"),
@@ -96,10 +99,7 @@ ui <- function(request) {
               padding: 10px;
               background-color: #F5F5F5;
               z-index: 1000;"
-        ),
-        data.step = 12,
-        data.intro = "Any question?",
-        data.position = "auto")
+        )
     )
 }
 
@@ -114,6 +114,13 @@ server <- function(input, output, session) {
     inspect_tab_proxy <- callModule(inspectTab, 'tab_inspect', design_tab_proxy)
     
     ### observers global events ###
+    
+    # tutorial button clicked
+    observeEvent(input$intro_tutorial,{
+        introjs(session, options = list("nextLabel"="next",
+                                        "prevLabel"="back",
+                                        "skipLabel"="skip"))
+    })
     
     # legal notice button clicked
     observeEvent(input$show_legal_notice, {

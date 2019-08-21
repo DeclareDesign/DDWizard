@@ -69,7 +69,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                   data.intro = "Download the plot & code if you want")
                     ),
                     bsCollapse(id = nspace('inspect_sections_container'),
-                               bsCollapsePanel(introBox('Diagnosis', data.step = 19, data.intro = "Check out the table of dignosis"),
+                               bsCollapsePanel(introBox('Diagnosis', data.step = 19, data.intro = "Check out the diagnosis results"),
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
                                                checkboxInput(nspace("reshape_diagnosands"), 

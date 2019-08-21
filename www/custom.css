@@ -36,10 +36,20 @@ body {
     position: relative;
 }
 
-body > button.btn.btn-default.action-button.shiny-bound-input {   /** bookmark button */
+div.btns_top_right {
     position: absolute;
     top: 0;
     right: 0;
+}
+
+div.btns_top_right button {
+    font-size: 80%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+div.btns_top_right button i {
+    font-size: 80%;
 }
 
 pre.share-url {
