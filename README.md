@@ -27,7 +27,8 @@ Authors:
 - shinyjs
 - ggplot2
 - stringr
-- rlang **<= 0.3.4 (>= 0.4.0 produces problems)** 
+- rlang **0.3.4 (>= 0.4.0 produces problems)** 
+- dplyr **0.8.1**
 - digest
 
 Optional for parallel processing during simulation:
