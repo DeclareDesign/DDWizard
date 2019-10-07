@@ -29,6 +29,8 @@ Authors:
 - dplyr
 - ggplot2
 - rlang **<= 0.3.4 (>= 0.4.0 produces problems)** 
+- htmlwidgets **1.3**
+- htmltools **0.3.6**
 - digest
 - MASS
 
