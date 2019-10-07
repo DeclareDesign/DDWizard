@@ -20,6 +20,7 @@ library(stringr)
 library(stringi)
 library(dplyr)
 library(MASS)
+library(rintrojs)
 
 source('conf.R')
 source('common.R')
@@ -42,10 +43,18 @@ if (file.exists(piwik_code_file)) {
 
 ui <- function(request) {
     material_page(
+        introjsUI(),
+        
+        tags$head(
+            tags$style(HTML(".btn{color: #fff; background-color:#5f89fa; border-color:#5f89fa;}"))
+            ),
+        
         # title
-        title = app_title,
-        nav_bar_color = nav_bar_color,
-        shiny::tags$title(app_title),
+        # title = app_title,
+        nav_bar_color = "transparent",
+        # shiny::tags$title(app_title),
+        title = span("", tags$a(href="#", class="brand-logo", tags$img(src="brand.png" , height = 52.5, width = 300))),
+        
         
         # additional JS / CSS libraries
         bootstrapLib(),
@@ -57,15 +66,25 @@ ui <- function(request) {
         ),
         shinyjs::useShinyjs(),
         
-        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
+        div(
+            class="btns_top_right",
+            actionButton("intro_tutorial", label = "Start tutorial",  style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
+            bookmarkButton("SHARE", title = "Share the status of your design and diagnoses")
+        ),
         
         # tabs
+        introBox(
         material_tabs(
             tabs = c(
                 "Design" = "tab_design",
                 "Diagnose" = "tab_inspect"
-            )
+            ),
+            color = "blue"
+            
         ),
+        data.step = 13,
+        data.intro = "Please switch to diagnose tab, click on 'DIAGNOSE'",
+        data.position = "left"),
         
         # "Design" tab
         useShinyalert(),
@@ -105,11 +124,18 @@ server <- function(input, output, session) {
     
     ### observers global events ###
     
+    # tutorial button clicked
+    observeEvent(input$intro_tutorial,{
+        introjs(session, options = list("nextLabel"="next",
+                                        "prevLabel"="back",
+                                        "skipLabel"="skip"))
+    })
+    
     # legal notice button clicked
     observeEvent(input$show_legal_notice, {
         alert_with_content_from_html_file('Legal notice', 'www/legal_notice.html', className = 'wide')
     })
-
+    
     # data protection button clicked
     observeEvent(input$show_data_protection_policy, {
         alert_with_content_from_html_file('Data protection policy', 'www/data_protection_policy.html', className = 'wide')
@@ -141,8 +167,9 @@ server <- function(input, output, session) {
         state$values$current_tab <- input$current_tab
         print(state$values$current_tab)
     })
-
+    
     onBookmarked(function(url) {
+        
         shinyalert(
             sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
                     <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
@@ -156,7 +183,7 @@ server <- function(input, output, session) {
             imageUrl = "",
             confirmButtonCol = "light-blue darken-3", 
             animation = TRUE
-        )
+            )
     })
     
     onRestore(function(state) {
