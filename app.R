@@ -64,13 +64,10 @@ ui <- function(request) {
         ),
         shinyjs::useShinyjs(),
         
-        div(
-            class="btns_top_right",
-            bookmarkButton("SHARE", title = "Share the status of your design and diagnoses")
-        ),
+
+        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses", style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
         
         # tabs
-        
         material_tabs(
             tabs = c(
                 "Design" = "tab_design",
