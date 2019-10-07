@@ -1,60 +1,62 @@
 ---
-title: "Notes on DeclareDesign"
+title: "Notes on DeclareDesign *designers*"
 author: "Markus Konrad"
-date: "October 5, 2018"
+date: "July 29, 2019"
 output: html_document
 ---
 
+This document is a set of notes about DeclareDesign and the *designers* in its DesignLibrary package from a DDWizard development perspective.
+
+
+```{r, message=FALSE}
+library(DeclareDesign)
+packageVersion('DeclareDesign')
+```
+
 ```{r}
 library(DesignLibrary)
+packageVersion('DesignLibrary')
 ```
 
+## Designers
 
-## A parametric design/designer object
+*Designers* are parametric "templates" for specific *designs*. So the the distinction between design*er* and design is important. The latter is a specific instance of a designer given a set of parameters.
 
-A design object is a closure function. It comes from the Design Library. Sometimes it's also called "design*er*" instead of design, since it's a parametric template for a specific design.
+A designer is a function, e.g. the `two_arm_designer`:
 
 ```{r}
-class(simple_two_arm_designer)
+class(two_arm_designer)
 ```
 
-```{r}
-typeof(simple_two_arm_designer)
-```
-
-It has some attributes that provide meta-data:
+It has some attributes that provide meta-data for the designer:
 
 ```{r}
-attributes(simple_two_arm_designer)
+attributes(two_arm_designer)
 ```
 
 ```{r}
-attr(simple_two_arm_designer, 'description')
+attr(two_arm_designer, 'description')
 ```
+
+These attributes are important for DDWizard. For example, the `definitions` attribute specifies the designer's arguments, their type, range and whether they except a vector as input. These metadata are an addition to what is returned by `formals()` as explained in the next section.
 
 ### Designer parameters
 
-Get a designer's arguments as list with `formals()`:
+You can get a designer's arguments and their default values as list with `formals()`:
 
 ```{r}
-formals(simple_two_arm_designer)
+formals(two_arm_designer)
 ```
 
-Parameters can be:
+As you can see, parameters can also accept R syntax (like the default values for `treatment_mean` and `control_sd`) which is evaluated inside the designer function.
 
-- numeric
-- integer
-- "language": a parameter dependend on some other parameter(s) (like `treatment_mean`)
-- more?
-
-**The range of acceptable values for a parameter is not specified. Parameters that should be integers (e.g. N) are often declared as numeric (reals).**
 
 ## A specific design instance
 
-Calling a designer object with some specific parameters generates a specific design instance:
+Calling a designer function with some specific parameters generates a specific design instance:
 
 ```{r}
-two_arm_N10 <- simple_two_arm_designer(N=10)
+two_arm_N10 <- two_arm_designer(N = 10)
 two_arm_N10
 ```
 
