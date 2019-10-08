@@ -42,11 +42,6 @@ if (file.exists(piwik_code_file)) {
 
 ui <- function(request) {
     material_page(
-        
-        tags$head(
-            tags$style(HTML(".btn{color: #fff; background-color:#5f89fa; border-color:#5f89fa;}"))
-            ),
-        
         # title
         # title = app_title,
         nav_bar_color = "transparent",
@@ -65,7 +60,7 @@ ui <- function(request) {
         shinyjs::useShinyjs(),
         
 
-        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses", style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
+        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
         
         # tabs
         material_tabs(

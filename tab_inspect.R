@@ -55,10 +55,10 @@ inspectTabUI <- function(id, label = 'Inspect') {
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
                     material_card("Diagnostic plots",
                                   uiOutput(nspace('plot_message')),
-                                  div(actionButton(nspace('update_plot'), 'Run diagnoses', style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"), style = "margin-bottom:10px"),
+                                  div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"),
                                   uiOutput(nspace('plot_output')),
-                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled", style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
-                                  downloadButton(nspace("download_plot_code"), label = "Download plot code", disabled = "disabled", style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa")
+                                  downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled"),
+                                  downloadButton(nspace("download_plot_code"), label = "Download plot code", disabled = "disabled")
                     ),
                     bsCollapse(id = nspace('inspect_sections_container'),
                                bsCollapsePanel('Diagnosis',
@@ -67,9 +67,9 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                                checkboxInput(nspace("reshape_diagnosands"), 
                                                              label = "Download long format table"),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
-                                                              label = "Download above table", disabled = "disabled", style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
+                                                              label = "Download above table", disabled = "disabled"),
                                                downloadButton(nspace("section_diagnosands_download_full"),
-                                                              label = "Download full diagnosands table", disabled = "disabled", style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"))
+                                                              label = "Download full diagnosands table", disabled = "disabled"))
                     )
                 ),
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === true"),
@@ -388,7 +388,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
                                                   input = design_tab_proxy$input,
                                                   defaults = defaults)
-        reset_btn <- actionButton(nspace('reset_inputs'), 'Reset values', style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa")
+        reset_btn <- actionButton(nspace('reset_inputs'), 'Reset values')
         if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
             list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(reset_btn, param_boxes))
         } else {

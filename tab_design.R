@@ -27,11 +27,10 @@ designTabUI <- function(id, label = 'Design') {
                                   uiOutput(nspace("import_design_lib_id")),
                                   actionButton(nspace("import_from_design_lib"), 
                                                label = "Load", 
-                                               disabled = "disabled",
-                                               style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
+                                               disabled = "disabled"),
                                   actionButton(inputId='learn_more', label= NULL,
                                                icon = icon("question-circle"),
-                                               style = "text-align: center; padding-left: 8px; padding-right: 8px; color: #fff; background-color:#5f89fa; border-color:#5f89fa",
+                                               style = "text-align: center; padding-left: 8px; padding-right: 8px;",
                                                onclick = "window.open('https://declaredesign.org/library', '_blank')")
                               )
                 ),
@@ -52,16 +51,16 @@ designTabUI <- function(id, label = 'Design') {
                 width = 9,
                 uiOutput(nspace("load_design_info")),
                 material_card("Download",
-                              downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled',style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
-                              downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled', style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa")),
+                              downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
+                              downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
                 bsCollapse(id=nspace('sections_container'), multiple = TRUE,
                            bsCollapsePanel('Warnings or errors', uiOutput(nspace("section_messages"))),
                            bsCollapsePanel('Summary', uiOutput(nspace("section_summary"))),
                            bsCollapsePanel('Code output', uiOutput(nspace('section_design_code'))),
                            bsCollapsePanel('Simulated data',
                                            p("The following table shows a single draw of the data."),
-                                           actionButton(nspace("simdata_redraw"), label = "Redraw data", disabled = "disabled", style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
-                                           downloadButton(nspace("simdata_download"), label = "Download data", disabled = "disabled", style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa"),
+                                           actionButton(nspace("simdata_redraw"), label = "Redraw data", disabled = "disabled"),
+                                           downloadButton(nspace("simdata_download"), label = "Download data", disabled = "disabled"),
                                            dataTableOutput(nspace("section_simdata_table"))),
                            bsCollapsePanel("About DeclareDesign Wizard",
                                            p("  This project is generously supported by a grant from the Laura and John Arnold Foundation and seed funding from Evidence in Governance and Politics (EGAP)."),
@@ -441,7 +440,7 @@ designTab <- function(input, output, session) {
         url <- paste0("window.open('https://declaredesign.org/library/articles/", gsub("_designer","",react$design_id), ".html', '_blank')")
         actionButton(inputId='vignette', label=" Read more", 
                      icon = icon("book"), 
-                     onclick = url, style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa")
+                     onclick = url)
     })
     
     # left side: designer parameters
@@ -475,7 +474,7 @@ designTab <- function(input, output, session) {
             react$fix_toggle <- 'fix'
         }
         
-        actionButton(nspace('fix_toggle_click'), fix_toggle_label, style = "color: #fff; background-color: #5f89fa; border-color:#5f89fa")
+        actionButton(nspace('fix_toggle_click'), fix_toggle_label)
     })
     
     # left side: choose designers 
