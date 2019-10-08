@@ -12,6 +12,8 @@ runtime: shiny
 
 #### How does it work?
 
+<!-- REVIEW: This intro bit could be replaced with introJS feature Sisi is working on. (Instead of below we could have screenshops of the JSIntro window showing step by step would contain similar text and indicate which buttons we are referring to more precisely.) -->
+
 `DESIGN` tab:
 
 * load an existing design template from the library and customize it (`Set design parameters` panel);
@@ -25,17 +27,19 @@ runtime: shiny
 * 
 * visualize above comparison in graph (`Diagnostic plots` panel) or table format (`Diagnosis` panel) by selecting specific estimands, estimators, coefficients, and diagnosands of interest (`Plot configuration` panel).
 
-Additionally, users can also share the status of their inputs and outputs (simulated data, graphs and tables) by using the url provided by the `SHARE` button on top right corner. Value inputs and simulations are cached and loaded upon re-entering the token link on the browser.
+Additionally, users can also share the status of their inputs and outputs (simulated data, graphs and tables) by using the URL provided by the `SHARE` button on top right corner. Value inputs and simulations are cached and loaded upon re-entering the token link on the browser.
 
 ### Five Practical Examples
 
-Below we suggest five applications for the DDWizard for common research needs and offer a step-by-step of each.
+Below we suggest five applications for the DDWizard for common research needs and highlight several useful features of the app along the way.
 
-### 1) Create and export a design from existing templates
+### 1) Create and export/share a design from an existing template
 
-Let us say a user is interested in ex ante defining the features of an experiment aimed at studying ethnic discrimination among students in schools. In simple terms, the study aims at measuring the effect of two measures: 1) ethnically mixed classes (as opposed to homogeneous) and 2) introducing awareness raising about discriminatory practices on the curriculum.
+The DDWizard offers an interface for the _DeclareDesign_ framework for defining designs for causal inference. It draws from a library of design templates which specify a model of how the world works, inquiries (estimands), data strategies (sampling and assignment) and answer strategies (estimates) (see [here](https://declaredesign.org/declare.pdf) for more detail).
 
-We provide a step-by-step of how to implement such a design using a multi-arm design template from our library.
+Suppose a researcher wants to define a simple factorial design with three binary factors ($2*2*2$ treatment conditions). The factorial designer in the DesignLibrary allows users to specify the sample size, the number of binary factors, the indepedent assignment probability within each factor, and the mean and standard deviations of the outcome means for each of the eight treatment conditions. 
+
+Key aspects of the design such as the model, estimand and estimates are predefined and documented in the factorial vignette linked in the app ("Read more" button). Researchers can download or directly share the resulting design. The interface of the app also offers a basic overview of the structure of design declarations R scripts and offer a stepping stone for more idiosyncratic or more complex factorial designs.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(shiny); library(shinyjs); library(shinymaterial)
@@ -49,13 +53,16 @@ text1 <- c(
             "This creates a design with <code>N</code> observations in which each of the three factors (<code>k</code>) are assigned with probabilities given by <code>assignment probs</code>. We can ex ante declare our expectations of outcome means and standard deviations for each combination of factors in <code>outcome means</code> and <code>outcome sds</code> from which to draw normally distributed potential outcomes. Users can also customize <code>outcome name</code> and <code>treatment names</code>. <p><p> Values for all these parameters can be specified in 'Set design parameters'. </p>"),
   
     add_title("Fix parameter", 
-            "When creating a design, users can specify whether they want to hard code any or all parameters in design code. This means that the R code exported will prevent other users to easily redefine the values of these parameters. Any parameters set to 'fixed' will also be omitted "),
+            "When creating a design, users can specify whether they want to hard code any or all parameters in design code. This means that the R code exported will prevent other users to easily redefine the values of these parameters. Any parameters set to 'fixed' will also be omitted from the 'DIAGNOSIS' tab sidebar, which prevents users from seeing how the design performs under different specifications of these parameters."),
   
   add_title("See summary of design", 
-            "Having specified values for all arguments of the design, users can inspect the design step-by-step such as which variables are created by the design, number of units assigned to each treatment condition, a single draw of the estimands and a single draw of the estimates."),
+            "Having specified values for all arguments of the design, users can inspect the design step-by-step such as which variables are created by the design, the number of units assigned to each treatment condition, a single draw of the estimands and a single draw of the estimates."),
   
   add_title("Export design code", 
-            "Users can download the R code that generates that design as an '.R' file (R script) or in '.RDS' format (which contains the design object and can be onto an R session with the function <code>readRDS()</code>). <p><p> Users can then share this R code with say, co-authors, who are then able to replicate the same design and examine and/or update its assumptions and any of its components."),
+            "Users can download the R code that generates that design as an '.R' file (R script) or in '.RDS' format (which contains the design object and can be onto an R session with the function <code>readRDS()</code>). <p><p> Users can then share this R code with say, co-authors, who are then able to replicate the same design and examine and/or update its assumptions and any of its analytical features."),
+  
+    add_title("Share the app status", 
+            "Instead of downloading outputs, users can simply cache all input values and any ouputs by clicking on the 'SHARE' button on the top-right corner. The resulting browser URL will restore the app status, meaning that anyone else opening it will be able to see the exact same values displayed in input boxes and panels. This applies to both 'DESIGN' and 'DIAGNOSIS' tabs. (We can only guarantee storage of cache for 30 days.)"),
   
   add_title("Download simulated data", 
             "Download a '.csv' file containing a single simulation of the data generated by the design."))
@@ -65,15 +72,16 @@ imageGallery("ex1", text1)
 
 ### 2) Examine the trade-offs of specific design choices
 
-For any design selected, users can then either diagnose the properties of a single design, or vary design parameters to examine how these affect diagnostic properties (or "diagnosands") such as the power of the estimate of the interaction effect, or the bias of each of the treatment effect estimates. Interactive graphs and tables make it easy for users to visualize trends or trade-offs between select choices.
+For any design selected, users can use the diagnosis tab to further inspect design properites such as power, bias, and root mean squared error (RMSE), under different values of one or more parameters. Interactive graphs and tables make it easy for users to visualize trends and trade-offs between alternative design specifications.
 
-See below for a walk through of how we can use this and other diagnostic tool as a way to compare a multi-arm set up with a factorial design in the context of the study described in 1).
+Below we offer an example where we examine how sample size and mean outcomes in the $2^3$ factorial design above affect the power of the average effect estimates. This can help inform researchers over whether a design is sufficiently powered to detect an interaction effect, and what that minimal effect would be in magnitude, given the specifics of this design.
+
+<!-- REVIEW: More straight forward trade-off example? -->
+<!-- REVIEW: Need to add screenshots -->
 
 ### 3) Export and customize power graphs
 
-Users can communicate specific diagnostic properties of designs with the help of interactive graphs which can be downloaded and, for example, shared with collaborators or added to funding grants. The `Download plot code` feature allows users to further customize graphs by editing the R code directly.
-
-Below we show a step-wise guide to generating power graphs for the multi-arm design in 1) and adding custom titles.
+Diagnostic graphs created in 2) can be downloaded as `.png` or `.R` files, where users are able to further customize the output figure by downloading its source code and editing it directly on a local R or RStudio session.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(shiny); library(shinyjs); library(shinymaterial)
@@ -81,42 +89,23 @@ source("ddwizard_post_helpers.R")
 
 text3 <- c(
   add_title("Create a plot", 
-            "Select the estimand, estimator and term to be displayed, the parameter to appear on the x-axis and any other parameters to be displayed in the color aesthetics (optional) or along different plots (optional)."),
+            "Select the estimand, estimator and term to be displayed, the parameter to appear on the x-axis and any other parameters to be displayed in the color aesthetics (optional) or along different plots (optional). (These last two options are only available when multiple parameters are being varied in the diagnosis)."),
   
-  add_title("Download graph or R code", 
-            "Download the graph as .png OR download the plot code."),
+  add_title("Download as image or R source code", 
+            "Download the graph as .png OR download the code to generate the plot and the relevant data as an .R file."),
   
-  add_title("Customize!", 
-            "After downloading the R code for the plot and opening it with R or RStudio, users can customize features of the plot by editing the code directly. To add custom title and axes labels, for example, replace line <code>labs(x = 'N', y = 'power')</code> with <code>labs(title = 'Power of mixed class treatment estimate', x = 'Sample size', y = 'Power')</code>, rerun the code, and voilà."
+  add_title("Customize", 
+            "The option to download the R code for the plot allows users to further customize plot features by editing its source script. To add custom title and axes labels, for example, replace line <code>labs(x = 'N', y = 'power')</code> with <code>labs(title = 'Power of Treatment Effect Estimate', x = 'Sample size', y = 'Power')</code>, and rerun the script."
             ))
 
-imageGallery("ex2", text3)
+imageGallery("ex3", text3)
 ```
 
-### 4) Demonstrate concepts in causal inference
+### 4) Illustrate the effects of violating assumptions in design-based inference
 
-The ability to examine and share design choices also facilitates the presentation and discussion of particular estimation and experimental concepts. For example, users can use the instrumental variable design with binary outcome (`Binary IV`) to examine the effect of violating the following assumptions needed for a strong instrumental variable:
+Many designers available in the DDWizard allow users to examine and illustrate how design-based inferences are affected when specific model assumptions are not satisfied. This can wield the DDWizard certain didactic purposes. For example, the `Binary IV` design arguments can be defined in such a way that violates one or more assumptions for a strong instrumental variable. Similarly, the `Mediation design` allows users to explore design properties under the violation of sequential ignorability and heterogeneous effects. Simulating and diagnosing such designs helps illustrate the magnitude and direction of bias and other properties when each assumption is violated separately, as well as what estimates are affected by or perform best under these scenarios.
 
-
-* *Relevance*: The instrument $Z$ has a causal effect on the treatment $X$.
-* *Exclusion restriction*: The instrument $Z$ affects the outcome $Y$ only through the treatment $X$.
-* *Exchangeability* (or *independence*): The instrument $Z$ is as good as randomly assigned (i.e., there is no confounding for the effect of $Z$ on $Y$).
-* *Monotonicity*: For all units $i$, $X_i(z_1) \geqslant X_i(x_2)$ when $z_1 \geqslant z_2$ (i.e., there are no units that always defy their assignment).
-
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-text4 <- c(
-  add_title("Load the Binary IV Design", 
-            ""),
-  
-  add_title("Questioning relevance assumption in <code>Diagnose</code> tab", 
-            "Changing the <code>b Y</code> parameter to 0 means there is no effect of our instrument <code>Z</code> on <code>Y</code>, which violates the non-relevance assumption and results in no first-stage effects."),
-  
-  add_title("Violating the exclusion restriction", 
-            ""))
-
-imageGallery("ex2", text4)
-```
+<!-- REVIEW: Show step-by-step of specific manipulations and takeaways? -->
 
 ### 5) Advanced: Use this interactive tool to examine your own design. 
 
@@ -130,4 +119,4 @@ A version of the DDWizard should then run locally with new function(s) appearing
 
 ### Feedback
 
-The DDWizard is still under development. We encourage users to report issues or contribute to developing the app [on our Github repository](https://github.com/DeclareDesign/DDWizard/issues).
+The DDWizard is still under development. We encourage users to report issues, make feature requests, or contribute to developing the app [on our Github repository](https://github.com/DeclareDesign/DDWizard/issues).
