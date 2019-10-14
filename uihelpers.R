@@ -147,43 +147,73 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
     }
     
     if (argclass %in% c('numeric', 'integer') && !argdefinition$vector) {
-        arg_value <- as.numeric(inp_value)
-    } else if ((argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') || argdefinition$vector) && argdefinition$class != 'character') { # "language" constructs (R formula/code)
-        if (length(inp_value) > 0 && !is.na(inp_value) && !is.null(argdefinition)) {
-            # if there is a input value for an R formula field, convert it to the requested class
-            if (argdefinition$class %in% c('numeric', 'integer')) {
-                if (is.character(inp_value)) {
-                    arg_value <- trimws(strsplit(inp_value, ",")[[1]])
-                    # convert the fractions to the decimals
-                    arg_value <- unname(sapply(arg_value, function(x) {
-                        parsed <- try(eval(parse(text = x)), silent = TRUE)   # couldn't get that running with tryCatch()
-                        if (class(parsed) == 'try-error') {
-                            NA
-                        } else {
-                            parsed
-                        }
-                    }))
-                } else {
-                    arg_value <- as.numeric(inp_value)
-                }
-            } else {
-                return(NULL)
-            }
-        } else {
-            return(NULL)
+        if (!is.null(inp_value) && !is.na(inp_value)){
+            arg_value <- as.numeric(inp_value)
+        } else{
+            arg_value <- argdefault
         }
+    } else if ((argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') || argdefinition$vector) && argdefinition$class != 'character') { # "language" constructs (R formula/code)
+        if (argdefinition$vector){
+            len_inp <- str_count(inp_value, '[0-9.]+') # count the length of vector var, e.g, in factorial designer, some vars must be matched with k
+            len_def <- str_count(argdefault, '[0-9.]+') # count the length of vector var
+        }
+        # make sure the length of vector is correct 
+        if (len_inp  == len_def && !is.null(inp_value) && !is.na(inp_value)){
+            if (length(inp_value) > 0 && !is.null(argdefinition)) {
+                # if there is a input value for an R formula field, convert it to the requested class
+                if (argdefinition$class %in% c('numeric', 'integer')) {
+                    if (is.character(inp_value)) {
+                        arg_value <- trimws(strsplit(inp_value, ",")[[1]])
+                        # convert the fractions to the decimals
+                        arg_value <- unname(sapply(arg_value, function(x) {
+                            parsed <- try(eval(parse(text = x)), silent = TRUE)   # couldn't get that running with tryCatch()
+                            if (class(parsed) == 'try-error') {
+                                NA
+                            } else {
+                                parsed
+                            }
+                        }))
+                    } else {
+                        arg_value <- as.numeric(inp_value)
+                    }
+                } else {
+                    return(NULL)
+                }
+            }
+            
+            
+        } else {
+            if (class(argdefault) %in% c("integer", "numeric")){
+                arg_value <- argdefault
+            } else{
+                arg_value <- trimws(strsplit(argdefault, ",")[[1]])
+                # convert the fractions to the decimals
+                arg_value <- unname(sapply(arg_value, function(x) {
+                    parsed <- try(eval(parse(text = x)), silent = TRUE)   # couldn't get that running with tryCatch()
+                    if (class(parsed) == 'try-error') {
+                        NA
+                    } else {
+                        parsed
+                    }
+                }))
+            }
+        }
+        
+        
     } else if ((argclass == 'character' || argdefinition$class == 'character') && is.character(inp_value)) {
         arg_value <- trimws(strsplit(inp_value, ",")[[1]])
     } else {
         return(NULL)
     }
-
+    
     if (length(arg_value) > 0 && !(!argdefinition$vector && sum(is.na(arg_value)) == length(arg_value) && is.null(argdefault))) {
         return(arg_value)
     } else {
         return(argdefault) 
     }
 }
+
+
 
 
 # Create UI element with input boxes for design parameters. If `type` is "design", then this is for the

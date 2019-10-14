@@ -102,21 +102,32 @@ designTab <- function(input, output, session) {
         
         if (!is.null(react$design)) {   # return empty list if no designer given
             args <- get_designer_args(react$design)
+            args_eval <- evaluate_designer_args(get_designer_args(react$design), attr(react$design, 'definitions'))
             arg_defs <- react$design_argdefinitions   # is NULL on first run, otherwise data frame of argument definitions (class, min/max)
             
             if (is.null(arg_defs)) {
                 return(output_args)    # empty list
             }
+           
             
             fixed_args <- NULL
             
             all_default <- TRUE
+            
             for (argname in names(args)) {
                 if (argname %in% args_control_skip_design_args) next()
-                
-                argdefault <- args[[argname]]
+
+                argdefault <- args_eval[[argname]]
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
+                
+                print('#####')
+                print(argname)
+                print(argdefault)
+                print("#####")
+                print(inp_value)
+                print("+++++")
+                
                 # convert an input value to a argument value of correct class
                 if (length(argdefinition) != 0) {
                     argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
@@ -159,7 +170,6 @@ designTab <- function(input, output, session) {
             }
             
             print('design args changed:')
-            print(output_args)
         }
         
         output_args
@@ -199,7 +209,6 @@ designTab <- function(input, output, session) {
                         warning_occur <<- TRUE 
                         msgs <<- w
                     })
-                
                 
                 # create a design instance from the designer using the current arguments `d_args`
                 if (!error_occur) {
@@ -296,6 +305,9 @@ designTab <- function(input, output, session) {
         shinyjs::enable(nspace('simdata_redraw'))
         shinyjs::enable(nspace('simdata_download'))
         
+        # replace xx_designer as xx_design
+        updateTextInput(session, nspace('design_arg_design_name'), value = gsub("designer","design", react$design_id))
+        
         # simulation data would react once new design is loaded
         d <- req(design_instance())
         if (!is.null(react$custom_state$simdata)) {
@@ -309,9 +321,6 @@ designTab <- function(input, output, session) {
         
         # save this to state because it is not automatically restored from bookmark
         react$custom_state$designer <- react$design_id
-        
-        # replace xx_designer as xx_design
-        updateTextInput(session, nspace('design_arg_design_name'), value = gsub("designer","design", react$design_id))
     }
     
     ### bookmarking ###
@@ -355,6 +364,7 @@ designTab <- function(input, output, session) {
             load_designer(input$import_design_library)
         }
     })
+    
     
     # input observer for click on "Fix/Unfix all" button
     observeEvent(input$fix_toggle_click, {
@@ -545,7 +555,9 @@ designTab <- function(input, output, session) {
     output$section_messages <- renderUI({
         got_errors <- !is.null(react$captured_errors) && length(react$captured_errors) > 0
         
-        if(!is.null(design_instance()) && !is.null(react$captured_msgs) && react$captured_msgs != '') {   # call design_instance() will also create design
+        if(
+            # !is.null(design_instance()) && 
+           !is.null(react$captured_msgs) && react$captured_msgs != '') {   # call design_instance() will also create design
             # show captured messages
             txt <- paste(react$captured_msgs, collapse = "\n")
             
