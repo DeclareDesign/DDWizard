@@ -105,6 +105,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         diagnosands_cached = FALSE, # records whether current diagnosand results came from cache
         diagnosands_call = NULL,    # a closure that actually calculates the diagnosands, valid for current design
         insp_args_used_in_plot = NULL,           # last used design parameters used in plot
+        insp_args_varying = character(),         # arguments that are varying
         insp_args_changed = character(),         # arguments that were changed in the inspector by the user
         insp_args_set_after_tab_switch = FALSE,  # records if the the above vector was just set after switching to this tab again
         captured_errors = NULL,     # errors to display
@@ -217,12 +218,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         # assign a new dataframe, then subset this dataframe by estimand or estimator variable
         plotdf <- react$diagnosands
+        
         if (isTruthy(input$plot_conf_estimand) && isTruthy(input$plot_conf_estimator)) {
             plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
         }
 
         # set columns to show
-        cols <- c(input$plot_conf_x_param)
+        if (input$plot_conf_x_param != "") {
+            cols <- c(input$plot_conf_x_param)
+        } else {
+            cols <- character()
+        }
         
         if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
             cols <- c(cols, input$plot_conf_color_param)
@@ -413,66 +419,70 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 return(NULL)
             }
             
+            p <- NULL
             plotdf <- diag_res$results$diagnosands_df_for_plot
             
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
-                # the bound value of confidence interval: diagnosand values +/-SE*1.96
-                plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
-                plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
-            
-                # base aesthetics for line plot
-                aes_args <- list(
-                    'x' = input$plot_conf_x_param,   
-                    'y' = input$plot_conf_diag_param,
-                    'ymin' = 'diagnosand_min',
-                    'ymax' = 'diagnosand_max'
+                if (length(react$insp_args_varying) > 0) {
+                    # the bound value of confidence interval: diagnosand values +/-SE*1.96
+                    plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
+                    plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
+                
+                    # base aesthetics for line plot
+                    aes_args <- list(
+                        'x' = input$plot_conf_x_param,   
+                        'y' = input$plot_conf_diag_param,
+                        'ymin' = 'diagnosand_min',
+                        'ymax' = 'diagnosand_max'
+                        
+                    )
                     
-                )
-                
-                # subset the plotdf by estimand or estimator variable
-                if (isTruthy(input$plot_conf_estimand) && isTruthy(input$plot_conf_estimator)) {
-                        plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
+                    # subset the plotdf by estimand or estimator variable
+                    if (isTruthy(input$plot_conf_estimand) && isTruthy(input$plot_conf_estimator)) {
+                            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
+                    }
+                    # if the "color" parameter is set, add it to the aeshetics definition
+                    if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
+                        plotdf[[input$plot_conf_color_param]] <- factor(plotdf[[input$plot_conf_color_param]])
+                        aes_args$color <- input$plot_conf_color_param
+                        aes_args$fill <- input$plot_conf_color_param
+                        aes_args$group <- input$plot_conf_color_param
+                    } else {
+                        aes_args$group <- 1
+                    }
+                    
+                    # if the "facets" parameter is set, add it to the aeshetics definition
+                    if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
+                        plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
+                    }
+                    
+                    # create aesthetics definition
+                    aes_definition <- do.call(aes_string, aes_args)
+                    
+                    incProgress(1/n_steps)
+                    
+                    # create base line plot
+                    
+                    p <- ggplot(plotdf, aes_definition) +
+                        geom_line() +
+                        geom_point() +
+                        scale_y_continuous(name = str_cap(input$plot_conf_diag_param)) +
+                        dd_theme() +
+                        labs(x = input$plot_conf_x_param)
+                    
+                    # add confidence interval if requested
+                    if (isTruthy(input$plot_conf_confi_int_id)) {
+                        p <- p + geom_ribbon(alpha = 0.25, color = 'white')
+                    }
+                    
+                    # add facets if necessary
+                    if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
+                        p <- p + facet_wrap(input$plot_conf_facets_param, ncol = 2, labeller = label_both)
+                    }
+                    
+                    incProgress(1/n_steps)
                 }
-                # if the "color" parameter is set, add it to the aeshetics definition
-                if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
-                    plotdf[[input$plot_conf_color_param]] <- factor(plotdf[[input$plot_conf_color_param]])
-                    aes_args$color <- input$plot_conf_color_param
-                    aes_args$fill <- input$plot_conf_color_param
-                    aes_args$group <- input$plot_conf_color_param
-                } else {
-                    aes_args$group <- 1
-                }
-                
-                # if the "facets" parameter is set, add it to the aeshetics definition
-                if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
-                    plotdf$facets_param <- as.factor(plotdf[[input$plot_conf_facets_param]])
-                }
-                
-                # create aesthetics definition
-                aes_definition <- do.call(aes_string, aes_args)
-                
-                incProgress(1/n_steps)
-                
-                # create base line plot
-                
-                p <- ggplot(plotdf, aes_definition) +
-                    geom_line() +
-                    geom_point() +
-                    scale_y_continuous(name = str_cap(input$plot_conf_diag_param)) +
-                    dd_theme() +
-                    labs(x = input$plot_conf_x_param)
-                
-                # add confidence interval if requested
-                if (isTruthy(input$plot_conf_confi_int_id)) {
-                    p <- p + geom_ribbon(alpha = 0.25, color = 'white')
-                }
-                
-                # add facets if necessary
-                if (isTruthy(input$plot_conf_facets_param) && input$plot_conf_facets_param != '(none)') {
-                    p <- p + facet_wrap(input$plot_conf_facets_param, ncol = 2, labeller = label_both)
-                }
-                
-                incProgress(1/n_steps)
+                    
                 
                 shinyjs::enable('reshape_diagnosands')
                 shinyjs::enable('section_diagnosands_download_subset')
@@ -522,10 +532,16 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     output$plot_message <- renderUI({
         if (is.null(react$diagnosands)) {
-            return(HTML(inpector_help_text))
+            res <- HTML(inpector_help_text)
         } else {
-            results_cached_message()
+            res <- results_cached_message()
+            
+            if (length(react$insp_args_varying) == 0) {
+                res <- list(res, HTML('<b>No varying arguments were set on the left side, hence not plot can be generated. You can still access the diagnosis for the single generated design in the box below.</b>'))
+            }
         }
+        
+        res
     })
     
     
@@ -546,7 +562,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     # - allow to show/hide the plot using shinyjs (same as above)
     
     output$plot_output <- renderUI({
-        if (is.null(react$diagnosands)) {
+        if (is.null(react$diagnosands) || length(react$insp_args_varying) == 0) {
             h <- 1
         } else {
             h <- 400
@@ -811,16 +827,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
                 
                     insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
-                    insp_args_lens<- sapply(insp_args, function(arg) {any(length(arg) > 1)})
+                    insp_args_is_varying <- sapply(insp_args, function(arg) {any(length(arg) > 1)})
+                    react$insp_args_varying <- names(insp_args_is_varying)[insp_args_is_varying]
 
-                    if (sum(insp_args_NAs) > 0||sum(insp_args_lens) == 0) {
+                    if (sum(insp_args_NAs) > 0) {
                         shinyjs::disable('update_plot')
-                        if (sum(insp_args_NAs) > 0){
-                            react$captured_errors <- paste('Invalid values supplied to the following arguments:',
-                                                           paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', '))
-                        }else{
-                            react$captured_errors <- paste('Please vary one or more of the following arguments:')
-                        }
+                        react$captured_errors <- paste('Invalid values supplied to the following arguments:',
+                                                       paste(names(insp_args_NAs)[insp_args_NAs], collapse = ', '))
                     }else{
                         react$captured_errors <- NULL
                         shinyjs::enable('update_plot')
