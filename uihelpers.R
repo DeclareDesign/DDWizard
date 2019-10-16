@@ -72,10 +72,16 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
             inp_elem_args$value <- argdefault
         }
     } else {   # else, use either argvalue or the parsed version of it
-        if (arglang && !argvec && idprefix != 'inspect') {   # use the parsed version if we have a R formula
-                                                             # in "inspect" tab never use the parsed version because here the parsing happens before
-                                                             # and argvalue is already parsed
+        if (argvec){
+            len_inp <- lengths(gregexpr(",", argvalue)) + 1 # count the length of vector var, e.g, in factorial designer, some vars must be matched with k
+            len_def <- length(argvalue_parsed) # count the length of vector var
+        }
+        
+        if (arglang && !argvec && idprefix != 'inspect' || argvec && idprefix != 'inspect' && len_inp != len_def || !argvec && idprefix != 'inspect' &&  class(argvalue) != argclass) {   # use the parsed version if we have a R formula
+            # in "inspect" tab never use the parsed version because here the parsing happens before
+            # and argvalue is already parsed
             inp_elem_args$value <- argvalue_parsed
+            if (class(inp_elem_args$value) != class(args_eval[[argname]]) && argvec) inp_elem_args$value <- args_eval[[argname]]
         } else {
             inp_elem_args$value <- argvalue
         }
@@ -147,15 +153,15 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
     }
     
     if (argclass %in% c('numeric', 'integer') && !argdefinition$vector) {
-        if (!is.null(inp_value) && !is.na(inp_value)){
+        if (!is.null(inp_value) && !is.na(inp_value) && class(inp_value) == argclass){
             arg_value <- as.numeric(inp_value)
         } else{
             arg_value <- argdefault
         }
     } else if ((argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') || argdefinition$vector) && argdefinition$class != 'character') { # "language" constructs (R formula/code)
         if (argdefinition$vector){
-            len_inp <- str_count(inp_value, '[0-9.]+') # count the length of vector var, e.g, in factorial designer, some vars must be matched with k
-            len_def <- str_count(argdefault, '[0-9.]+') # count the length of vector var
+            len_inp <- lengths(gregexpr(",", inp_value)) + 1 # count the length of vector var, e.g, in factorial designer, some vars must be matched with k
+            len_def <- lengths(gregexpr(",", argdefault)) + 1  # count the length of vector var
         }
         # make sure the length of vector is correct 
         if (len_inp  == len_def && !is.null(inp_value) && !is.na(inp_value)){
