@@ -6,3 +6,5 @@ _tmp/
 www/piwik.txt
 tests/load_all_designs-current/
 shiny_bookmarks/
+.rsyncexclude
+Makefile_server
