@@ -8,3 +8,4 @@ tests/load_all_designs-current/
 shiny_bookmarks/
 .rsyncexclude
 Makefile_server
+_docs/server*
