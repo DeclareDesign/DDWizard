@@ -43,7 +43,7 @@ designTabUI <- function(id, label = 'Design') {
                                                onclick = "window.open('https://declaredesign.org/library', '_blank')"),
                                   data.step = 2,
                                   data.intro = "Click on 'LOAD' button to load the design you selected")
-                                  
+                              
                               )
                 ),
                 # show designer parameters if a design was loaded
@@ -135,7 +135,8 @@ designTab <- function(input, output, session) {
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
         captured_errors = NULL,         # captured errors and warnings during design creation
-        error_occurred  = NULL,         # detect whether error occurred in design_instance 
+        error_occurred  = NULL,         # detect whether error occurred in design_instance
+        warning_occurred  = NULL,       # detect whether warning occurred in design_instance 
         input_errors = NULL,            # errors related to invalid inputs
         captured_msgs = NULL,           # captured messages during design creation
         custom_state = list()           # additional state values for bookmarking
@@ -249,7 +250,11 @@ designTab <- function(input, output, session) {
                 
                 
                 # create a design instance from the designer using the current arguments `d_args`
-                if (!warning_occur && !error_occur) {
+                if (!error_occur) {
+                    if (is.null(d_inst)) { # try again if we only got warnings (not errors)
+                        d_inst <- do.call(react$design, d_args)
+                    }
+                    
                     react$captured_stdout <- capture.output({  # capture output of `print(d_inst)`
                         print(d_inst)   # to create summary output if and only if there is no error in d_inst
                     }, type = 'output')
@@ -259,12 +264,13 @@ designTab <- function(input, output, session) {
                 
                 react$captured_errors <- conditions
                 react$captured_msgs <- msgs
-                if (!warning_occur && !error_occur && msgs == ''){
+                react$error_occurred <- error_occur
+                react$warning_occurred <- warning_occur
+                
+                if (!error_occur && !is.null(d_inst)){
                     react$simdata <- draw_data(d_inst)   # also update simulated data
-                    react$error_occurred <- FALSE
                 }else{
                     react$simdata <- NULL
-                    react$error_occurred <- TRUE
                 }
                 
             }
@@ -318,14 +324,6 @@ designTab <- function(input, output, session) {
     })
     
     ### non-reactive functions ###
-    
-    wrap_errors <- function(output) {
-        if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
-            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")))
-        } else {
-            list(output)
-        }
-    }
     
     # Load the designer with the name `designer` (char string).
     # For mysterious reasons, it is necessary to pass a namespace function `nspace` (created with `NS(<id>)`)
@@ -428,7 +426,7 @@ designTab <- function(input, output, session) {
             simdata <- react$custom_state$simdata
             react$custom_state$simdata <- NULL
         } else {
-            if (react$error_occurred) {
+            if (react$warning_occurred || react$error_occurred) {
                 simdata <- NULL
             } else {
                 simdata <- draw_data(d)
@@ -442,7 +440,7 @@ designTab <- function(input, output, session) {
     # reactive expression returns true when there is no error or warning
     message_close <- reactive({
         req(design_instance())
-       if (!isTRUE(react$error_occurred)){
+       if (!isTRUE(react$warning_occurred) && !isTRUE(react$error_occurred)) {
             return(TRUE)
         }else{
             return(NULL)
@@ -453,7 +451,7 @@ designTab <- function(input, output, session) {
     message_open <- reactive({
         if (is.null(design_instance())){
             return(TRUE)
-        }else if (isTRUE(react$error_occurred)){
+        }else if (isTRUE(react$warning_occurred) || isTRUE(react$error_occurred)){
             return(TRUE)
         }else{
             return(NULL)
@@ -577,7 +575,7 @@ designTab <- function(input, output, session) {
             code_text <- ''
         }
         
-        wrap_errors(tags$pre(code_text))
+        tags$pre(code_text)
     })
     
     # center: design summary
@@ -589,19 +587,27 @@ designTab <- function(input, output, session) {
             txt <- 'No summary.'
         }
         
-        wrap_errors(tags$pre(txt))
+        tags$pre(txt)
     })
     
     # center: design messages
     output$section_messages <- renderUI({
+        got_errors <- !is.null(react$captured_errors) && length(react$captured_errors) > 0
+        
         if(!is.null(design_instance()) && !is.null(react$captured_msgs) && react$captured_msgs != '') {   # call design_instance() will also create design
             # show captured messages
             txt <- paste(react$captured_msgs, collapse = "\n")
+            
+            if (got_errors) {
+                txt <- tags$div(class = 'error_msgs', txt)
+            }
         } else {
             txt <- 'No warnings/errors.'
         }
         
-        wrap_errors(tags$pre(txt))
+        
+        
+        tags$pre(txt)
     })
     
     # center: download generated R code

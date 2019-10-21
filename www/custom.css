@@ -56,3 +56,13 @@ pre.share-url {
     margin-top: 15px;
     font-size: 13px;
 }
+
+.btn, .btn-large, .sweet-alert button,
+.btn:hover, .btn-large:hover, .sweet-alert button:hover,
+.btn:active, .btn-large:active, .sweet-alert button:active,
+.btn:focus, .btn-large:focus, .sweet-alert button:focus {
+    color: #fff;
+    background-color: #5f89fa;
+    border-color: #5f89fa;
+}
+

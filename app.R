@@ -45,9 +45,11 @@ ui <- function(request) {
     material_page(
         introjsUI(),
         # title
-        title = app_title,
-        nav_bar_color = nav_bar_color,
-        shiny::tags$title(app_title),
+        # title = app_title,
+        nav_bar_color = "transparent",
+        # shiny::tags$title(app_title),
+        title = span("", tags$a(href="#", class="brand-logo", tags$img(src="brand.png" , height = 52.5, width = 300))),
+        
         
         # additional JS / CSS libraries
         bootstrapLib(),
@@ -71,7 +73,9 @@ ui <- function(request) {
             tabs = c(
                 "Design" = "tab_design",
                 "Diagnose" = "tab_inspect"
-            )
+            ),
+            color = "blue"
+            
         ),
         data.step = 13,
         data.intro = "Please switch to diagnose tab, click on 'DIAGNOSE'",
@@ -160,6 +164,7 @@ server <- function(input, output, session) {
     })
     
     onBookmarked(function(url) {
+        
         shinyalert(
             sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
                     <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
