@@ -153,7 +153,7 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
     }
     
     if (argclass %in% c('numeric', 'integer') && !argdefinition$vector) {
-        if (!is.null(inp_value) && !is.na(inp_value) && class(inp_value) == argclass){
+        if (!is.null(inp_value) && !is.na(inp_value) && class(inp_value) %in% c('numeric', 'integer')){
             arg_value <- as.numeric(inp_value)
         } else{
             arg_value <- argdefault
