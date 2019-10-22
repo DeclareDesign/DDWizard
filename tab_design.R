@@ -81,6 +81,7 @@ designTab <- function(input, output, session) {
     react <- reactiveValues(
         design = NULL,                  # parametric designer object (a closure)
         design_id = NULL,               # identifier for current design instance *after* being instantiated
+        prev_design_id = '',            # identifier of previously instantiated design; used to check if a designer was changed just before
         design_argdefinitions = NULL,   # argument definitions for current design instance
         design_name_once_changed = FALSE,  # records whether design name was changed after import
         fix_toggle = 'fix',             # toggle for fixing/unfixing all design parameters. must be either "fix" or "unfix"
@@ -114,6 +115,7 @@ designTab <- function(input, output, session) {
             
             all_default <- TRUE
             
+            
             for (argname in names(args)) {
                 if (argname %in% args_control_skip_design_args) next()
 
@@ -121,19 +123,24 @@ designTab <- function(input, output, session) {
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
-                # convert an input value to a argument value of correct class
-                if (length(argdefinition) != 0) {
-                    argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
-                    has_NAs <- !is.null(argvalue) && any(is.na(argvalue))   # may contain NAs where invalid input was supplied
-                    if (!has_NAs && ((!is.null(argvalue) && is.null(argdefault))
-                        || (!is.null(argvalue) && argvalue != ''
-                            && (length(argvalue) != length(argdefault) || argvalue != argdefault))))
-                    {
-                        all_default <- FALSE
-                    }
-                    
-                    if (has_NAs || !is.null(argvalue)) {  # add the value to the list of designer arguments
-                        output_args[[argname]] <- argvalue
+                if (designer_changed()) {  # if the designer was just changed, use its default values
+                                           # because the inputs still hold values from the prev. designer which might be incompatible
+                    output_args[[argname]] <- design_arg_value_from_input(argdefault, argdefault, argdefinition, class(argdefault), typeof(argdefault))
+                } else {  # otherwise use the inputs as usual
+                    # convert an input value to a argument value of correct class
+                    if (length(argdefinition) != 0) {
+                        argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
+                        has_NAs <- !is.null(argvalue) && any(is.na(argvalue))   # may contain NAs where invalid input was supplied
+                        if (!has_NAs && ((!is.null(argvalue) && is.null(argdefault))
+                            || (!is.null(argvalue) && argvalue != ''
+                                && (length(argvalue) != length(argdefault) || argvalue != argdefault))))
+                        {
+                            all_default <- FALSE
+                        }
+                        
+                        if (has_NAs || !is.null(argvalue)) {  # add the value to the list of designer arguments
+                            output_args[[argname]] <- argvalue
+                        }
                     }
                 }
                 
@@ -163,6 +170,7 @@ designTab <- function(input, output, session) {
             }
             
             print('design args changed:')
+            print(output_args)
         }
         
         output_args
@@ -277,6 +285,11 @@ designTab <- function(input, output, session) {
         length(args_fixed) == length(all_args)
     })
     
+    # indicates whether designer was just changed
+    designer_changed <- reactive({
+        react$design_id != react$prev_design_id
+    })
+    
     ### non-reactive functions ###
     
     # Load the designer with the name `designer` (char string).
@@ -287,6 +300,7 @@ designTab <- function(input, output, session) {
         
         shinyjs::show(nspace('design_params_panel_wrapper'))
         
+        react$prev_design_id <- ''
         react$design_id <- designer
         react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
         react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
@@ -309,7 +323,7 @@ designTab <- function(input, output, session) {
         } else {
             simdata <- draw_data(d)
         }
-        
+
         react$simdata <- simdata
         
         # save this to state because it is not automatically restored from bookmark
@@ -454,7 +468,8 @@ designTab <- function(input, output, session) {
         
         param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
                                                   input = input, defaults = defaults,
-                                                  create_fixed_checkboxes = design_supports_fixed_arg())
+                                                  create_fixed_checkboxes = design_supports_fixed_arg(),
+                                                  use_defaults_only = TRUE)
         
         if (!is.null(react$input_errors) && length(react$input_errors) > 0) {
             list(tags$div(class = 'error_msgs', paste(react$input_errors, collapse = "\n")), tags$div(param_boxes))

@@ -120,6 +120,12 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
 
     # create the input element and return it
     if (is.function(inp_elem_constructor)) {
+        # some designers have NULL as a default value, which will remove the "value" element from "inp_elem_args"
+        # fix this here by setting an empty string for those NULL defaults
+        if (!('value' %in% names(inp_elem_args))) {
+            inp_elem_args$value <- ''
+        }
+        
         ret <- do.call(inp_elem_constructor, inp_elem_args)
         if (is.character(tips[[argname]])) {
             argtips <- tips[[argname]]
@@ -231,7 +237,9 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
-create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE) {
+# `use_defaults_only`: if TRUE, only use the values from `defaults` and ignore those from `input`
+create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE,
+                                       use_defaults_only = FALSE) {
     boxes <- list()
     # extract the tips from library
     tips <- get_tips(react$design)
@@ -255,7 +263,11 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
         
         arglabel <- rm_usc(argname)
         
-        argvalue <- input[[paste0(type, '_arg_', argname)]]
+        if (use_defaults_only) {
+            argvalue <- argdefault
+        } else {
+            argvalue <- input[[paste0(type, '_arg_', argname)]]
+        }
         
         if (type == 'design') {
             # for the "design" tab, create two input elements for each argument:
