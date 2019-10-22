@@ -81,9 +81,9 @@ designTab <- function(input, output, session) {
     react <- reactiveValues(
         design = NULL,                  # parametric designer object (a closure)
         design_id = NULL,               # identifier for current design instance *after* being instantiated
+        prev_design_id = '',            # identifier of previously instantiated design; used to check if a designer was changed just before
         design_argdefinitions = NULL,   # argument definitions for current design instance
         design_name_once_changed = FALSE,  # records whether design name was changed after import
-        design_changed = FALSE,
         fix_toggle = 'fix',             # toggle for fixing/unfixing all design parameters. must be either "fix" or "unfix"
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
@@ -115,6 +115,7 @@ designTab <- function(input, output, session) {
             
             all_default <- TRUE
             
+            
             for (argname in names(args)) {
                 if (argname %in% args_control_skip_design_args) next()
 
@@ -122,9 +123,10 @@ designTab <- function(input, output, session) {
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
-                if (react$design_changed) {
+                if (designer_changed()) {  # if the designer was just changed, use its default values
+                                           # because the inputs still hold values from the prev. designer which might be incompatible
                     output_args[[argname]] <- design_arg_value_from_input(argdefault, argdefault, argdefinition, class(argdefault), typeof(argdefault))
-                } else {
+                } else {  # otherwise use the inputs as usual
                     # convert an input value to a argument value of correct class
                     if (length(argdefinition) != 0) {
                         argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
@@ -283,6 +285,11 @@ designTab <- function(input, output, session) {
         length(args_fixed) == length(all_args)
     })
     
+    # indicates whether designer was just changed
+    designer_changed <- reactive({
+        react$design_id != react$prev_design_id
+    })
+    
     ### non-reactive functions ###
     
     # Load the designer with the name `designer` (char string).
@@ -293,11 +300,11 @@ designTab <- function(input, output, session) {
         
         shinyjs::show(nspace('design_params_panel_wrapper'))
         
+        react$prev_design_id <- ''
         react$design_id <- designer
         react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
         react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
         react$design_name_once_changed <- FALSE
-        react$design_changed <- TRUE
         react$fix_toggle <- 'fix'
         
         shinyjs::enable(nspace('download_r_script'))
@@ -461,7 +468,8 @@ designTab <- function(input, output, session) {
         
         param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
                                                   input = input, defaults = defaults,
-                                                  create_fixed_checkboxes = design_supports_fixed_arg())
+                                                  create_fixed_checkboxes = design_supports_fixed_arg(),
+                                                  use_defaults_only = TRUE)
         
         if (!is.null(react$input_errors) && length(react$input_errors) > 0) {
             list(tags$div(class = 'error_msgs', paste(react$input_errors, collapse = "\n")), tags$div(param_boxes))
