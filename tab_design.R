@@ -83,6 +83,7 @@ designTab <- function(input, output, session) {
         design_id = NULL,               # identifier for current design instance *after* being instantiated
         design_argdefinitions = NULL,   # argument definitions for current design instance
         design_name_once_changed = FALSE,  # records whether design name was changed after import
+        design_changed = FALSE,
         fix_toggle = 'fix',             # toggle for fixing/unfixing all design parameters. must be either "fix" or "unfix"
         simdata = NULL,                 # a single draw of the data to be shown in the "simulated data" panel
         captured_stdout = NULL,         # captured output of print(design_instance). used in design summary
@@ -121,19 +122,23 @@ designTab <- function(input, output, session) {
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
-                # convert an input value to a argument value of correct class
-                if (length(argdefinition) != 0) {
-                    argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
-                    has_NAs <- !is.null(argvalue) && any(is.na(argvalue))   # may contain NAs where invalid input was supplied
-                    if (!has_NAs && ((!is.null(argvalue) && is.null(argdefault))
-                        || (!is.null(argvalue) && argvalue != ''
-                            && (length(argvalue) != length(argdefault) || argvalue != argdefault))))
-                    {
-                        all_default <- FALSE
-                    }
-                    
-                    if (has_NAs || !is.null(argvalue)) {  # add the value to the list of designer arguments
-                        output_args[[argname]] <- argvalue
+                if (react$design_changed) {
+                    output_args[[argname]] <- design_arg_value_from_input(argdefault, argdefault, argdefinition, class(argdefault), typeof(argdefault))
+                } else {
+                    # convert an input value to a argument value of correct class
+                    if (length(argdefinition) != 0) {
+                        argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
+                        has_NAs <- !is.null(argvalue) && any(is.na(argvalue))   # may contain NAs where invalid input was supplied
+                        if (!has_NAs && ((!is.null(argvalue) && is.null(argdefault))
+                            || (!is.null(argvalue) && argvalue != ''
+                                && (length(argvalue) != length(argdefault) || argvalue != argdefault))))
+                        {
+                            all_default <- FALSE
+                        }
+                        
+                        if (has_NAs || !is.null(argvalue)) {  # add the value to the list of designer arguments
+                            output_args[[argname]] <- argvalue
+                        }
                     }
                 }
                 
@@ -163,6 +168,7 @@ designTab <- function(input, output, session) {
             }
             
             print('design args changed:')
+            print(output_args)
         }
         
         output_args
@@ -291,6 +297,7 @@ designTab <- function(input, output, session) {
         react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
         react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
         react$design_name_once_changed <- FALSE
+        react$design_changed <- TRUE
         react$fix_toggle <- 'fix'
         
         shinyjs::enable(nspace('download_r_script'))
@@ -309,7 +316,7 @@ designTab <- function(input, output, session) {
         } else {
             simdata <- draw_data(d)
         }
-        
+
         react$simdata <- simdata
         
         # save this to state because it is not automatically restored from bookmark
