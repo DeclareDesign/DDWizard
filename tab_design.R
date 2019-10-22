@@ -30,7 +30,7 @@ designTabUI <- function(id, label = 'Design') {
                                                disabled = "disabled"),
                                   actionButton(inputId='learn_more', label= NULL,
                                                icon = icon("question-circle"),
-                                               style = "text-align: center; padding-left: 8px; padding-right: 8px",
+                                               style = "text-align: center; padding-left: 8px; padding-right: 8px;",
                                                onclick = "window.open('https://declaredesign.org/library', '_blank')")
                               )
                 ),

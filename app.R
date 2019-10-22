@@ -43,9 +43,11 @@ if (file.exists(piwik_code_file)) {
 ui <- function(request) {
     material_page(
         # title
-        title = app_title,
-        nav_bar_color = nav_bar_color,
-        shiny::tags$title(app_title),
+        # title = app_title,
+        nav_bar_color = "transparent",
+        # shiny::tags$title(app_title),
+        title = span("", tags$a(href="#", class="brand-logo", tags$img(src="brand.png" , height = 52.5, width = 300))),
+        
         
         # additional JS / CSS libraries
         bootstrapLib(),
@@ -57,6 +59,7 @@ ui <- function(request) {
         ),
         shinyjs::useShinyjs(),
         
+
         bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
         
         # tabs
@@ -64,7 +67,9 @@ ui <- function(request) {
             tabs = c(
                 "Design" = "tab_design",
                 "Diagnose" = "tab_inspect"
-            )
+            ),
+            color = "blue"
+            
         ),
         
         # "Design" tab
@@ -109,7 +114,7 @@ server <- function(input, output, session) {
     observeEvent(input$show_legal_notice, {
         alert_with_content_from_html_file('Legal notice', 'www/legal_notice.html', className = 'wide')
     })
-
+    
     # data protection button clicked
     observeEvent(input$show_data_protection_policy, {
         alert_with_content_from_html_file('Data protection policy', 'www/data_protection_policy.html', className = 'wide')
@@ -141,8 +146,9 @@ server <- function(input, output, session) {
         state$values$current_tab <- input$current_tab
         print(state$values$current_tab)
     })
-
+    
     onBookmarked(function(url) {
+        
         shinyalert(
             sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
                     <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
@@ -156,7 +162,7 @@ server <- function(input, output, session) {
             imageUrl = "",
             confirmButtonCol = "light-blue darken-3", 
             animation = TRUE
-        )
+            )
     })
     
     onRestore(function(state) {
