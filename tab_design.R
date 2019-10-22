@@ -238,6 +238,7 @@ designTab <- function(input, output, session) {
             }
             
             print('design instance changed')
+            react$prev_design_id <- react$design_id
         }
         
         d_inst
