@@ -238,7 +238,7 @@ designTab <- function(input, output, session) {
             }
             
             print('design instance changed')
-            react$prev_design_id <- react$design_id
+            react$prev_design_id <- react$design_id   # reset
         }
         
         d_inst
@@ -465,6 +465,7 @@ designTab <- function(input, output, session) {
         
         nspace <- NS('tab_design')
         
+        react$prev_design_id <- ''   # make sure that always designer defaults are loaded in `design_args()`
         defaults <- isolate({ design_args() })
         
         param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
