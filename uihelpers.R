@@ -72,16 +72,10 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
             inp_elem_args$value <- argdefault
         }
     } else {   # else, use either argvalue or the parsed version of it
-        if (argvec){
-            len_inp <- lengths(gregexpr(",", argvalue)) + 1 # count the length of vector var, e.g, in factorial designer, some vars must be matched with k
-            len_def <- length(argvalue_parsed) # count the length of vector var
-        }
-        
-        if (arglang && !argvec && idprefix != 'inspect' || argvec && idprefix != 'inspect' && len_inp != len_def || !argvec && idprefix != 'inspect' &&  class(argvalue) != argclass) {   # use the parsed version if we have a R formula
-            # in "inspect" tab never use the parsed version because here the parsing happens before
-            # and argvalue is already parsed
+        if (arglang && !argvec && idprefix != 'inspect') {  # use the parsed version if we have a R formula
+                                                            # in "inspect" tab never use the parsed version because here the parsing happens before
+                                                            # and argvalue is already parsed
             inp_elem_args$value <- argvalue_parsed
-            if (class(inp_elem_args$value) != class(args_eval[[argname]]) && argvec) inp_elem_args$value <- args_eval[[argname]]
         } else {
             inp_elem_args$value <- argvalue
         }
@@ -125,6 +119,18 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
         if (!('value' %in% names(inp_elem_args))) {
             inp_elem_args$value <- ''
         }
+        
+        if (length(inp_elem_args$value) > 1) {
+            inp_elem_args$value <- paste(inp_elem_args$value, collapse = ', ')
+        }
+        
+        # print(argname)
+        # print(argvalue)
+        # print(argvalue_parsed)
+        # print(argdefault)
+        # print(length(inp_elem_args$value))
+        # print(inp_elem_args$value)
+        # print('---')
         
         ret <- do.call(inp_elem_constructor, inp_elem_args)
         if (is.character(tips[[argname]])) {
@@ -237,9 +243,7 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
-# `use_defaults_only`: if TRUE, only use the values from `defaults` and ignore those from `input`
-create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE,
-                                       use_defaults_only = FALSE) {
+create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE) {
     boxes <- list()
     # extract the tips from library
     tips <- get_tips(react$design)
@@ -262,19 +266,14 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
         inp_id <- nspace(paste0('inspect_arg_', argname))
         
         arglabel <- rm_usc(argname)
-        
-        if (use_defaults_only) {
-            argvalue <- argdefault
-        } else {
-            argvalue <- input[[paste0(type, '_arg_', argname)]]
-        }
+                
+        argvalue <- input[[paste0(type, '_arg_', argname)]]
         
         if (type == 'design') {
             # for the "design" tab, create two input elements for each argument:
             # 1. the argument value input box
             # 2. the "fixed" checkbox next to it
             inp_elem_width <- ifelse(create_fixed_checkboxes, '70%', '100%')
-            
             inp_elem <- input_elem_for_design_arg(react$design, argname, argvalue,
                                                   defaults[[argname]], argdefault, argdefinition,
                                                   width = inp_elem_width, nspace = nspace, idprefix = type)

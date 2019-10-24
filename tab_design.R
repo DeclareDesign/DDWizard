@@ -81,7 +81,6 @@ designTab <- function(input, output, session) {
     react <- reactiveValues(
         design = NULL,                  # parametric designer object (a closure)
         design_id = NULL,               # identifier for current design instance *after* being instantiated
-        prev_design_id = '',            # identifier of previously instantiated design; used to check if a designer was changed just before
         design_code = '',
         design_argdefinitions = NULL,   # argument definitions for current design instance
         design_name_once_changed = FALSE,  # records whether design name was changed after import
@@ -103,8 +102,10 @@ designTab <- function(input, output, session) {
         output_args <- list()
         
         if (!is.null(react$design)) {   # return empty list if no designer given
+            switching <- isolate({ input$switching_designer })
+            
             args <- get_designer_args(react$design)
-            args_eval <- evaluate_designer_args(get_designer_args(react$design), attr(react$design, 'definitions'))
+            args_eval <- evaluate_designer_args(args, attr(react$design, 'definitions'))
             arg_defs <- react$design_argdefinitions   # is NULL on first run, otherwise data frame of argument definitions (class, min/max)
             
             if (is.null(arg_defs)) {
@@ -122,8 +123,8 @@ designTab <- function(input, output, session) {
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
-                if (designer_changed()) {  # if the designer was just changed, use its default values
-                                           # because the inputs still hold values from the prev. designer which might be incompatible
+                if (switching) {  # if the designer was just changed, use its default values
+                                                 # because the inputs still hold values from the prev. designer which might be incompatible
                     print('USING DEFAULT ARG VALUE')
                     output_args[[argname]] <- design_arg_value_from_input(argdefault, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                 } else {  # otherwise use the inputs as usual
@@ -249,7 +250,6 @@ designTab <- function(input, output, session) {
             }
             
             print('design instance changed')
-            react$prev_design_id <- react$design_id   # reset
         }
         
         d_inst
@@ -297,11 +297,6 @@ designTab <- function(input, output, session) {
         length(args_fixed) == length(all_args)
     })
     
-    # indicates whether designer was just changed
-    designer_changed <- reactive({
-        react$design_id != react$prev_design_id
-    })
-    
     ### non-reactive functions ###
     
     # Load the designer with the name `designer` (char string).
@@ -312,7 +307,6 @@ designTab <- function(input, output, session) {
         
         shinyjs::show(nspace('design_params_panel_wrapper'))
         
-        react$prev_design_id <- ''
         react$design_id <- designer
         react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
         react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
@@ -434,9 +428,7 @@ designTab <- function(input, output, session) {
     
     # reactive expression returns true when there is any error or warning
     message_open <- reactive({
-        req(react$warning_occurred)
-        req(react$error_occurred)
-        if (isTRUE(react$warning_occurred) || isTRUE(react$error_occurred)){
+        if (is.null(design_instance()) || isTRUE(react$warning_occurred) || isTRUE(react$error_occurred)){
             return(TRUE)
         } else {
             return(NULL)
@@ -481,16 +473,15 @@ designTab <- function(input, output, session) {
         
         nspace <- NS('tab_design')
         
-        react$prev_design_id <- ''   # make sure that always designer defaults are loaded in `design_args()`
-        defaults <- isolate({ design_args() })
-        print('DEFAULTS FOR INPUTS')
-        print(defaults)
-        
-        param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
-                                                  input = input, defaults = defaults,
-                                                  create_fixed_checkboxes = design_supports_fixed_arg(),
-                                                  use_defaults_only = TRUE)
-        
+        isolate({
+            print('creating UI')
+            defaults <- design_args()
+            
+            param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
+                                                      input = input, defaults = defaults,
+                                                      create_fixed_checkboxes = design_supports_fixed_arg())
+        })
+
         if (!is.null(react$input_errors) && length(react$input_errors) > 0) {
             list(tags$div(class = 'error_msgs', paste(react$input_errors, collapse = "\n")), tags$div(param_boxes))
         } else {
@@ -554,7 +545,7 @@ designTab <- function(input, output, session) {
     
     # center: design code
     output$section_design_code <- renderUI({
-        #req(design_instance())
+        req(design_instance())
         tags$pre(react$design_code)
     })
     
