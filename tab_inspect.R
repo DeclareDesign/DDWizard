@@ -424,6 +424,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
                 if (length(react$insp_args_varying) > 0) {
+                    diag_colnames <- colnames(plotdf)
+                    req(input$plot_conf_x_param, input$plot_conf_diag_param)
+                    req(input$plot_conf_x_param %in% diag_colnames)
+                    req(input$plot_conf_diag_param %in% diag_colnames)
+                    
                     # the bound value of confidence interval: diagnosand values +/-SE*1.96
                     plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
                     plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
@@ -526,6 +531,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         # re-open the panels
         updateCollapse(session, 'inspect_sections_simconf_container', open = react$custom_state$panel_simconf_state)
         updateCollapse(session, 'inspect_sections_container', open = react$custom_state$panel_diagnosis_state)
+        
+        # update the plot after a small delay when all inputs are ready
+        shinyjs::delay(3000, {
+            nspace <- NS('tab_inspect')
+            shinyjs::click(nspace('update_plot'))
+        })
     })
     
     # -------------- center: messages for plot --------------

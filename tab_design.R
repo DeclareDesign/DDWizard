@@ -103,6 +103,9 @@ designTab <- function(input, output, session) {
         
         if (!is.null(react$design)) {   # return empty list if no designer given
             switching <- isolate({ input$switching_designer })
+            if (is.null(switching)) {   # happens on bookmark restore
+                switching <- TRUE
+            }
             
             args <- get_designer_args(react$design)
             args_eval <- evaluate_designer_args(args, attr(react$design, 'definitions'))
