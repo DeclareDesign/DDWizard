@@ -81,7 +81,7 @@ designTab <- function(input, output, session) {
     react <- reactiveValues(
         design = NULL,                  # parametric designer object (a closure)
         design_id = NULL,               # identifier for current design instance *after* being instantiated
-        prev_design_id = '',            # identifier of previously instantiated design; used to check if a designer was changed just before
+        design_code = '',
         design_argdefinitions = NULL,   # argument definitions for current design instance
         design_name_once_changed = FALSE,  # records whether design name was changed after import
         fix_toggle = 'fix',             # toggle for fixing/unfixing all design parameters. must be either "fix" or "unfix"
@@ -102,29 +102,31 @@ designTab <- function(input, output, session) {
         output_args <- list()
         
         if (!is.null(react$design)) {   # return empty list if no designer given
+            switching <- isolate({ input$switching_designer })
+            
             args <- get_designer_args(react$design)
-            args_eval <- evaluate_designer_args(get_designer_args(react$design), attr(react$design, 'definitions'))
+            args_eval <- evaluate_designer_args(args, attr(react$design, 'definitions'))
             arg_defs <- react$design_argdefinitions   # is NULL on first run, otherwise data frame of argument definitions (class, min/max)
             
             if (is.null(arg_defs)) {
                 return(output_args)    # empty list
             }
-           
-            
+        
             fixed_args <- NULL
             
             all_default <- TRUE
             
-            
             for (argname in names(args)) {
-                if (argname %in% args_control_skip_design_args) next()
+                skip_specifc_args <- args_control_skip_specific_designer_args[[react$design_id]]
+                if (argname %in% args_control_skip_design_args || (!is.null(skip_specifc_args) && argname %in% skip_specifc_args))
+                    next()
 
                 argdefault <- args_eval[[argname]]
                 argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
-                if (designer_changed()) {  # if the designer was just changed, use its default values
-                                           # because the inputs still hold values from the prev. designer which might be incompatible
+                if (switching) {  # if the designer was just changed, use its default values
+                                  # because the inputs still hold values from the prev. designer which might be incompatible
                     output_args[[argname]] <- design_arg_value_from_input(argdefault, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                 } else {  # otherwise use the inputs as usual
                     # convert an input value to a argument value of correct class
@@ -168,9 +170,6 @@ designTab <- function(input, output, session) {
             if (design_supports_fixed_arg()) {
                 output_args$args_to_fix <- fixed_args
             }
-            
-            print('design args changed:')
-            print(output_args)
         }
         
         output_args
@@ -182,12 +181,16 @@ designTab <- function(input, output, session) {
         d_inst <- NULL  # design instance
         react$input_errors <- NULL
         react$captured_errors <- NULL
+        react$design_code <- ''
         
         if (!is.null(react$design)) {  # return NULL if no designer is given
             msgs <- character()
             error_occur <- FALSE
             warning_occur <- FALSE
             d_args <- design_args()  # designer arguments
+            
+            print('creating design instance with arguments:')
+            print(d_args)
             
             d_args_NAs <- sapply(d_args, function(arg) { any(is.na(arg)) })
             if (sum(d_args_NAs) > 0) {
@@ -230,7 +233,16 @@ designTab <- function(input, output, session) {
                 react$warning_occurred <- warning_occur
                 
                 if (!error_occur && !is.null(d_inst)){
-                    react$simdata <- draw_data(d_inst)   # also update simulated data
+                    # also update simulated data
+                    react$simdata <- draw_data(d_inst)
+                    
+                    # update design code
+                    code_text <- paste(attr(d_inst, 'code'), collapse = "\n")
+                    default_designer_name <- gsub("designer","design", react$design_id)
+                    react$design_code <- gsub(default_designer_name,
+                                              make_valid_r_object_name(input$design_arg_design_name),
+                                              code_text)
+                    
                 }else{
                     react$simdata <- NULL
                 }
@@ -238,7 +250,6 @@ designTab <- function(input, output, session) {
             }
             
             print('design instance changed')
-            react$prev_design_id <- react$design_id   # reset
         }
         
         d_inst
@@ -286,11 +297,6 @@ designTab <- function(input, output, session) {
         length(args_fixed) == length(all_args)
     })
     
-    # indicates whether designer was just changed
-    designer_changed <- reactive({
-        react$design_id != react$prev_design_id
-    })
-    
     ### non-reactive functions ###
     
     # Load the designer with the name `designer` (char string).
@@ -301,7 +307,6 @@ designTab <- function(input, output, session) {
         
         shinyjs::show(nspace('design_params_panel_wrapper'))
         
-        react$prev_design_id <- ''
         react$design_id <- designer
         react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
         react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
@@ -317,13 +322,15 @@ designTab <- function(input, output, session) {
         updateTextInput(session, nspace('design_arg_design_name'), value = gsub("designer","design", react$design_id))
         
         # simulation data would react once new design is loaded
-        d <- req(design_instance())
-        if (!is.null(react$custom_state$simdata)) {
-            simdata <- react$custom_state$simdata
-            react$custom_state$simdata <- NULL
-        } else {
-            simdata <- draw_data(d)
-        }
+        isolate({
+            d <- req(design_instance())
+            if (!is.null(react$custom_state$simdata)) {
+                simdata <- react$custom_state$simdata
+                react$custom_state$simdata <- NULL
+            } else {
+                simdata <- draw_data(d)
+            }
+        })
 
         react$simdata <- simdata
         
@@ -390,39 +397,40 @@ designTab <- function(input, output, session) {
     
     # input observer for click on "redraw data" button in "simulated data" section
     observeEvent(input$simdata_redraw, {
-        d <- req(design_instance())
-        if (!is.null(react$custom_state$simdata)) {
-            simdata <- react$custom_state$simdata
-            react$custom_state$simdata <- NULL
-        } else {
-            if (react$warning_occurred || react$error_occurred) {
-                simdata <- NULL
+        isolate({
+            d <- req(design_instance())
+            if (!is.null(react$custom_state$simdata)) {
+                simdata <- react$custom_state$simdata
+                react$custom_state$simdata <- NULL
             } else {
-                simdata <- draw_data(d)
+                if (react$warning_occurred || react$error_occurred) {
+                    simdata <- NULL
+                } else {
+                    simdata <- draw_data(d)
+                }
             }
-        }
+        })
+        
         react$simdata <- simdata
-       
     })
     
     # observer for the error message to unfold the message panel
     # reactive expression returns true when there is no error or warning
     message_close <- reactive({
-        req(design_instance())
-       if (!isTRUE(react$warning_occurred) && !isTRUE(react$error_occurred)) {
+        req(react$warning_occurred)
+        req(react$error_occurred)
+        if (!isTRUE(react$warning_occurred) && !isTRUE(react$error_occurred)) {
             return(TRUE)
-        }else{
+        } else {
             return(NULL)
         }
     })
     
     # reactive expression returns true when there is any error or warning
     message_open <- reactive({
-        if (is.null(design_instance())){
+        if (is.null(design_instance()) || isTRUE(react$warning_occurred) || isTRUE(react$error_occurred)){
             return(TRUE)
-        }else if (isTRUE(react$warning_occurred) || isTRUE(react$error_occurred)){
-            return(TRUE)
-        }else{
+        } else {
             return(NULL)
         }
         
@@ -465,14 +473,14 @@ designTab <- function(input, output, session) {
         
         nspace <- NS('tab_design')
         
-        react$prev_design_id <- ''   # make sure that always designer defaults are loaded in `design_args()`
-        defaults <- isolate({ design_args() })
-        
-        param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
-                                                  input = input, defaults = defaults,
-                                                  create_fixed_checkboxes = design_supports_fixed_arg(),
-                                                  use_defaults_only = TRUE)
-        
+        isolate({
+            defaults <- design_args()
+            param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
+                                                      input = input, defaults = defaults,
+                                                      create_fixed_checkboxes = design_supports_fixed_arg(),
+                                                      use_only_argdefaults = input$switching_designer)
+        })
+
         if (!is.null(react$input_errors) && length(react$input_errors) > 0) {
             list(tags$div(class = 'error_msgs', paste(react$input_errors, collapse = "\n")), tags$div(param_boxes))
         } else {
@@ -536,22 +544,13 @@ designTab <- function(input, output, session) {
     
     # center: design code
     output$section_design_code <- renderUI({
-        d <- design_instance()
-        if(!is.null(d) && !is.null(attr(d, 'code'))) {
-            # use the "code" attribute of a design instance and convert it to a single string
-            code_text <- paste(attr(d, 'code'), collapse = "\n")
-            default_designer_name <- gsub("designer","design",react$design_id)
-            code_text <- gsub(default_designer_name, make_valid_r_object_name(input$design_arg_design_name), code_text)
-        } else {
-            code_text <- ''
-        }
-        
-        tags$pre(code_text)
+        req(design_instance())
+        tags$pre(react$design_code)
     })
     
     # center: design summary
     output$section_summary <- renderUI({
-        if(!is.null(design_instance()) && !is.null(react$captured_stdout)) {   # call design_instance() will also create design
+        if(!is.null(react$captured_stdout)) {
             # show captured print() output
             txt <- paste(react$captured_stdout, collapse = "\n")
         } else {
@@ -565,9 +564,7 @@ designTab <- function(input, output, session) {
     output$section_messages <- renderUI({
         got_errors <- !is.null(react$captured_errors) && length(react$captured_errors) > 0
         
-        if(
-            # !is.null(design_instance()) && 
-           !is.null(react$captured_msgs) && react$captured_msgs != '') {   # call design_instance() will also create design
+        if(!is.null(react$captured_msgs) && react$captured_msgs != '') {
             # show captured messages
             txt <- paste(react$captured_msgs, collapse = "\n")
             
@@ -577,9 +574,7 @@ designTab <- function(input, output, session) {
         } else {
             txt <- 'No warnings/errors.'
         }
-        
-        
-        
+
         tags$pre(txt)
     })
     
