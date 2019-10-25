@@ -36,6 +36,7 @@ inpector_help_text <- '<dl>
 # Uses min/max and class definition from `argdefinition`.
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
 # `nspace` is the namespace function to be used to set the element's input ID.
+# If `use_only_argdefault` is TRUE, *always* use evaluated argument defaults as preset input value; used when initially creating the UI.
 # Returns NULL if argument class is not supported.
 input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed, argdefault, argdefinition,
                                       nspace = function(x) { x }, width = '70%', idprefix = 'design',
@@ -125,14 +126,6 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
             inp_elem_args$value <- paste(inp_elem_args$value, collapse = ', ')
         }
         
-        print(argname)
-        print(argvalue)
-        print(argvalue_parsed)
-        print(argdefault)
-        print(length(inp_elem_args$value))
-        print(inp_elem_args$value)
-        print('---')
-        
         ret <- do.call(inp_elem_constructor, inp_elem_args)
         if (is.character(tips[[argname]])) {
             argtips <- tips[[argname]]
@@ -166,59 +159,31 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
     }
     
     if (argclass %in% c('numeric', 'integer') && !argdefinition$vector) {
-        if (!is.null(inp_value) && !is.na(inp_value) && class(inp_value) %in% c('numeric', 'integer')){
-            arg_value <- as.numeric(inp_value)
-        } else{
-            arg_value <- argdefault
-        }
+        arg_value <- as.numeric(inp_value)
     } else if ((argclass %in% c('call', 'name') && argtype %in% c('language', 'symbol') || argdefinition$vector) && argdefinition$class != 'character') { # "language" constructs (R formula/code)
-        if (argdefinition$vector){
-            len_inp <- lengths(gregexpr(",", inp_value)) + 1 # count the length of vector var, e.g, in factorial designer, some vars must be matched with k
-            len_def <- lengths(gregexpr(",", argdefault)) + 1  # count the length of vector var
-        }
-        # make sure the length of vector is correct 
-        if (len_inp  == len_def && !is.null(inp_value) && !is.na(inp_value)){
-            if (length(inp_value) > 0 && !is.null(argdefinition)) {
-                # if there is a input value for an R formula field, convert it to the requested class
-                if (argdefinition$class %in% c('numeric', 'integer')) {
-                    if (is.character(inp_value)) {
-                        arg_value <- trimws(strsplit(inp_value, ",")[[1]])
-                        # convert the fractions to the decimals
-                        arg_value <- unname(sapply(arg_value, function(x) {
-                            parsed <- try(eval(parse(text = x)), silent = TRUE)   # couldn't get that running with tryCatch()
-                            if (class(parsed) == 'try-error') {
-                                NA
-                            } else {
-                                parsed
-                            }
-                        }))
-                    } else {
-                        arg_value <- as.numeric(inp_value)
-                    }
+        if (length(inp_value) > 0 && !is.na(inp_value) && !is.null(argdefinition)) {
+            # if there is a input value for an R formula field, convert it to the requested class
+            if (argdefinition$class %in% c('numeric', 'integer')) {
+                if (is.character(inp_value)) {
+                    arg_value <- trimws(strsplit(inp_value, ",")[[1]])
+                    # convert the fractions to the decimals
+                    arg_value <- unname(sapply(arg_value, function(x) {
+                        parsed <- try(eval(parse(text = x)), silent = TRUE)   # couldn't get that running with tryCatch()
+                        if (class(parsed) == 'try-error') {
+                            NA
+                        } else {
+                            parsed
+                        }
+                    }))
                 } else {
-                    return(NULL)
+                    arg_value <- as.numeric(inp_value)
                 }
+            } else {
+                return(NULL)
             }
-            
-            
         } else {
-            if (class(argdefault) %in% c("integer", "numeric")){
-                arg_value <- argdefault
-            } else{
-                arg_value <- trimws(strsplit(argdefault, ",")[[1]])
-                # convert the fractions to the decimals
-                arg_value <- unname(sapply(arg_value, function(x) {
-                    parsed <- try(eval(parse(text = x)), silent = TRUE)   # couldn't get that running with tryCatch()
-                    if (class(parsed) == 'try-error') {
-                        NA
-                    } else {
-                        parsed
-                    }
-                }))
-            }
+            return(NULL)
         }
-        
-        
     } else if ((argclass == 'character' || argdefinition$class == 'character') && is.character(inp_value)) {
         arg_value <- trimws(strsplit(inp_value, ",")[[1]])
     } else {
@@ -244,9 +209,12 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
+# `use_only_argdefaults`: instead of using values from `input` or `defaults`, *always* use evaluated argument
+#                         defaults as preset input value; used when initially creating the UI
 create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE,
                                        use_only_argdefaults = FALSE) {
     boxes <- list()
+    
     # extract the tips from library
     tips <- get_tips(react$design)
     args_design <- get_designer_args(react$design)

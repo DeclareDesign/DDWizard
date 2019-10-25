@@ -387,8 +387,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             }
             
             defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed)
-            print('DEFAULTS FOR INSPECT:')
-            print(defaults)
         })
         
         

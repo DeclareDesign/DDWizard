@@ -126,11 +126,9 @@ designTab <- function(input, output, session) {
                 inp_value <- input[[paste0('design_arg_', argname)]]
                 
                 if (switching) {  # if the designer was just changed, use its default values
-                                                 # because the inputs still hold values from the prev. designer which might be incompatible
-                    print('USING DEFAULT ARG VALUE')
+                                  # because the inputs still hold values from the prev. designer which might be incompatible
                     output_args[[argname]] <- design_arg_value_from_input(argdefault, argdefault, argdefinition, class(argdefault), typeof(argdefault))
                 } else {  # otherwise use the inputs as usual
-                    print('USING INPUT ARG VALUE')
                     # convert an input value to a argument value of correct class
                     if (length(argdefinition) != 0) {
                         argvalue <- design_arg_value_from_input(inp_value, argdefault, argdefinition, class(argdefault), typeof(argdefault))
@@ -476,9 +474,7 @@ designTab <- function(input, output, session) {
         nspace <- NS('tab_design')
         
         isolate({
-            print('creating UI')
             defaults <- design_args()
-            
             param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
                                                       input = input, defaults = defaults,
                                                       create_fixed_checkboxes = design_supports_fixed_arg(),
