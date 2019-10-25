@@ -253,7 +253,8 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
     arg_defs <- react$design_argdefinitions
     
     for (argname in names(args_design)) {
-        if (argname %in% args_control_skip_design_args)
+        skip_specifc_args <- args_control_skip_specific_designer_args[[react$design_id]]
+        if (argname %in% args_control_skip_design_args || (!is.null(skip_specifc_args) && argname %in% skip_specifc_args))
             next()
         argdefault <- args_design[[argname]]
         argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
