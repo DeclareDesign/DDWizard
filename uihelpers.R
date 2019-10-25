@@ -38,7 +38,8 @@ inpector_help_text <- '<dl>
 # `nspace` is the namespace function to be used to set the element's input ID.
 # Returns NULL if argument class is not supported.
 input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed, argdefault, argdefinition,
-                                      nspace = function(x) { x }, width = '70%', idprefix = 'design') {
+                                      nspace = function(x) { x }, width = '70%', idprefix = 'design',
+                                      use_only_argdefault = FALSE) {
     # extract the tips from library
     tips <- get_tips(design)
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
@@ -65,7 +66,7 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
     
     # set the displayed value of the input
-    if (is.null(argvalue)) {   # if argvalue is NULL, initialize the input with a default value
+    if (is.null(argvalue) || use_only_argdefault) {   # if argvalue is NULL, initialize the input with a default value
         if (arglang) {  # default for R formula arguments is the evaluated default argument expression
             inp_elem_args$value <- args_eval[[argname]]
         } else {        # otherwise set default as passed to this func.
@@ -124,13 +125,13 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
             inp_elem_args$value <- paste(inp_elem_args$value, collapse = ', ')
         }
         
-        # print(argname)
-        # print(argvalue)
-        # print(argvalue_parsed)
-        # print(argdefault)
-        # print(length(inp_elem_args$value))
-        # print(inp_elem_args$value)
-        # print('---')
+        print(argname)
+        print(argvalue)
+        print(argvalue_parsed)
+        print(argdefault)
+        print(length(inp_elem_args$value))
+        print(inp_elem_args$value)
+        print('---')
         
         ret <- do.call(inp_elem_constructor, inp_elem_args)
         if (is.character(tips[[argname]])) {
@@ -243,7 +244,8 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
-create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE) {
+create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE,
+                                       use_only_argdefaults = FALSE) {
     boxes <- list()
     # extract the tips from library
     tips <- get_tips(react$design)
@@ -266,7 +268,7 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
         inp_id <- nspace(paste0('inspect_arg_', argname))
         
         arglabel <- rm_usc(argname)
-                
+        
         argvalue <- input[[paste0(type, '_arg_', argname)]]
         
         if (type == 'design') {
@@ -276,7 +278,8 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
             inp_elem_width <- ifelse(create_fixed_checkboxes, '70%', '100%')
             inp_elem <- input_elem_for_design_arg(react$design, argname, argvalue,
                                                   defaults[[argname]], argdefault, argdefinition,
-                                                  width = inp_elem_width, nspace = nspace, idprefix = type)
+                                                  width = inp_elem_width, nspace = nspace, idprefix = type,
+                                                  use_only_argdefault = use_only_argdefaults)
             
 
             if (!is.null(inp_elem)) {

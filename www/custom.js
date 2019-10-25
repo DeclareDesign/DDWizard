@@ -28,7 +28,7 @@ $(function() {
             
             window.setTimeout(function() {  // need to add a little delay b/c design name is changed before UI creation is done
                 Shiny.setInputValue('tab_design-switching_designer', switching_designer);
-            }, 1500);
+            }, 3000);
         }
     });
 });

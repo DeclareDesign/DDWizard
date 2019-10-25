@@ -479,7 +479,8 @@ designTab <- function(input, output, session) {
             
             param_boxes <- create_design_parameter_ui(type = 'design', react = react, nspace =  nspace, 
                                                       input = input, defaults = defaults,
-                                                      create_fixed_checkboxes = design_supports_fixed_arg())
+                                                      create_fixed_checkboxes = design_supports_fixed_arg(),
+                                                      use_only_argdefaults = input$switching_designer)
         })
 
         if (!is.null(react$input_errors) && length(react$input_errors) > 0) {
