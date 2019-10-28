@@ -13,16 +13,17 @@ Authors:
 
 **From GitHub:**
 
-- *DesignLibrary* 0.1.2.9999 or newer: `devtools::install_github("DeclareDesign/DesignLibrary")`
 - shinymaterial 0.5.5.900 or newer (`select_material_tab()` is required): `devtools::install_github("ericrayanderson/shinymaterial")`
 
 **From CRAN:**
 
-- DeclareDesign
-- shiny
-- shinyalert
-- shinyBS
-- shinyjs
+
+- DeclareDesign **>= 0.18.0**
+- DesignLibrary **>= 0.1.4**
+- shiny **>= 1.3.2**
+- shinyalert **>= 1.0**
+- shinyBS **>= 0.61**
+- shinyjs **>= 1.0**
 - stringr
 - rlang **0.3.4 (>= 0.4.0 produces problems)** 
 - dplyr **0.8.1**
