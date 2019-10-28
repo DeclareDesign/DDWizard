@@ -12,7 +12,9 @@
 # defined in inspect tab (`input` is the input object for the inspect tab) or the input is invalid and needs to
 # be fixed by the user.
 # `defs` is the argument definitions table for the current designer
-get_inspect_input_defaults <- function(d_args, defs, input, insp_changed_args) {
+# if `use_only_d_args` is TRUE, use only the values from `d_args` (used when initially creating the UI after a
+# designer was changed)
+get_inspect_input_defaults <- function(d_args, defs, input, insp_changed_args, use_only_d_args = FALSE) {
     first_arg <- names(d_args)[1]
     if (first_arg == 'N' && is.null(d_args['N'])) first_arg <- names(d_args)[2]
     
@@ -25,7 +27,7 @@ get_inspect_input_defaults <- function(d_args, defs, input, insp_changed_args) {
                                              warning = function(cond) { NA },
                                              error = function(cond) { NA })
         
-        if (is.null(arg_inspect_input)) {   # initial state: no inputs in the "inspect" tab on the left side
+        if (is.null(arg_inspect_input) || use_only_d_args) {   # initial state: no inputs in the "inspect" tab on the left side
             # set a default value for "N" the first time
             # but there are some design without N argument
             if (argname == first_arg) {

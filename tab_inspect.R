@@ -375,7 +375,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         defs <- design_tab_proxy$react$design_argdefinitions
         isolate({
             # set defaults: use value from design args in design tab unless the value was changed in the inspector tab
-            
             if (react$insp_args_set_after_tab_switch) {
                 # if we just switched over from the design tab, take over the values from there as long as they were
                 # not recorded as "changed" before switching
@@ -386,7 +385,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 insp_args_changed <- union(react$insp_args_changed, get_changed_args())
             }
             
-            defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed)
+            # get defaults for inspect inputs; react$design_params_used_in_plot is NULL when switching
+            # from "design" tab for the first time after a designer was loaded
+            defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed,
+                                                   use_only_d_args = is.null(react$design_params_used_in_plot))
         })
         
         
