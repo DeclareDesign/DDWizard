@@ -10,8 +10,8 @@ library(ggplot2)
 
 diagnosis <- %CREATE_DATA%
 
-diagnosis$%DIAG_PARAM%_min <- diagnosis$%DIAG_PARAM% - diagnosis$se.%DIAG_PARAM%. * 1.96
-diagnosis$%DIAG_PARAM%_max <- diagnosis$%DIAG_PARAM% + diagnosis$se.%DIAG_PARAM%. * 1.96
+diagnosis$%DIAG_PARAM%_min <- diagnosis$%DIAG_PARAM% - diagnosis$`se(%DIAG_PARAM%)` * 1.96
+diagnosis$%DIAG_PARAM%_max <- diagnosis$%DIAG_PARAM% + diagnosis$`se(%DIAG_PARAM%)` * 1.96
 
 # create plot
 

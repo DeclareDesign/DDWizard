@@ -17,6 +17,7 @@ Authors:
 
 **From CRAN:**
 
+
 - DeclareDesign **>= 0.18.0**
 - DesignLibrary **>= 0.1.4**
 - shiny **>= 1.3.2**
