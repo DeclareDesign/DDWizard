@@ -38,6 +38,7 @@ body {
 
 body > button.btn.btn-default.action-button.shiny-bound-input {   /** bookmark button */
     position: absolute;
+    position :fixed;
     top: 0;
     right: 0;
 }
