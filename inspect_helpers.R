@@ -225,10 +225,10 @@ generate_plot_code <- function(plotdf, design_name, diag_param, x_param, color_p
     
     vars <- list()
     vars$CREATION_DATE <- Sys.Date()
-    vars$CREATE_DATA <- paste(capture.output({
-        datapasta::df_paste(plotdf,     # nicely format data frame. ugly alternative: dput
-                            output_context = datapasta::console_context())
-    }), collapse = '\n')
+    # using dput instead of datapasta::df_paste b/c of https://github.com/DeclareDesign/DDWizard/issues/197
+    # datapasta::df_paste(plotdf,     # nicely format data frame. ugly alternative: dput
+    #                     output_context = datapasta::console_context())
+    vars$CREATE_DATA <- paste(capture.output(dput(plotdf)), collapse = '\n')
     vars$DIAG_PARAM <- diag_param
     vars$X_PARAM <- x_param
     vars$DESIGN_NAME <- design_name
