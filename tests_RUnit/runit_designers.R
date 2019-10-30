@@ -5,7 +5,7 @@
 library(RUnit)
 library(DesignLibrary)
 
-
+source('../conf.R')
 source('../common.R')
 source('../inspect_helpers.R')
 
@@ -111,7 +111,7 @@ test.designers_inspection_with_defaults <- function() {
         design_input <- d_args_eval
         names(design_input) <- paste0('design_arg_', names(design_input))
         
-        insp_args <- get_args_for_inspection(d, defs, insp_input, character(), design_input)
+        insp_args <- get_args_for_inspection(d, d_name, defs, insp_input, character(), design_input)
         checkEquals(names(insp_args), names(d_args_eval),
                     paste(d_name, 'got complete design arguments for inspections'))
         

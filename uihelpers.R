@@ -36,9 +36,11 @@ inpector_help_text <- '<dl>
 # Uses min/max and class definition from `argdefinition`.
 # Set input element width to `width` and input ID to `<idprefix>_arg_<argname>`.
 # `nspace` is the namespace function to be used to set the element's input ID.
+# If `use_only_argdefault` is TRUE, *always* use evaluated argument defaults as preset input value; used when initially creating the UI.
 # Returns NULL if argument class is not supported.
 input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed, argdefault, argdefinition,
-                                      nspace = function(x) { x }, width = '70%', idprefix = 'design') {
+                                      nspace = function(x) { x }, width = '70%', idprefix = 'design',
+                                      use_only_argdefault = FALSE) {
     # extract the tips from library
     tips <- get_tips(design)
     inp_id <- nspace(paste0(idprefix, '_arg_', argname))
@@ -65,16 +67,16 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
     argmax <- ifelse(is.finite(argdefinition$max), argdefinition$max, NA)
     
     # set the displayed value of the input
-    if (is.null(argvalue)) {   # if argvalue is NULL, initialize the input with a default value
+    if (is.null(argvalue) || use_only_argdefault) {   # if argvalue is NULL, initialize the input with a default value
         if (arglang) {  # default for R formula arguments is the evaluated default argument expression
             inp_elem_args$value <- args_eval[[argname]]
         } else {        # otherwise set default as passed to this func.
             inp_elem_args$value <- argdefault
         }
     } else {   # else, use either argvalue or the parsed version of it
-        if (arglang && !argvec && idprefix != 'inspect') {   # use the parsed version if we have a R formula
-                                                             # in "inspect" tab never use the parsed version because here the parsing happens before
-                                                             # and argvalue is already parsed
+        if (arglang && !argvec && idprefix != 'inspect') {  # use the parsed version if we have a R formula
+                                                            # in "inspect" tab never use the parsed version because here the parsing happens before
+                                                            # and argvalue is already parsed
             inp_elem_args$value <- argvalue_parsed
         } else {
             inp_elem_args$value <- argvalue
@@ -114,6 +116,16 @@ input_elem_for_design_arg <- function(design, argname, argvalue, argvalue_parsed
 
     # create the input element and return it
     if (is.function(inp_elem_constructor)) {
+        # some designers have NULL as a default value, which will remove the "value" element from "inp_elem_args"
+        # fix this here by setting an empty string for those NULL defaults
+        if (!('value' %in% names(inp_elem_args))) {
+            inp_elem_args$value <- ''
+        }
+        
+        if (length(inp_elem_args$value) > 1) {
+            inp_elem_args$value <- paste(inp_elem_args$value, collapse = ', ')
+        }
+        
         ret <- do.call(inp_elem_constructor, inp_elem_args)
         if (is.character(tips[[argname]])) {
             argtips <- tips[[argname]]
@@ -177,13 +189,15 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
     } else {
         return(NULL)
     }
-
+    
     if (length(arg_value) > 0 && !(!argdefinition$vector && sum(is.na(arg_value)) == length(arg_value) && is.null(argdefault))) {
         return(arg_value)
     } else {
         return(argdefault) 
     }
 }
+
+
 
 
 # Create UI element with input boxes for design parameters. If `type` is "design", then this is for the
@@ -195,15 +209,20 @@ design_arg_value_from_input <- function(inp_value, argdefault, argdefinition, ar
 # "fixed" for the "inspect" design UI elements.
 # `defaults` contains the default values for the input elements.
 # `create_fixed_checkboxes`: if type is "design" create checkboxes for each input to allow fixing an argument
-create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE) {
+# `use_only_argdefaults`: instead of using values from `input` or `defaults`, *always* use evaluated argument
+#                         defaults as preset input value; used when initially creating the UI
+create_design_parameter_ui <- function(type, react, nspace, input, defaults, create_fixed_checkboxes = TRUE,
+                                       use_only_argdefaults = FALSE) {
     boxes <- list()
+    
     # extract the tips from library
     tips <- get_tips(react$design)
     args_design <- get_designer_args(react$design)
     arg_defs <- react$design_argdefinitions
     
     for (argname in names(args_design)) {
-        if (argname %in% args_control_skip_design_args)
+        skip_specifc_args <- args_control_skip_specific_designer_args[[react$design_id]]
+        if (argname %in% args_control_skip_design_args || (!is.null(skip_specifc_args) && argname %in% skip_specifc_args))
             next()
         argdefault <- args_design[[argname]]
         argdefinition <- as.list(arg_defs[arg_defs$names == argname,])
@@ -226,10 +245,10 @@ create_design_parameter_ui <- function(type, react, nspace, input, defaults, cre
             # 1. the argument value input box
             # 2. the "fixed" checkbox next to it
             inp_elem_width <- ifelse(create_fixed_checkboxes, '70%', '100%')
-            
             inp_elem <- input_elem_for_design_arg(react$design, argname, argvalue,
                                                   defaults[[argname]], argdefault, argdefinition,
-                                                  width = inp_elem_width, nspace = nspace, idprefix = type)
+                                                  width = inp_elem_width, nspace = nspace, idprefix = type,
+                                                  use_only_argdefault = use_only_argdefaults)
             
 
             if (!is.null(inp_elem)) {

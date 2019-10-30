@@ -161,6 +161,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         d_args <- design_tab_proxy$design_args()
 
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                             design_tab_proxy$react$design_id,
                                              design_tab_proxy$react$design_argdefinitions,
                                              input,
                                              design_tab_proxy$get_fixed_design_args(),
@@ -256,6 +257,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d_args <- design_tab_proxy$design_args()
             
             insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_id,
                                                  design_tab_proxy$react$design_argdefinitions,
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
@@ -375,7 +377,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         defs <- design_tab_proxy$react$design_argdefinitions
         isolate({
             # set defaults: use value from design args in design tab unless the value was changed in the inspector tab
-            
             if (react$insp_args_set_after_tab_switch) {
                 # if we just switched over from the design tab, take over the values from there as long as they were
                 # not recorded as "changed" before switching
@@ -386,7 +387,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 insp_args_changed <- union(react$insp_args_changed, get_changed_args())
             }
             
-            defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed)
+            # get defaults for inspect inputs; react$design_params_used_in_plot is NULL when switching
+            # from "design" tab for the first time after a designer was loaded
+            defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed,
+                                                   use_only_d_args = is.null(react$design_params_used_in_plot))
         })
         
         
@@ -424,6 +428,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             
             isolate({  # isolate all other parameters used to configure the plot so that the "Update plot" button has to be clicked
                 if (length(react$insp_args_varying) > 0) {
+                    diag_colnames <- colnames(plotdf)
+                    req(input$plot_conf_x_param, input$plot_conf_diag_param)
+                    req(input$plot_conf_x_param %in% diag_colnames)
+                    req(input$plot_conf_diag_param %in% diag_colnames)
+                    
                     # the bound value of confidence interval: diagnosand values +/-SE*1.96
                     plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
                     plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
@@ -526,6 +535,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         # re-open the panels
         updateCollapse(session, 'inspect_sections_simconf_container', open = react$custom_state$panel_simconf_state)
         updateCollapse(session, 'inspect_sections_container', open = react$custom_state$panel_diagnosis_state)
+        
+        # update the plot after a small delay when all inputs are ready
+        shinyjs::delay(3000, {
+            nspace <- NS('tab_inspect')
+            shinyjs::click(nspace('update_plot'))
+        })
     })
     
     # -------------- center: messages for plot --------------
@@ -656,6 +671,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d_args <- design_tab_proxy$design_args()
             
             insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_id,
                                                  design_tab_proxy$react$design_argdefinitions,
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
@@ -819,11 +835,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 d_args <- design_tab_proxy$design_args()
                 
                 insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                     design_tab_proxy$react$design_id,
                                                      design_tab_proxy$react$design_argdefinitions,
                                                      input,
                                                      design_tab_proxy$get_fixed_design_args(),
                                                      design_tab_proxy$input)
-                
+
                 if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
                 
                     insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
@@ -848,8 +865,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                choices = variable_args,
                                                selected = input[[inp_x_param_id]])
 
-
                     boxes <- list_append(boxes, inp_x_param)
+                    
                     # 7. secondary inspection parameter (color)
                     variable_args_optional <- c('(none)',variable_args[variable_args != input[[inp_x_param_id]]])
                     inp_color_param_id <- paste0(inp_prefix, "color_param")

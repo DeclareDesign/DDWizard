@@ -2,6 +2,7 @@
 
 library(RUnit)
 
+source('../conf.R')
 source('../common.R')
 source('../inspect_helpers.R')
 
@@ -33,7 +34,7 @@ test.get_args_for_inspection_two_arm <- function() {
     design_input <- d_args
     names(design_input) <- paste0('design_arg_', argnames)
     
-    checkEquals(get_args_for_inspection(d, d_argdefs, insp_input, character(), design_input),
+    checkEquals(get_args_for_inspection(d, 'two_arm_designer', d_argdefs, insp_input, character(), design_input),
                 list(N = seq(10, 100, by = 10),
                      assignment_prob = d_args$assignment_prob,
                      control_mean = d_args$control_mean,
@@ -50,7 +51,7 @@ test.get_args_for_inspection_two_arm <- function() {
     names(insp_input) <- paste0('inspect_arg_', setdiff(argnames, c('control_mean', 'ate')))
     
     # control_mean and ate do not appear in the results anymore since they're NULL
-    checkEquals(get_args_for_inspection(d, d_argdefs, insp_input, character(), design_input),
+    checkEquals(get_args_for_inspection(d, 'two_arm_designer', d_argdefs, insp_input, character(), design_input),
                 list(N = seq(10, 100, by = 10),
                      assignment_prob = d_args$assignment_prob,
                      control_sd = d_args$control_sd,
@@ -64,7 +65,7 @@ test.get_args_for_inspection_two_arm <- function() {
     insp_input$ate <- 2
     names(insp_input) <- paste0('inspect_arg_', argnames)
     
-    checkEquals(get_args_for_inspection(d, d_argdefs, insp_input, c('control_mean', 'ate'), design_input),
+    checkEquals(get_args_for_inspection(d, 'two_arm_designer', d_argdefs, insp_input, c('control_mean', 'ate'), design_input),
                 list(N = seq(10, 100, by = 10),
                      assignment_prob = d_args$assignment_prob,
                      control_mean = d_args$control_mean,  # ... they equal the values ...
@@ -100,7 +101,7 @@ test.get_args_for_inspection_binary_iv <- function() {
     design_input <- d_args
     names(design_input) <- paste0('design_arg_', argnames)
     
-    checkEquals(get_args_for_inspection(d, d_argdefs, insp_input, character(), design_input),
+    checkEquals(get_args_for_inspection(d, 'binary_iv_designer', d_argdefs, insp_input, character(), design_input),
                 list(N = d_args$N,
                      type_probs = list(d_args$type_probs),   # seq. of seq. parameter is always a list of sequences
                      assignment_probs = list(rep(0.5, 4), seq(0.1, 0.4, by = 0.1), seq(0.5, 0.8, by = 0.1)),
