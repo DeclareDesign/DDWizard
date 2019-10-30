@@ -161,6 +161,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         d_args <- design_tab_proxy$design_args()
 
         insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                             design_tab_proxy$react$design_id,
                                              design_tab_proxy$react$design_argdefinitions,
                                              input,
                                              design_tab_proxy$get_fixed_design_args(),
@@ -256,6 +257,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d_args <- design_tab_proxy$design_args()
             
             insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_id,
                                                  design_tab_proxy$react$design_argdefinitions,
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
@@ -669,6 +671,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             d_args <- design_tab_proxy$design_args()
             
             insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_id,
                                                  design_tab_proxy$react$design_argdefinitions,
                                                  input,
                                                  design_tab_proxy$get_fixed_design_args(),
@@ -832,11 +835,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 d_args <- design_tab_proxy$design_args()
                 
                 insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                     design_tab_proxy$react$design_id,
                                                      design_tab_proxy$react$design_argdefinitions,
                                                      input,
                                                      design_tab_proxy$get_fixed_design_args(),
                                                      design_tab_proxy$input)
-                
+
                 if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
                 
                     insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
@@ -861,8 +865,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                choices = variable_args,
                                                selected = input[[inp_x_param_id]])
 
-
                     boxes <- list_append(boxes, inp_x_param)
+                    
                     # 7. secondary inspection parameter (color)
                     variable_args_optional <- c('(none)',variable_args[variable_args != input[[inp_x_param_id]]])
                     inp_color_param_id <- paste0(inp_prefix, "color_param")
