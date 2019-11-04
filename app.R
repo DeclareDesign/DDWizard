@@ -20,6 +20,7 @@ library(stringr)
 library(stringi)
 library(dplyr)
 library(MASS)
+library(rintrojs)
 
 source('conf.R')
 source('common.R')
@@ -42,6 +43,7 @@ if (file.exists(piwik_code_file)) {
 
 ui <- function(request) {
     material_page(
+        introjsUI(),
         # title
         # title = app_title,
         nav_bar_color = "transparent",
@@ -59,10 +61,14 @@ ui <- function(request) {
         ),
         shinyjs::useShinyjs(),
         
-
-        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
+        div(
+            class="btns_top_right",
+            actionButton("intro_tutorial", label = "Start tutorial"),
+            bookmarkButton("SHARE", title = "Share the status of your design and diagnoses")
+        ),
         
         # tabs
+        introBox(
         material_tabs(
             tabs = c(
                 "Design" = "tab_design",
@@ -71,6 +77,9 @@ ui <- function(request) {
             color = "blue"
             
         ),
+        data.step = 13,
+        data.intro = "Please switch to diagnose tab, click on 'DIAGNOSE'",
+        data.position = "left"),
         
         # "Design" tab
         useShinyalert(),
@@ -109,6 +118,13 @@ server <- function(input, output, session) {
     inspect_tab_proxy <- callModule(inspectTab, 'tab_inspect', design_tab_proxy)
     
     ### observers global events ###
+    
+    # tutorial button clicked
+    observeEvent(input$intro_tutorial,{
+        introjs(session, options = list("nextLabel"="next",
+                                        "prevLabel"="back",
+                                        "skipLabel"="skip"))
+    })
     
     # legal notice button clicked
     observeEvent(input$show_legal_notice, {

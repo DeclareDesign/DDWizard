@@ -24,40 +24,88 @@ designTabUI <- function(id, label = 'Design') {
                               # tagList("Read about the library ", a("here", href="https://declaredesign.org/library/")),
                               div(style="text-align: center;",
                                   # add a selectbox to choose the design from DesignLibrary
-                                  uiOutput(nspace("import_design_lib_id")),
+                                  introjsUI(),
+                                  introBox(
+                                      uiOutput(nspace("import_design_lib_id")),
+                                      data.step = 1,
+                                      data.intro = "Choose the design you want"
+                                  ),
+                                  
+                                  introBox(
                                   actionButton(nspace("import_from_design_lib"), 
                                                label = "Load", 
                                                disabled = "disabled"),
+                                 
+                                 
                                   actionButton(inputId='learn_more', label= NULL,
                                                icon = icon("question-circle"),
-                                               style = "text-align: center; padding-left: 8px; padding-right: 8px;",
-                                               onclick = "window.open('https://declaredesign.org/library', '_blank')")
+                                               style = "text-align: center; padding-left: 8px; padding-right: 8px",
+                                               onclick = "window.open('https://declaredesign.org/library', '_blank')"),
+                                  data.step = 2,
+                                  data.intro = "Click on 'LOAD' button to load the design you selected")
+                              
                               )
                 ),
                 # show designer parameters if a design was loaded
                 hidden(div(id = nspace('design_params_panel_wrapper'),
                     material_card("Set design parameters",
-                        uiOutput(nspace('design_vignette')),
-                        br(),
-                        textInput(nspace('design_arg_design_name'), 'Design name'),
-                        conditionalPanel(paste0("output['", nspace('design_supports_fixed_arg'), "'] != ''"),
-                            div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn')))
-                        ),
-                        uiOutput(nspace("design_parameters"))    # display *all* arguments of an imported design
-                    )
+                                  introBox(
+                                      introBox(
+                                          uiOutput(nspace('design_vignette')),
+                                          data.step = 4,
+                                          data.intro = "Check out more details about the design"
+                                      ),
+                                      
+                                      br(),
+                                      textInput(nspace('design_arg_design_name'), 'Design name'),
+                                      introBox(
+                                          
+                                  
+                                      conditionalPanel(paste0("output['", nspace('design_supports_fixed_arg'), "'] != ''"),
+                                                       div(style="text-align: right;", uiOutput(nspace('fix_toggle_btn')))
+                                      ),
+                                      data.step = 5,
+                                      data.intro = "Once you click on 'FIX ALL', the values of arguments cannot be changed in the 'Diagnose' tab,
+                                      of course, you can unfix all the arguments unless you click on 'UNFIX ALL'"),
+                                      uiOutput(nspace("design_parameters")), # display *all* arguments of an imported design
+                                      data.step = 3,
+                                      data.intro = "Display all arguments of the imported design and you can change the values if you want",
+                                      data.position = 'right'
+                                )
+                        )
                 ))
             ),
             material_column(  # center: design output
                 width = 9,
+                introBox(
                 uiOutput(nspace("load_design_info")),
+                data.step = 6,
+                data.intro = "Brief description of design"),
+                
                 material_card("Download",
-                              downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
-                              downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled')),
+                              introBox(
+                                downloadButton(nspace('download_r_script'), label = 'R code', disabled = 'disabled'),
+                                downloadButton(nspace('download_rds_obj'), label = 'Design as RDS file', disabled = 'disabled'),
+                                data.step = 7,
+                                data.intro = "Download R script & RDS file if you want"
+                            )
+                     ),
                 bsCollapse(id=nspace('sections_container'), multiple = TRUE,
-                           bsCollapsePanel('Warnings or errors', uiOutput(nspace("section_messages"))),
-                           bsCollapsePanel('Summary', uiOutput(nspace("section_summary"))),
-                           bsCollapsePanel('Code output', uiOutput(nspace('section_design_code'))),
-                           bsCollapsePanel('Simulated data',
+                           
+                           bsCollapsePanel(introBox('Warnings or errors',   
+                                                    data.step = 8,
+                                                    data.intro = "Check out the warnings or errors, if the panel is open"), uiOutput(nspace("section_messages"))),
+                           bsCollapsePanel(introBox('Summary',
+                                                    data.step = 9,
+                                                    data.intro = "Check out the summary of design, you will see how you set the parameters in the design"), uiOutput(nspace("section_summary"))),
+                           bsCollapsePanel(introBox('Code output',
+                                                    data.step = 10,
+                                                    data.intro = "Check out the output of code, which can be applied independently"
+                                                    ), uiOutput(nspace('section_design_code'))),
+                           bsCollapsePanel(introBox('Simulated data',
+                                                    data.step = 11,
+                                                    data.intro = "Check out the simulated data of design"
+                                                    ),
                                            p("The following table shows a single draw of the data."),
                                            actionButton(nspace("simdata_redraw"), label = "Redraw data", disabled = "disabled"),
                                            downloadButton(nspace("simdata_download"), label = "Download data", disabled = "disabled"),
@@ -381,6 +429,7 @@ designTab <- function(input, output, session) {
         if (!is.null(input$import_design_library)) {
             load_designer(input$import_design_library)
         }
+
     })
     
     

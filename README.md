@@ -32,7 +32,9 @@ Authors:
 - htmlwidgets **1.3**
 - htmltools **0.3.6**
 - digest
+- rintrojs
 - MASS
+
 
 Optional for parallel processing during simulation:
 

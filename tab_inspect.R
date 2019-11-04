@@ -32,9 +32,12 @@ inspectTabUI <- function(id, label = 'Inspect') {
             material_column(   # left: design parameters for comparison
                 width = 3,
                 material_card("Compare design parameters",
-                    conditionalPanel(paste0("output['", nspace_design('design_loaded'), "'] != ''"),
-                        uiOutput(nspace("compare_design_parameters"))    # display not-fixed parameters of a design / allow to define sequences
-                    ),
+                        introjsUI(),
+                        conditionalPanel(paste0("output['", nspace_design('design_loaded'), "'] != ''"),
+                                    introBox(uiOutput(nspace("compare_design_parameters")),
+                                             data.step = 14,
+                                             data.intro = "Display changable parameters of the imported design, you can vary the argument if you want"   # display not-fixed parameters of a design / allow to define sequences
+                                  )),
                     conditionalPanel(paste0("output['", nspace_design('design_loaded'), "'] == ''"),
                         p('Load a design first')
                     )
@@ -43,7 +46,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
             material_column(   # center: inspection output
                 width = 6,
                 bsCollapse(id = nspace('inspect_sections_simconf_container'),
-                           bsCollapsePanel('Configure simulations',
+                           bsCollapsePanel(introBox('Configure simulations', data.step = 16, data.intro = "Open the panel and set the Num. of simulation and Num.of bootstraps you want"),
                                            checkboxInput(nspace('simconf_force_rerun'), label = 'Always re-run simulations (disable cache)'),
                                            numericInput(nspace("simconf_sim_num"), label = "Num. of simulations",
                                                         value = default_diag_sims,
@@ -55,13 +58,18 @@ inspectTabUI <- function(id, label = 'Inspect') {
                 conditionalPanel(paste0("output['", nspace('all_design_args_fixed'), "'] === false"),
                     material_card("Diagnostic plots",
                                   uiOutput(nspace('plot_message')),
-                                  div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"),
+                                  introBox(div(actionButton(nspace('update_plot'), 'Run diagnoses'), style = "margin-bottom:10px"), 
+                                      data.step = 17, 
+                                      data.intro = "click on it if you want the diagnostic plot"),
                                   uiOutput(nspace('plot_output')),
+                                  introBox(
                                   downloadButton(nspace("download_plot"), label = "Download plot", disabled = "disabled"),
-                                  downloadButton(nspace("download_plot_code"), label = "Download plot code", disabled = "disabled")
+                                  downloadButton(nspace("download_plot_code"), label = "Download plot code", disabled = "disabled"),
+                                  data.step = 18,
+                                  data.intro = "Download the plot & code if you want")
                     ),
                     bsCollapse(id = nspace('inspect_sections_container'),
-                               bsCollapsePanel('Diagnosis',
+                               bsCollapsePanel(introBox('Diagnosis', data.step = 19, data.intro = "Check out the diagnosis results"),
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
                                                checkboxInput(nspace("reshape_diagnosands"), 
@@ -83,7 +91,10 @@ inspectTabUI <- function(id, label = 'Inspect') {
             ),
             material_column(   # right: plot configuration
                 width = 3,
-                uiOutput(nspace("plot_conf"))
+                introBox(
+                uiOutput(nspace("plot_conf")),
+                data.step = 15,
+                data.intro = "Change any plot parameters you want, e.g show CI or not, display bias of diagnosand or other criteria on the plot")
             )
         )
     )
