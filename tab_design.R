@@ -596,7 +596,13 @@ designTab <- function(input, output, session) {
             d <- design_instance()
             if(!is.null(d) && !is.null(attr(d, 'code'))) {
                 # use the "code" attribute of a design instance and write it to `file`
-                writeLines(attr(d, 'code'), file)
+                code_lines <- c(paste('# code generated with DDWizard and DesignLibrary on', Sys.time()),
+                                '# see https://declaredesign.org/',
+                                '',
+                                'library(DeclareDesign)',
+                                '',
+                                attr(d, 'code'))
+                writeLines(code_lines, file)
             }
         }
     )
