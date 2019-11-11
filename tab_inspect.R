@@ -64,8 +64,9 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                bsCollapsePanel('Diagnosis',
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
-                                               checkboxInput(nspace("reshape_diagnosands"), 
-                                                             label = "Download long format table"),
+                                               fluidRow(column(6, checkboxInput(nspace("reshape_diagnosands"), 
+                                                             label = "Convert to unformatted table")),
+                                                        column(6,div(actionButton(nspace("convert_format_table"), "Confirm"), style = "margin-bottom:8px"))),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
                                                               label = "Download above table", disabled = "disabled"),
                                                downloadButton(nspace("section_diagnosands_download_full"),
@@ -358,6 +359,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             shinyjs::disable('reshape_diagnosands')
             shinyjs::disable('section_diagnosands_download_subset')
             shinyjs::disable('section_diagnosands_download_full')
+            shinyjs::disable('convert_format_table')
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
@@ -496,6 +498,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 shinyjs::enable('reshape_diagnosands')
                 shinyjs::enable('section_diagnosands_download_subset')
                 shinyjs::enable('section_diagnosands_download_full')
+                shinyjs::enable('convert_format_table')
                 
                 p
             })
@@ -700,8 +703,20 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
-        round_df(get_diagnosands_for_display(), digits = 3) # round function from inspect_helper file
+        make_diagnosis_long(get_diagnosands_for_display(), input$plot_conf_diag_param, within_col = T)
     }, options = diagnosis_table_opts)
+    
+    observeEvent(input$convert_format_table,{
+       if (input$reshape_diagnosands) {
+           output$section_diagnosands_table <- renderDataTable({
+               round_df(get_diagnosands_for_display(), 3)
+           }, options = diagnosis_table_opts)
+       }else{
+           output$section_diagnosands_table <- renderDataTable({
+               make_diagnosis_long(get_diagnosands_for_display(), input$plot_conf_diag_param, within_col = T)
+           }, options = diagnosis_table_opts)
+       }
+    })
     
     # center below plot: download buttons
     output$section_diagnosands_download_subset <- downloadHandler(
@@ -716,11 +731,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         },
         content = function(file) {
             if (input$reshape_diagnosands == TRUE){
+               
+                download_data <- get_diagnosands_for_display()
+            }else{
                 download_data <- make_diagnosis_long(get_diagnosands_for_display(), 
                                                      input$plot_conf_diag_param,
                                                      within_col = TRUE)
-            }else{
-                download_data <- get_diagnosands_for_display()
             }
             write.csv(download_data, file = file, row.names = FALSE)
         }
@@ -737,11 +753,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         },
         content = function(file) {
             if (input$reshape_diagnosands == TRUE){
+
+                download_data <- react$diagnosands
+            }else{
                 download_data <- make_diagnosis_long(react$diagnosands, 
                                                      react$available_diagnosands, 
                                                      within_col = FALSE)
-            }else{
-                download_data <- react$diagnosands
             }
             write.csv(download_data, file = file, row.names = FALSE)
         }
