@@ -14,7 +14,10 @@ nav_bar_color <- " light-blue darken-3"
 
 args_control_skip_design_args <- c('design_name', 'args_to_fix')   # for all designers
 args_control_skip_specific_designer_args <- list(                  # for specific designers    
-    'two_by_two_designer' = c('outcome_means')
+    'block_cluster_two_arm_designer' = c('treatment_mean'),
+    'two_arm_designer'               = c('treatment_mean'),
+    'two_arm_covariate_designer'     = c('treatment_mean'),
+    'two_by_two_designer'            = c('outcome_means')
 )
 
 n_diagnosis_workers <- availableCores() - 1   # number of parallel processes when running diagnoses
