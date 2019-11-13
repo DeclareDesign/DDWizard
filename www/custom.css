@@ -7,17 +7,19 @@ input[type="checkbox"]:not(:checked), input[type="checkbox"]:checked {
 
 /** fixes bug with overflow scroll bar in tabs when switching to second tab */
 
-.tabs.tabs-fixed-width.img{
-    text-align: center;
-}
-
-
 .tabs.tabs-fixed-width {
     overflow: visible;
     position: sticky;
     position: -webkit-sticky;
     top: 64px; /* required */
     z-index: 997;
+}
+
+/* set the logo in the center */
+nav .brand-logo {
+    position: static;
+    text-align: center;
+    display: block;
 }
 
 .error_msgs {
