@@ -64,7 +64,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                bsCollapsePanel('Diagnosis',
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
-                                              checkboxInput(nspace("reshape_diagnosands"), 
+                                               checkboxInput(nspace("reshape_diagnosands"), 
                                                              label = "Convert to unformatted table"),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
                                                               label = "Download above table", disabled = "disabled"),
@@ -407,12 +407,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
     })
     
-    #disable reshaping of table if diagnosis not available
-    observeEvent(react$diagnosands, {
-        req(react$diagnosands)
-        if(is.null(react$diagnosands)) shinyjs::disable('reshape_diagnosands')
-    })
-    
     # make the plot reactive
     generate_plot <- reactive({
         n_steps = 6
@@ -492,7 +486,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     
                     incProgress(1/n_steps)
                 }
-                    
                 
                 shinyjs::enable('reshape_diagnosands')
                 shinyjs::enable('section_diagnosands_download_subset')
@@ -702,10 +695,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
-        if (input$reshape_diagnosands == TRUE){
+        if (input$reshape_diagnosands){
             get_diagnosands_for_display()
         }else{
-            make_diagnosis_long(get_diagnosands_for_display(), input$plot_conf_diag_param, within_col = T)
+            make_diagnosis_long(get_diagnosands_for_display(), input$plot_conf_diag_param, within_col = TRUE)
         }
         
     }, options = diagnosis_table_opts)
@@ -722,14 +715,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands.csv')
         },
         content = function(file) {
-            if (input$reshape_diagnosands == TRUE){
-               
+            if (input$reshape_diagnosands) {
                 download_data <- get_diagnosands_for_display()
-            }else{
+            } else {
                 download_data <- make_diagnosis_long(get_diagnosands_for_display(), 
                                                      input$plot_conf_diag_param,
                                                      within_col = TRUE)
             }
+            
             write.csv(download_data, file = file, row.names = FALSE)
         }
     )
@@ -744,14 +737,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands_full.csv')
         },
         content = function(file) {
-            if (input$reshape_diagnosands == TRUE){
-
+            if (input$reshape_diagnosands) {
                 download_data <- react$diagnosands
-            }else{
+            } else {
                 download_data <- make_diagnosis_long(react$diagnosands, 
                                                      react$available_diagnosands, 
                                                      within_col = FALSE)
             }
+            
             write.csv(download_data, file = file, row.names = FALSE)
         }
     )
