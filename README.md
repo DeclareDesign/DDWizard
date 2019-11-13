@@ -20,7 +20,7 @@ Authors:
 
 - DeclareDesign **>= 0.18.0**
 - DesignLibrary **>= 0.1.4**
-- shiny **>= 1.3.2**
+- shiny **1.3.2**
 - shinyalert **>= 1.0**
 - shinyBS **>= 0.61**
 - shinyjs **>= 1.0**
