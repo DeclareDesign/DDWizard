@@ -6,8 +6,18 @@ input[type="checkbox"]:not(:checked), input[type="checkbox"]:checked {
 }
 
 /** fixes bug with overflow scroll bar in tabs when switching to second tab */
-.tabs {
-    overflow-x: hidden;
+
+.tabs.tabs-fixed-width.img{
+    text-align: center;
+}
+
+
+.tabs.tabs-fixed-width {
+    overflow: visible;
+    position: sticky;
+    position: -webkit-sticky;
+    top: 64px; /* required */
+    z-index: 997;
 }
 
 .error_msgs {
@@ -37,11 +47,12 @@ body {
 }
 
 body > button.btn.btn-default.action-button.shiny-bound-input {   /** bookmark button */
-    position: absolute;
     position :fixed;
     top: 0;
     right: 0;
+    z-index:1000;
 }
+
 
 pre.share-url {
     margin-top: 15px;
@@ -56,4 +67,3 @@ pre.share-url {
     background-color: #5f89fa;
     border-color: #5f89fa;
 }
-

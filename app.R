@@ -44,8 +44,8 @@ ui <- function(request) {
     material_page(
         # title
         nav_bar_fixed = TRUE,
-        nav_bar_color = "transparent", 
-        title = span("", tags$a(href="#", class="brand-logo", tags$img(src="brand.png" , height = 52.5, width = 300))),
+        nav_bar_color = "white",
+        title = tags$img(src="brand.png" , height = 52.5, width = 300, class = "brand-log"),
         
         
         # additional JS / CSS libraries
