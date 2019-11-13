@@ -65,7 +65,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                                                uiOutput(nspace("section_diagnosands_message")),
                                                dataTableOutput(nspace("section_diagnosands_table")),
                                                checkboxInput(nspace("reshape_diagnosands"), 
-                                                             label = "Download long format table"),
+                                                             label = "Convert to unformatted table"),
                                                downloadButton(nspace("section_diagnosands_download_subset"),
                                                               label = "Download above table", disabled = "disabled"),
                                                downloadButton(nspace("section_diagnosands_download_full"),
@@ -358,6 +358,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             shinyjs::disable('reshape_diagnosands')
             shinyjs::disable('section_diagnosands_download_subset')
             shinyjs::disable('section_diagnosands_download_full')
+            shinyjs::disable('convert_format_table')
         }
         
         react$cur_design_id <- design_tab_proxy$react$design_id
@@ -404,12 +405,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             list(tags$div(reset_btn, param_boxes))
         }
-    })
-    
-    #disable reshaping of table if diagnosis not available
-    observeEvent(react$diagnosands, {
-        req(react$diagnosands)
-        if(is.null(react$diagnosands)) shinyjs::disable('reshape_diagnosands')
     })
     
     # make the plot reactive
@@ -491,11 +486,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     
                     incProgress(1/n_steps)
                 }
-                    
                 
                 shinyjs::enable('reshape_diagnosands')
                 shinyjs::enable('section_diagnosands_download_subset')
                 shinyjs::enable('section_diagnosands_download_full')
+                shinyjs::enable('convert_format_table')
                 
                 p
             })
@@ -700,7 +695,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
-        round_df(get_diagnosands_for_display(), digits = 3) # round function from inspect_helper file
+        if (input$reshape_diagnosands){
+            get_diagnosands_for_display()
+        }else{
+            make_diagnosis_long(get_diagnosands_for_display(), input$plot_conf_diag_param, within_col = TRUE)
+        }
+        
     }, options = diagnosis_table_opts)
     
     # center below plot: download buttons
@@ -715,13 +715,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands.csv')
         },
         content = function(file) {
-            if (input$reshape_diagnosands == TRUE){
+            if (input$reshape_diagnosands) {
+                download_data <- get_diagnosands_for_display()
+            } else {
                 download_data <- make_diagnosis_long(get_diagnosands_for_display(), 
                                                      input$plot_conf_diag_param,
                                                      within_col = TRUE)
-            }else{
-                download_data <- get_diagnosands_for_display()
             }
+            
             write.csv(download_data, file = file, row.names = FALSE)
         }
     )
@@ -736,13 +737,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             paste0(design_name, '_diagnosands_full.csv')
         },
         content = function(file) {
-            if (input$reshape_diagnosands == TRUE){
+            if (input$reshape_diagnosands) {
+                download_data <- react$diagnosands
+            } else {
                 download_data <- make_diagnosis_long(react$diagnosands, 
                                                      react$available_diagnosands, 
                                                      within_col = FALSE)
-            }else{
-                download_data <- react$diagnosands
             }
+            
             write.csv(download_data, file = file, row.names = FALSE)
         }
     )
