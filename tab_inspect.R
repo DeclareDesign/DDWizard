@@ -34,6 +34,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
                 width = 3,
                 material_card("Compare design parameters",
                     conditionalPanel(paste0("output['", nspace_design('design_loaded'), "'] != ''"),
+                        uiOutput(nspace("param_input_messages")),
                         uiOutput(nspace("compare_design_parameters"))    # display not-fixed parameters of a design / allow to define sequences
                     ),
                     conditionalPanel(paste0("output['", nspace_design('design_loaded'), "'] == ''"),
@@ -478,6 +479,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     
     # -------------- output elements: left side --------------
     
+    # left: show error messages if there are some (e.g. for invalid inputs)
+    output$param_input_messages <- renderUI({
+        req(react$captured_errors)
+        
+        tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n"))
+    })
+    
     # left: design parameters to inspect
     output$compare_design_parameters <- renderUI({
         req(design_tab_proxy$react$design)
@@ -504,19 +512,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             # from "design" tab for the first time after a designer was loaded
             defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed,
                                                    use_only_d_args = is.null(react$design_params_used_in_plot))
+        
+            nspace <- NS('tab_inspect')
+            param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
+                                                      input = design_tab_proxy$input,
+                                                      defaults = defaults)
+            reset_btn <- actionButton(nspace('reset_inputs'), 'Reset values')
         })
         
-        
-        nspace <- NS('tab_inspect')
-        param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
-                                                  input = design_tab_proxy$input,
-                                                  defaults = defaults)
-        reset_btn <- actionButton(nspace('reset_inputs'), 'Reset values')
-        if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
-            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(reset_btn, param_boxes))
-        } else {
-            list(tags$div(reset_btn, param_boxes))
-        }
+        list(tags$div(reset_btn, param_boxes))
     })
     
     # -------------- output elements: center --------------
@@ -759,9 +763,10 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                    choices = variable_args_optional,
                                                    selected = input[[inp_color_param_id]])
                     boxes <- list_append(boxes, inp_color_param)
+                    
                     # 8. tertiary inspection parameter (small multiples)
                     if (length(variable_args_optional) <= 2) {
-                        variable_args_options = variable_args_optional
+                        variable_args_options <- variable_args_optional
                     }else{
                         variable_args_options <- variable_args_optional[variable_args_optional != input[[inp_color_param_id]]]
                     }
