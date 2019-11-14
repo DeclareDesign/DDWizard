@@ -28,9 +28,7 @@ source('tab_design.R')
 source('tab_inspect.R')
 
 
-#######################################
-# Frontend: User interface definition #
-#######################################
+# -------------- Frontend: User interface definition --------------
 
 piwik_code_file <- 'www/piwik.txt'
 if (file.exists(piwik_code_file)) {
@@ -97,9 +95,7 @@ ui <- function(request) {
     )
 }
 
-###########################################################
-# Backend: Input handling and output generation on server #
-###########################################################
+# -------------- Backend: Input handling and output generation on server --------------
 
 server <- function(input, output, session) {
     insp_changed_args <- character()
@@ -107,7 +103,12 @@ server <- function(input, output, session) {
     design_tab_proxy <- callModule(designTab, 'tab_design')
     inspect_tab_proxy <- callModule(inspectTab, 'tab_inspect', design_tab_proxy)
     
-    ### observers global events ###
+    # -------------- observers for global events --------------
+    
+    # get started button clicked
+    observeEvent(input$show_help_text,{
+        alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
+    })
     
     # legal notice button clicked
     observeEvent(input$show_legal_notice, {
@@ -138,7 +139,9 @@ server <- function(input, output, session) {
         }
     })
     
-    ### handling of bookmarking via "SHARE" button on top right ###
+    # -------------- bookmarking --------------
+    
+    # handling of bookmarking via "SHARE" button on top right
     
     onBookmark(function(state) {
         print('BOOKMARKING IN APP:')
@@ -169,11 +172,11 @@ server <- function(input, output, session) {
         shinymaterial::select_material_tab(session, state$values$current_tab)
     })
     
+    # -------------- initial actions --------------
+    
     # once the app is loaded, intro page will come out
     alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
-    observeEvent(input$show_help_text,{
-        alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
-    })
+
 }
 
 # Run the application 
