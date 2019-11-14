@@ -46,7 +46,6 @@ ui <- function(request) {
         nav_bar_fixed = TRUE,
         nav_bar_color = "white",
         title = tags$img(src="brand.png", height = 52.5, width = 300),
-            #span("", tags$a(href="#", class="brand-logo", tags$img(src="brand.png" , height = 52.5, width = 300))),	
         
         
         # additional JS / CSS libraries
