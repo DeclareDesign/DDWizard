@@ -100,7 +100,9 @@ bookmark_store_react_objects <- c('cur_design_id',
                                   'captured_errors')
 
 inspectTab <- function(input, output, session, design_tab_proxy) {
+    
     # -------------- reactive values definition --------------
+    
     react <- reactiveValues(
         cur_design_id = NULL,       # current design name used in inspection (coming from design tab)
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab

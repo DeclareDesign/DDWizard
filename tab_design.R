@@ -9,7 +9,7 @@
 # Dec. 2018
 #
 
-### UI ###
+# -------------- UI --------------
 
 designTabUI <- function(id, label = 'Design') {
     
@@ -71,12 +71,12 @@ designTabUI <- function(id, label = 'Design') {
     )
 }
 
-### Server ###
+# -------------- server --------------
 
 designTab <- function(input, output, session) {
     options(warn = 1)    # always directly print warnings
     
-    ### reactive values  ###
+    # -------------- reactive values definition --------------
     
     react <- reactiveValues(
         design = NULL,                  # parametric designer object (a closure)
@@ -95,7 +95,48 @@ designTab <- function(input, output, session) {
         custom_state = list()           # additional state values for bookmarking
     )
     
-    ### reactive expressions ###
+    # -------------- helper functions --------------
+    
+    # Load the designer with the name `designer` (char string).
+    # For mysterious reasons, it is necessary to pass a namespace function `nspace` (created with `NS(<id>)`)
+    # *whenever this function is called for restoring a bookmark.*
+    load_designer <- function(designer, nspace = function(x) { x }) {
+        print(paste('loading designer', designer))
+        
+        shinyjs::show(nspace('design_params_panel_wrapper'))
+        
+        react$design_id <- designer
+        react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
+        react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
+        react$design_name_once_changed <- FALSE
+        react$fix_toggle <- 'fix'
+        
+        shinyjs::enable(nspace('download_r_script'))
+        shinyjs::enable(nspace('download_rds_obj'))
+        shinyjs::enable(nspace('simdata_redraw'))
+        shinyjs::enable(nspace('simdata_download'))
+        
+        # replace xx_designer as xx_design
+        updateTextInput(session, nspace('design_arg_design_name'), value = gsub("designer","design", react$design_id))
+        
+        # simulation data would react once new design is loaded
+        isolate({
+            d <- req(design_instance())
+            if (!is.null(react$custom_state$simdata)) {
+                simdata <- react$custom_state$simdata
+                react$custom_state$simdata <- NULL
+            } else {
+                simdata <- draw_data(d)
+            }
+        })
+        
+        react$simdata <- simdata
+        
+        # save this to state because it is not automatically restored from bookmark
+        react$custom_state$designer <- react$design_id
+    }
+    
+    # -------------- reactive functions --------------
     
     # arguments/parameters for react$design and their values taken from the inputs
     design_args <- reactive({
@@ -300,80 +341,28 @@ designTab <- function(input, output, session) {
         length(args_fixed) == length(all_args)
     })
     
-    ### non-reactive functions ###
-    
-    # Load the designer with the name `designer` (char string).
-    # For mysterious reasons, it is necessary to pass a namespace function `nspace` (created with `NS(<id>)`)
-    # *whenever this function is called for restoring a bookmark.*
-    load_designer <- function(designer, nspace = function(x) { x }) {
-        print(paste('loading designer', designer))
-        
-        shinyjs::show(nspace('design_params_panel_wrapper'))
-        
-        react$design_id <- designer
-        react$design <- getFromNamespace(react$design_id, 'DesignLibrary')
-        react$design_argdefinitions <- attr(react$design, 'definitions')  # get the designer's argument definitions
-        react$design_name_once_changed <- FALSE
-        react$fix_toggle <- 'fix'
-        
-        shinyjs::enable(nspace('download_r_script'))
-        shinyjs::enable(nspace('download_rds_obj'))
-        shinyjs::enable(nspace('simdata_redraw'))
-        shinyjs::enable(nspace('simdata_download'))
-        
-        # replace xx_designer as xx_design
-        updateTextInput(session, nspace('design_arg_design_name'), value = gsub("designer","design", react$design_id))
-        
-        # simulation data would react once new design is loaded
-        isolate({
-            d <- req(design_instance())
-            if (!is.null(react$custom_state$simdata)) {
-                simdata <- react$custom_state$simdata
-                react$custom_state$simdata <- NULL
-            } else {
-                simdata <- draw_data(d)
-            }
-        })
-
-        react$simdata <- simdata
-        
-        # save this to state because it is not automatically restored from bookmark
-        react$custom_state$designer <- react$design_id
-    }
-    
-    ### bookmarking ###
-    
-    # customize bookmarking process: add additional data to bookmarked state
-    onBookmark(function(state) {
-        print('BOOKMARKING IN DESIGN TAB:')
-        
-        # add open panels, because they're not restored automatically
-        react$custom_state$panels_state <- input$sections_container
-        
-        # store simulated data
-        react$custom_state$simdata <- react$simdata
-        
-        print(react$custom_state)
-        state$values$custom_state <- react$custom_state
+    # observer for the error message to unfold the message panel
+    # reactive expression returns true when there is no error or warning
+    message_close <- reactive({
+        req(react$warning_occurred)
+        req(react$error_occurred)
+        if (!isTRUE(react$warning_occurred) && !isTRUE(react$error_occurred)) {
+            return(TRUE)
+        } else {
+            return(NULL)
+        }
     })
     
-    # customize restoring process
-    onRestore(function(state) {
-        print('RESTORING IN DESIGN TAB:')
-        react$custom_state <- state$values$custom_state
-        
-        print(react$custom_state)
-        
-        # design is not loaded automatically on restore (probably because list of available designers
-        # is not loaded yet) so do it here
-        # also, a namespace function must be passed when doing a restore (reason unknown)
-        load_designer(react$custom_state$designer, NS('tab_design'))
-        
-        # re-open the panels
-        updateCollapse(session, 'sections_container', open = react$custom_state$panels_state)
+    # reactive expression returns true when there is any error or warning
+    message_open <- reactive({
+        if (is.null(design_instance()) || isTRUE(react$warning_occurred) || isTRUE(react$error_occurred)){
+            return(TRUE)
+        } else {
+            return(NULL)
+        }  
     })
     
-    ### input observers ###
+    # -------------- event observers --------------
     
     # input observer for click on design import
     observeEvent(input$import_from_design_lib, {
@@ -382,7 +371,6 @@ designTab <- function(input, output, session) {
             load_designer(input$import_design_library)
         }
     })
-    
     
     # input observer for click on "Fix/Unfix all" button
     observeEvent(input$fix_toggle_click, {
@@ -417,28 +405,6 @@ designTab <- function(input, output, session) {
         react$simdata <- simdata
     })
     
-    # observer for the error message to unfold the message panel
-    # reactive expression returns true when there is no error or warning
-    message_close <- reactive({
-        req(react$warning_occurred)
-        req(react$error_occurred)
-        if (!isTRUE(react$warning_occurred) && !isTRUE(react$error_occurred)) {
-            return(TRUE)
-        } else {
-            return(NULL)
-        }
-    })
-    
-    # reactive expression returns true when there is any error or warning
-    message_open <- reactive({
-        if (is.null(design_instance()) || isTRUE(react$warning_occurred) || isTRUE(react$error_occurred)){
-            return(TRUE)
-        } else {
-            return(NULL)
-        }
-        
-    })
-    
     # unfold the message panel
     observeEvent(message_open(),ignoreInit = TRUE,{
         updateCollapse(session, "sections_container", open = 'Warnings or errors')
@@ -449,12 +415,13 @@ designTab <- function(input, output, session) {
         updateCollapse(session, "sections_container", close = 'Warnings or errors')
     })
     
-    
-    ### output elements ###
+    # -------------- output elements: hidden --------------
     
     # hidden (for conditional panel)
     output$design_supports_fixed_arg <- design_supports_fixed_arg
     outputOptions(output, 'design_supports_fixed_arg', suspendWhenHidden = FALSE)
+    
+    # -------------- output elements: left side --------------
 
     # left side: designer description
     output$design_description <- renderUI({
@@ -536,6 +503,8 @@ designTab <- function(input, output, session) {
         
     })
     
+    # -------------- output elements: center --------------
+    
     # center: info about the name of loaded design
     output$load_design_info <- renderUI({
         req(react$design_id)
@@ -543,7 +512,6 @@ designTab <- function(input, output, session) {
         if (title == "Binary iv designer") title <- "Binary IV designer"
         material_card(title = title, HTML(attr(react$design, 'description')))
     })
-    
     
     # center: design code
     output$section_design_code <- renderUI({
@@ -581,7 +549,23 @@ designTab <- function(input, output, session) {
         tags$pre(txt)
     })
     
-    # center: download generated R code
+    # center: simulated data table
+    output$section_simdata_table <- renderDataTable({
+        req(react$simdata)
+        round_df(react$simdata, 4)
+    }, options = list(searching = FALSE,
+                      ordering = FALSE,
+                      paging = TRUE,
+                      pageLength = 10,
+                      info = FALSE,
+                      lengthChange = FALSE,
+                      scrollX = TRUE))
+
+    
+
+    # -------------- download handlers --------------
+    
+    # download design as R script
     output$download_r_script <- downloadHandler(
         filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
             design_name <- input$design_arg_design_name
@@ -607,7 +591,7 @@ designTab <- function(input, output, session) {
         }
     )
     
-    # center: download design as RDS file
+    # download design as RDS file
     output$download_rds_obj <- downloadHandler(
         filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
             design_name <- input$design_arg_design_name
@@ -626,20 +610,7 @@ designTab <- function(input, output, session) {
         }
     )
     
-    # center: simulated data table
-    output$section_simdata_table <- renderDataTable({
-        req(react$simdata)
-        round_df(react$simdata, 4)
-    }, options = list(searching = FALSE,
-                      ordering = FALSE,
-                      paging = TRUE,
-                      pageLength = 10,
-                      info = FALSE,
-                      lengthChange = FALSE,
-                      scrollX = TRUE))
-
-    
-    # center: download simulated data
+    # download simulated data
     output$simdata_download <- downloadHandler(
         filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
             design_name <- input$design_arg_design_name
@@ -655,6 +626,41 @@ designTab <- function(input, output, session) {
             write.csv(react$simdata, file = file, row.names = FALSE)
         }
     )
+    
+    
+    # -------------- bookmarking --------------
+    
+    # customize bookmarking process: add additional data to bookmarked state
+    onBookmark(function(state) {
+        print('BOOKMARKING IN DESIGN TAB:')
+        
+        # add open panels, because they're not restored automatically
+        react$custom_state$panels_state <- input$sections_container
+        
+        # store simulated data
+        react$custom_state$simdata <- react$simdata
+        
+        print(react$custom_state)
+        state$values$custom_state <- react$custom_state
+    })
+    
+    # customize restoring process
+    onRestore(function(state) {
+        print('RESTORING IN DESIGN TAB:')
+        react$custom_state <- state$values$custom_state
+        
+        print(react$custom_state)
+        
+        # design is not loaded automatically on restore (probably because list of available designers
+        # is not loaded yet) so do it here
+        # also, a namespace function must be passed when doing a restore (reason unknown)
+        load_designer(react$custom_state$designer, NS('tab_design'))
+        
+        # re-open the panels
+        updateCollapse(session, 'sections_container', open = react$custom_state$panels_state)
+    })
+    
+    # -------------- return values of this module --------------
     
     # return reactive values and some functions to be accessed from other modules
     return(list(
