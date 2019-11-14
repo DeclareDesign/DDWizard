@@ -9,7 +9,8 @@
 
 source('inspect_helpers.R')
 
-### CONFIG ###
+
+# -------------- config --------------
 
 diagnosis_table_opts <- list(searching = FALSE,
                              ordering = FALSE,
@@ -19,7 +20,7 @@ diagnosis_table_opts <- list(searching = FALSE,
                              lengthChange = FALSE,
                              scrollX = TRUE)
 
-### UI ###
+# -------------- UI --------------
 
 inspectTabUI <- function(id, label = 'Inspect') {
     nspace <- NS(id)
@@ -89,7 +90,7 @@ inspectTabUI <- function(id, label = 'Inspect') {
     )
 }
 
-### Server ###
+# -------------- server --------------
 
 bookmark_store_react_objects <- c('cur_design_id', 
                                   'diagnosands',
@@ -99,6 +100,7 @@ bookmark_store_react_objects <- c('cur_design_id',
                                   'captured_errors')
 
 inspectTab <- function(input, output, session, design_tab_proxy) {
+    # -------------- reactive values definition --------------
     react <- reactiveValues(
         cur_design_id = NULL,       # current design name used in inspection (coming from design tab)
         diagnosands = NULL,         # diagnosands for current plot in "inspect" tab
@@ -111,6 +113,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         captured_errors = NULL,     # errors to display
         custom_state = list()       # additional state values for bookmarking
     )
+    
+    # -------------- helper functions --------------
     
     # Run diagnoses using inspection arguments `insp_args`
     run_diagnoses_using_inspection_args <- function(insp_args, advance_progressbar = 0) {
@@ -141,6 +145,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
         diag_res
     }
+    
+    # set the names of arguments which were changed by the user.
+    # this is evoked from "outside" from app.R once the user switches from design to inspect tab
+    set_changed_args <- function(changed_args) {
+        react$insp_args_changed <- changed_args
+        react$insp_args_set_after_tab_switch <- TRUE
+    }
+    
+    # -------------- reactive functions --------------
     
     # reactive function to run diagnoses and return the results once "Update plot" is clicked
     get_diagnoses_for_plot <- eventReactive(input$update_plot, {
@@ -302,13 +315,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         return(changed_args)
     })
     
-    # set the names of arguments which were changed by the user.
-    # this is evoked from "outside" from app.R once the user switches from design to inspect tab
-    set_changed_args <- function(changed_args) {
-        react$insp_args_changed <- changed_args
-        react$insp_args_set_after_tab_switch <- TRUE
-    }
-    
     # message to be displayed if results were loaded from cache
     results_cached_message <- reactive({
         if (react$diagnosands_cached) {
@@ -318,96 +324,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
     })
     
-    # "reset values" button on left side: set inputs to defaults
-    observeEvent(input$reset_inputs, {
-        d_args <- design_tab_proxy$design_args()
-        defs <- design_tab_proxy$react$design_argdefinitions
-        
-        defaults <- get_inspect_input_defaults(d_args, defs, list())  # pass empty input list
-        
-        for (argname in names(defaults)) {
-            updateTextInput(session, paste0('inspect_arg_', argname), value = defaults[[argname]])
-        }
-    })
-
-    # Action button label gets updated only when reactive inspector values don't change
-    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
-    
-    
-    ### output elements ###
-    
-    # hidden (for conditional panel): return TRUE when all designer arguments were fixed, otherwise FALSE
-    output$all_design_args_fixed <- reactive({
-        req(design_tab_proxy$react$design)
-        design_tab_proxy$all_design_args_fixed()
-    })
-    outputOptions(output, 'all_design_args_fixed', suspendWhenHidden = FALSE)
-    
-    # hidden output that records current design ID (i.e. designer name) in order to detect changes of the
-    # designer and then reset the state of the inspect tab
-    output$cur_design_id <- reactive({
-        if (!is.null(react$cur_design_id) && react$cur_design_id != design_tab_proxy$react$design_id) {
-            # if the designer was changed, reset the reactive values
-            react$diagnosands <- NULL
-            react$diagnosands_full <- NULL
-            react$diagnosands_cached <- FALSE
-            react$diagnosands_call <- NULL
-            react$available_diagnosands <- NULL
-            react$design_params_used_in_plot <- NULL
-            shinyjs::disable('update_plot')
-            shinyjs::disable('reshape_diagnosands')
-            shinyjs::disable('section_diagnosands_download_subset')
-            shinyjs::disable('section_diagnosands_download_full')
-            shinyjs::disable('convert_format_table')
-        }
-        
-        react$cur_design_id <- design_tab_proxy$react$design_id
-        react$cur_design_id
-    })
-    outputOptions(output, 'cur_design_id', suspendWhenHidden = FALSE)
-    
-    # left: design parameters to inspect
-    output$compare_design_parameters <- renderUI({
-        req(design_tab_proxy$react$design)
-        
-        if (design_tab_proxy$all_design_args_fixed()) {
-            return(HTML('<p>No comparisons available since all parameters were set to <i>fixed</i>.<br></p>'))
-        }
-        
-        d_args <- design_tab_proxy$design_args()
-        defs <- design_tab_proxy$react$design_argdefinitions
-        isolate({
-            # set defaults: use value from design args in design tab unless the value was changed in the inspector tab
-            if (react$insp_args_set_after_tab_switch) {
-                # if we just switched over from the design tab, take over the values from there as long as they were
-                # not recorded as "changed" before switching
-                insp_args_changed <- react$insp_args_changed
-                react$insp_args_set_after_tab_switch <- FALSE   # reset
-            } else {
-                # otherwise respect the changes at the point where we switched to this tab *and* the changes done since then
-                insp_args_changed <- union(react$insp_args_changed, get_changed_args())
-            }
-            
-            # get defaults for inspect inputs; react$design_params_used_in_plot is NULL when switching
-            # from "design" tab for the first time after a designer was loaded
-            defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed,
-                                                   use_only_d_args = is.null(react$design_params_used_in_plot))
-        })
-        
-        
-        nspace <- NS('tab_inspect')
-        param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
-                                                  input = design_tab_proxy$input,
-                                                  defaults = defaults)
-        reset_btn <- actionButton(nspace('reset_inputs'), 'Reset values')
-        if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
-            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(reset_btn, param_boxes))
-        } else {
-            list(tags$div(reset_btn, param_boxes))
-        }
-    })
-    
-    # make the plot reactive
+    # reactive plot generation function
     generate_plot <- reactive({
         n_steps = 6
         withProgress(message = 'Simulating data and generating plot...', value = 0, {
@@ -431,7 +348,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     # the bound value of confidence interval: diagnosand values +/-SE*1.96
                     plotdf$diagnosand_min <- plotdf[[input$plot_conf_diag_param]] - plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
                     plotdf$diagnosand_max <- plotdf[[input$plot_conf_diag_param]] + plotdf[[paste0("se(", input$plot_conf_diag_param, ")")]] * 1.96
-                
+                    
                     # base aesthetics for line plot
                     aes_args <- list(
                         'x' = input$plot_conf_x_param,   
@@ -443,7 +360,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     
                     # subset the plotdf by estimand or estimator variable
                     if (isTruthy(input$plot_conf_estimand) && isTruthy(input$plot_conf_estimator)) {
-                            plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
+                        plotdf <- plotdf[plotdf$estimator_label == input$plot_conf_estimator & plotdf$estimand_label == input$plot_conf_estimand,]
                     }
                     # if the "color" parameter is set, add it to the aeshetics definition
                     if (isTruthy(input$plot_conf_color_param) && input$plot_conf_color_param != '(none)') {
@@ -497,49 +414,112 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         })
     })
     
-    ### bookmarking ###
-    
-    # customize bookmarking process: add additional data to bookmarked state
-    onBookmark(function(state) {
-        print('BOOKMARKING IN INSPECT TAB:')
-        
-        # add open panels, because they're not restored automatically
-        react$custom_state$panel_simconf_state <- input$inspect_sections_simconf_container
-        react$custom_state$panel_diagnosis_state <- input$inspect_sections_container
-        
-        # store additional state objects
-        for (objname in bookmark_store_react_objects) {
-            react$custom_state[[objname]] <- react[[objname]]
+    # reactive button label
+    btn_label <- reactive({
+        if (rerun_diagnoses_required()) {
+            return('Run diagnoses and update plot')
+        } else {
+            return('Update plot')
         }
-        
-        print(react$custom_state)
-        state$values$custom_state <- react$custom_state
     })
     
-    # customize restoring process
-    onRestore(function(state) {
-        print('RESTORING IN INSPECT TAB:')
-        react$custom_state <- state$values$custom_state
-        print(react$custom_state)
+    
+    # -------------- event observers --------------
+    
+    # "reset values" button on left side: set inputs to defaults
+    observeEvent(input$reset_inputs, {
+        d_args <- design_tab_proxy$design_args()
+        defs <- design_tab_proxy$react$design_argdefinitions
         
-        # restore additional state objects
-        for (objname in bookmark_store_react_objects) {
-            react[[objname]] <- react$custom_state[[objname]]
+        defaults <- get_inspect_input_defaults(d_args, defs, list())  # pass empty input list
+        
+        for (argname in names(defaults)) {
+            updateTextInput(session, paste0('inspect_arg_', argname), value = defaults[[argname]])
+        }
+    })
+
+    # Action button label gets updated only when reactive inspector values don't change
+    observeEvent(btn_label(), { updateActionButton(session, 'update_plot', btn_label()) })
+    
+    
+    # -------------- output elements: hidden --------------
+    
+    # hidden (for conditional panel): return TRUE when all designer arguments were fixed, otherwise FALSE
+    output$all_design_args_fixed <- reactive({
+        req(design_tab_proxy$react$design)
+        design_tab_proxy$all_design_args_fixed()
+    })
+    outputOptions(output, 'all_design_args_fixed', suspendWhenHidden = FALSE)
+    
+    # hidden output that records current design ID (i.e. designer name) in order to detect changes of the
+    # designer and then reset the state of the inspect tab
+    output$cur_design_id <- reactive({
+        if (!is.null(react$cur_design_id) && react$cur_design_id != design_tab_proxy$react$design_id) {
+            # if the designer was changed, reset the reactive values
+            react$diagnosands <- NULL
+            react$diagnosands_full <- NULL
+            react$diagnosands_cached <- FALSE
+            react$diagnosands_call <- NULL
+            react$available_diagnosands <- NULL
+            react$design_params_used_in_plot <- NULL
+            shinyjs::disable('update_plot')
+            shinyjs::disable('reshape_diagnosands')
+            shinyjs::disable('section_diagnosands_download_subset')
+            shinyjs::disable('section_diagnosands_download_full')
+            shinyjs::disable('convert_format_table')
         }
         
-        # re-open the panels
-        updateCollapse(session, 'inspect_sections_simconf_container', open = react$custom_state$panel_simconf_state)
-        updateCollapse(session, 'inspect_sections_container', open = react$custom_state$panel_diagnosis_state)
+        react$cur_design_id <- design_tab_proxy$react$design_id
+        react$cur_design_id
+    })
+    outputOptions(output, 'cur_design_id', suspendWhenHidden = FALSE)
+    
+    # -------------- output elements: left side --------------
+    
+    # left: design parameters to inspect
+    output$compare_design_parameters <- renderUI({
+        req(design_tab_proxy$react$design)
         
-        # update the plot after a small delay when all inputs are ready
-        shinyjs::delay(3000, {
-            nspace <- NS('tab_inspect')
-            shinyjs::click(nspace('update_plot'))
+        if (design_tab_proxy$all_design_args_fixed()) {
+            return(HTML('<p>No comparisons available since all parameters were set to <i>fixed</i>.<br></p>'))
+        }
+        
+        d_args <- design_tab_proxy$design_args()
+        defs <- design_tab_proxy$react$design_argdefinitions
+        isolate({
+            # set defaults: use value from design args in design tab unless the value was changed in the inspector tab
+            if (react$insp_args_set_after_tab_switch) {
+                # if we just switched over from the design tab, take over the values from there as long as they were
+                # not recorded as "changed" before switching
+                insp_args_changed <- react$insp_args_changed
+                react$insp_args_set_after_tab_switch <- FALSE   # reset
+            } else {
+                # otherwise respect the changes at the point where we switched to this tab *and* the changes done since then
+                insp_args_changed <- union(react$insp_args_changed, get_changed_args())
+            }
+            
+            # get defaults for inspect inputs; react$design_params_used_in_plot is NULL when switching
+            # from "design" tab for the first time after a designer was loaded
+            defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed,
+                                                   use_only_d_args = is.null(react$design_params_used_in_plot))
         })
+        
+        
+        nspace <- NS('tab_inspect')
+        param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
+                                                  input = design_tab_proxy$input,
+                                                  defaults = defaults)
+        reset_btn <- actionButton(nspace('reset_inputs'), 'Reset values')
+        if (!is.null(react$captured_errors) && length(react$captured_errors) > 0) {
+            list(tags$div(class = 'error_msgs', paste(react$captured_errors, collapse = "\n")), tags$div(reset_btn, param_boxes))
+        } else {
+            list(tags$div(reset_btn, param_boxes))
+        }
     })
     
-    # -------------- center: messages for plot --------------
+    # -------------- output elements: center --------------
     
+    # center: messages for plot
     output$plot_message <- renderUI({
         if (is.null(react$diagnosands)) {
             res <- HTML(inpector_help_text)
@@ -554,23 +534,11 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         res
     })
     
-    
-    # -------------- center: plot output --------------
-    
-    # Reactive button label
-    btn_label <- reactive({
-        if (rerun_diagnoses_required()) {
-            return('Run diagnoses and update plot')
-        } else {
-            return('Update plot')
-        }
-    })
-    
+    # center: plot output
     # all the following hassle because Shiny would neither:
     # - accept "auto" as plot height
     # - allow to show/hide the plot inside a conditional panel (the "Run diagnoses" button would not work anymore)
     # - allow to show/hide the plot using shinyjs (same as above)
-    
     output$plot_output <- renderUI({
         if (is.null(react$diagnosands) || length(react$insp_args_varying) == 0) {
             h <- 1
@@ -596,48 +564,42 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         p
     })
     
-    # -------- download the plot --------
-    output$download_plot <- downloadHandler(
-        filename = function() {
-            design_name <- input$design_arg_design_name
+    # center above plot: plot information
+    output$plot_info <- renderUI({
+        if (is.null(design_tab_proxy$react$design)) {
+            return(material_card(title = "No designer loaded",
+                                 p('Please load a designer first in the "Design" tab.')))
+        } else {
+            # get the values from the inspect tab
+            d_args <- design_tab_proxy$design_args()
             
-            if (!isTruthy(design_name)) {
-                design_name <- paste0("design-", Sys.Date())
+            insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
+                                                 design_tab_proxy$react$design_id,
+                                                 design_tab_proxy$react$design_argdefinitions,
+                                                 input,
+                                                 design_tab_proxy$get_fixed_design_args(),
+                                                 design_tab_proxy$input)
+            
+            # show the design name 
+            title <- str_cap(design_tab_proxy$react$design_id)
+            if (title == "Binary iv designer") title <- "Binary IV designer"
+            fixed_text <- "" 
+            # show the fixed args
+            if (length(design_tab_proxy$get_fixed_design_args()) > 0){
+                txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
+                    if (length(insp_args[[x]])> 1) insp_args[[x]] <-  sprintf('(%s)', paste(insp_args[[x]], collapse = ', '))
+                    paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
+                }))
+                fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))
             }
+            req(design_tab_proxy$react$design)
+            description <- attr(design_tab_proxy$react$design, 'description')
             
-            paste0(design_name, '_diagnostic_plot.png')
-        },
-        content = function(file) {
-            png(file, width = 1200, height = 900)
-            print(generate_plot())
-            dev.off()
+            return(material_card(title = title,
+                                 HTML(attr(design_tab_proxy$react$design, 'description')),
+                                 HTML(fixed_text)))
         }
-    )
-    
-    output$download_plot_code <- downloadHandler(
-        filename = function() {
-            design_name <- input$design_arg_design_name
-            
-            if (!isTruthy(design_name)) {
-                design_name <- paste0("design-", Sys.Date())
-            }
-            
-            paste0(design_name, '_inspection_plot.R')
-        },
-        content = function(fname) {
-            code <- generate_plot_code(get_diagnosands_for_display(),
-                                       react$cur_design_id,
-                                       input$plot_conf_diag_param,
-                                       input$plot_conf_x_param,
-                                       input$plot_conf_color_param,
-                                       input$plot_conf_facets_param,
-                                       isTruthy(input$plot_conf_confi_int_id))
-            print(code)
-            fh <- file(fname, 'w')
-            writeLines(code, fh)
-            close(fh)
-        }
-    )
+    })
     
     # center below plot: diagnosands table message
     output$section_diagnosands_message <- renderUI({
@@ -656,43 +618,6 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
     })
     
-    # center upon plot: plot information
-    output$plot_info <- renderUI({
-        if (is.null(design_tab_proxy$react$design)) {
-            return(material_card(title = "No designer loaded",
-                                 p('Please load a designer first in the "Design" tab.')))
-        } else {
-            # get the values from the inspect tab
-            d_args <- design_tab_proxy$design_args()
-            
-            insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
-                                                 design_tab_proxy$react$design_id,
-                                                 design_tab_proxy$react$design_argdefinitions,
-                                                 input,
-                                                 design_tab_proxy$get_fixed_design_args(),
-                                                 design_tab_proxy$input)
-           
-            # show the design name 
-            title <- str_cap(design_tab_proxy$react$design_id)
-            if (title == "Binary iv designer") title <- "Binary IV designer"
-            fixed_text <- "" 
-            # show the fixed args
-            if (length(design_tab_proxy$get_fixed_design_args()) > 0){
-                txt1 <- unname(sapply(design_tab_proxy$get_fixed_design_args(), function(x){
-                    if (length(insp_args[[x]])> 1) insp_args[[x]] <-  sprintf('(%s)', paste(insp_args[[x]], collapse = ', '))
-                    paste(rm_usc(x), "=", insp_args[[x]], collapse = "\n")
-                }))
-                fixed_text <- paste("<br><br>Fixed arguments (not shown):<br>", paste0(txt1, collapse  = ", "))
-               }
-            req(design_tab_proxy$react$design)
-            description <- attr(design_tab_proxy$react$design, 'description')
-    
-            return(material_card(title = title,
-                                 HTML(attr(design_tab_proxy$react$design, 'description')),
-                                 HTML(fixed_text)))
-        }
-    })
-    
     # center below plot: diagnosands table
     output$section_diagnosands_table <- renderDataTable({
         if (input$reshape_diagnosands){
@@ -703,58 +628,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         
     }, options = diagnosis_table_opts)
     
-    # center below plot: download buttons
-    output$section_diagnosands_download_subset <- downloadHandler(
-        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
-            design_name <- input$design_arg_design_name
-            
-            if (!isTruthy(design_name)) {
-                design_name <- paste0("design-", Sys.Date())
-            }
-            
-            paste0(design_name, '_diagnosands.csv')
-        },
-        content = function(file) {
-            if (input$reshape_diagnosands) {
-                download_data <- get_diagnosands_for_display()
-            } else {
-                download_data <- make_diagnosis_long(get_diagnosands_for_display(), 
-                                                     input$plot_conf_diag_param,
-                                                     within_col = TRUE)
-            }
-            
-            write.csv(download_data, file = file, row.names = FALSE)
-        }
-    )
-    
-    output$section_diagnosands_download_full <- downloadHandler(
-        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
-            design_name <- input$design_arg_design_name
-            if (!isTruthy(design_name)) {
-                design_name <- paste0("design-", Sys.Date())
-            }
-            
-            paste0(design_name, '_diagnosands_full.csv')
-        },
-        content = function(file) {
-            if (input$reshape_diagnosands) {
-                download_data <- react$diagnosands
-            } else {
-                download_data <- make_diagnosis_long(react$diagnosands, 
-                                                     react$available_diagnosands, 
-                                                     within_col = FALSE)
-            }
-            
-            write.csv(download_data, file = file, row.names = FALSE)
-        }
-    )
-    
-    # diagnosis table for single design
+    # center below plot: diagnosis table for single design
     output$single_diagnosands_table <- renderDataTable({
         diag_res <- get_diagnosis_for_single_design()
         react$diagnosands_cached <- diag_res$from_cache
         select(diag_res$results$diagnosands_df, -c(design_label, n_sims))
     }, options = list_merge(diagnosis_table_opts, list(paging = FALSE)))
+    
+    # -------------- output elements: right side --------------
     
     # right: inspection plot configuration
     output$plot_conf <- renderUI({
@@ -767,7 +648,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             boxes <- list()
             args_fixed <- design_tab_proxy$get_fixed_design_args()
             all_fixed <- design_tab_proxy$all_design_args_fixed()
-
+            
             # get estimates and diagnosis information
             # create the design instance and get its estimates
             d <- design_tab_proxy$design_instance()
@@ -786,14 +667,14 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                         choices = unique(d_estimates$estimand_label),
                                         selected = input[[inp_estimand_id]])
             boxes <- list_append(boxes, inp_estimand)
-
+            
             # 2. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")
             inp_estimator <- selectInput(nspace(inp_estimator_id), "Estimator Label",
                                          choices = unique(d_estimates$estimator_label[d_estimates$estimand_label == input[[inp_estimand_id]]]),
                                          selected = input[[inp_estimator_id]])
             boxes <- list_append(boxes, inp_estimator)
-           
+            
             # 3. coefficient
             if ("term" %in% names(d_estimates)) {
                 coefficients <- d_estimates$term[d_estimates$estimand_label == input[[inp_estimand_id]] & d_estimates$estimator_label == input[[inp_estimator_id]]]
@@ -842,13 +723,13 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                      input,
                                                      design_tab_proxy$get_fixed_design_args(),
                                                      design_tab_proxy$input)
-
-                if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
                 
+                if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
+                    
                     insp_args_NAs <- sapply(insp_args, function(arg) { any(is.na(arg)) })
                     insp_args_is_varying <- sapply(insp_args, function(arg) {any(length(arg) > 1)})
                     react$insp_args_varying <- names(insp_args_is_varying)[insp_args_is_varying]
-
+                    
                     if (sum(insp_args_NAs) > 0) {
                         shinyjs::disable('update_plot')
                         react$captured_errors <- paste('Invalid values supplied to the following arguments:',
@@ -866,7 +747,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
                                                choices = variable_args,
                                                selected = input[[inp_x_param_id]])
-
+                    
                     boxes <- list_append(boxes, inp_x_param)
                     
                     # 7. secondary inspection parameter (color)
@@ -893,6 +774,140 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
         do.call(material_card, c(title="Plot configuration", boxes))
     })
+    
+    # -------------- download handlers --------------
+    
+    output$download_plot <- downloadHandler(
+        filename = function() {
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_diagnostic_plot.png')
+        },
+        content = function(file) {
+            png(file, width = 1200, height = 900)
+            print(generate_plot())
+            dev.off()
+        }
+    )
+    
+    output$download_plot_code <- downloadHandler(
+        filename = function() {
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_inspection_plot.R')
+        },
+        content = function(fname) {
+            code <- generate_plot_code(get_diagnosands_for_display(),
+                                       react$cur_design_id,
+                                       input$plot_conf_diag_param,
+                                       input$plot_conf_x_param,
+                                       input$plot_conf_color_param,
+                                       input$plot_conf_facets_param,
+                                       isTruthy(input$plot_conf_confi_int_id))
+            print(code)
+            fh <- file(fname, 'w')
+            writeLines(code, fh)
+            close(fh)
+        }
+    )
+    
+    # diagnosands download
+    output$section_diagnosands_download_subset <- downloadHandler(
+        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
+            design_name <- input$design_arg_design_name
+            
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_diagnosands.csv')
+        },
+        content = function(file) {
+            if (input$reshape_diagnosands) {
+                download_data <- get_diagnosands_for_display()
+            } else {
+                download_data <- make_diagnosis_long(get_diagnosands_for_display(), 
+                                                     input$plot_conf_diag_param,
+                                                     within_col = TRUE)
+            }
+            
+            write.csv(download_data, file = file, row.names = FALSE)
+        }
+    )
+    
+    # diagnosands download (full dataset)
+    output$section_diagnosands_download_full <- downloadHandler(
+        filename = function() {  # note that this seems to work only in a "real" browser, not in RStudio's browser
+            design_name <- input$design_arg_design_name
+            if (!isTruthy(design_name)) {
+                design_name <- paste0("design-", Sys.Date())
+            }
+            
+            paste0(design_name, '_diagnosands_full.csv')
+        },
+        content = function(file) {
+            if (input$reshape_diagnosands) {
+                download_data <- react$diagnosands
+            } else {
+                download_data <- make_diagnosis_long(react$diagnosands, 
+                                                     react$available_diagnosands, 
+                                                     within_col = FALSE)
+            }
+            
+            write.csv(download_data, file = file, row.names = FALSE)
+        }
+    )
+    
+    # -------------- bookmarking --------------
+    
+    # customize bookmarking process: add additional data to bookmarked state
+    onBookmark(function(state) {
+        print('BOOKMARKING IN INSPECT TAB:')
+        
+        # add open panels, because they're not restored automatically
+        react$custom_state$panel_simconf_state <- input$inspect_sections_simconf_container
+        react$custom_state$panel_diagnosis_state <- input$inspect_sections_container
+        
+        # store additional state objects
+        for (objname in bookmark_store_react_objects) {
+            react$custom_state[[objname]] <- react[[objname]]
+        }
+        
+        print(react$custom_state)
+        state$values$custom_state <- react$custom_state
+    })
+    
+    # customize restoring process
+    onRestore(function(state) {
+        print('RESTORING IN INSPECT TAB:')
+        react$custom_state <- state$values$custom_state
+        print(react$custom_state)
+        
+        # restore additional state objects
+        for (objname in bookmark_store_react_objects) {
+            react[[objname]] <- react$custom_state[[objname]]
+        }
+        
+        # re-open the panels
+        updateCollapse(session, 'inspect_sections_simconf_container', open = react$custom_state$panel_simconf_state)
+        updateCollapse(session, 'inspect_sections_container', open = react$custom_state$panel_diagnosis_state)
+        
+        # update the plot after a small delay when all inputs are ready
+        shinyjs::delay(3000, {
+            nspace <- NS('tab_inspect')
+            shinyjs::click(nspace('update_plot'))
+        })
+    })
+    
+    # -------------- return values of this module --------------
     
     # return reactive values and some functions to be accessed from other modules
     return(list(
