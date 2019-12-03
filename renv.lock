@@ -149,13 +149,6 @@
       "Repository": "CRAN",
       "Hash": "2c8c97e2b506ae7e74ca4722c2f5e492"
     },
-    "ellipsis": {
-      "Package": "ellipsis",
-      "Version": "0.3.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "da7ccc7bb0fea18c18248c2d58d80710"
-    },
     "estimatr": {
       "Package": "estimatr",
       "Version": "0.18.0",
@@ -186,10 +179,10 @@
     },
     "future": {
       "Package": "future",
-      "Version": "1.12.0",
+      "Version": "1.15.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "3ac53c149bead7f7fd2e40cc8190fb4e"
+      "Hash": "68221d07934a9ed4a25ca7f074e01632"
     },
     "generics": {
       "Package": "generics",
@@ -387,6 +380,13 @@
       "Repository": "CRAN",
       "Hash": "7222e5a614991342dc34c03f49bdf7cb"
     },
+    "renv": {
+      "Package": "renv",
+      "Version": "0.8.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "bf0b67f70a9f271c01e868a5043c45d7"
+    },
     "reshape2": {
       "Package": "reshape2",
       "Version": "1.4.3",
@@ -506,10 +506,10 @@
     },
     "vctrs": {
       "Package": "vctrs",
-      "Version": "0.2.0",
+      "Version": "0.1.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "c84514228f02bcdf0859cc779807a523"
+      "Hash": "d5d4ca9e293b89e0a1b2ab88c52ab44b"
     },
     "viridisLite": {
       "Package": "viridisLite",
