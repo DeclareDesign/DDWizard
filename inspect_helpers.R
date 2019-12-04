@@ -102,7 +102,7 @@ get_args_for_inspection <- function(design, design_id, d_argdefs, inspect_input,
                 # the format of inp_value depends on whether it is as fixed_arg, if fixed, then without brackets around the value 
                 if (d_argname %in% fixed_args) { 
                     if (d_argdef$vector) {
-                        trimws(strsplit(inp_value, ",")[[1]])
+                        list(parse_sequence_string(inp_value, d_argclass)) # for vector it must be converted as a list 
                     } else {
                         parse_sequence_string(inp_value, d_argclass)
                     }

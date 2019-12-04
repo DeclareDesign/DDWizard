@@ -182,7 +182,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                              input,
                                              design_tab_proxy$get_fixed_design_args(),
                                              design_tab_proxy$input)
-        
+
         if (max(sapply(insp_args, length)) == 0) {
             # only if at least one argument is a sequence (i.e. its length is > 1) for comparison,
             # run the diagnoses and return a result
