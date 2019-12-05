@@ -99,16 +99,14 @@ get_args_for_inspection <- function(design, design_id, d_argdefs, inspect_input,
         inp_elem_name_fixed <- paste0('design_arg_', d_argname, '_fixed')
         if (isTruthy(inp_value) && !isTruthy(inspect_input[[inp_elem_name_fixed]])) {
             insp_args[[d_argname]] <- tryCatch({
-                # the format of inp_value depends on whether it is as fixed_arg, if fixed, then without brackets around the value 
-                if (d_argname %in% fixed_args) { 
-                    if (d_argdef$vector) {
-                        list(parse_sequence_string(inp_value, d_argclass)) # for vector it must be converted as a list 
+                if (d_argdef$vector) {
+                    # split the possible "vector of vectors" into a list of character vectors
+                    if (d_argname %in% fixed_args) { 
+                        # the format of inp_value depends on whether it is as fixed_arg, if fixed, then without brackets around the value 
+                        split_strings <- list(parse_sequence_string(inp_value, cls = 'character')) # for vector it must be converted as a list 
                     } else {
-                        parse_sequence_string(inp_value, d_argclass)
+                        split_strings <- parse_sequence_of_sequences_string(inp_value, cls = 'character')
                     }
-                } else if (d_argdef$vector) {
-                    # split the possible "vector or vectors" into a list of character vectors
-                    split_strings <- parse_sequence_of_sequences_string(inp_value, cls = 'character')
                     
                     if (d_argclass != 'character') {  # convert strings to numbers
                         # eval() is evil, so make sure to include only characters that can make up integer, real or rational number:
