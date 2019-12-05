@@ -31,4 +31,10 @@ $(function() {
             }, 3000);
         }
     });
+    
+    window.setTimeout(function() {  // need to add a little delay b/c Shiny is not fully loaded yet
+        if (window.location.href.indexOf('_state_id_=') === -1) {   // not restoring a bookmark
+            Shiny.setInputValue('show_intro_modal', true);
+        }
+    }, 1500);
 });

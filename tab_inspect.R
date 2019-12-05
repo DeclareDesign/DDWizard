@@ -114,7 +114,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         insp_args_changed = character(),         # arguments that were changed in the inspector by the user
         insp_args_set_after_tab_switch = FALSE,  # records if the the above vector was just set after switching to this tab again
         captured_errors = NULL,     # errors to display
-        custom_state = list()       # additional state values for bookmarking
+        custom_state = list(),      # additional state values for bookmarking
+        restoring_state = NULL      # while restoring from bookmark, this holds the saved input values
     )
     
     # -------------- helper functions --------------
@@ -497,21 +498,26 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         d_args <- design_tab_proxy$design_args()
         defs <- design_tab_proxy$react$design_argdefinitions
         isolate({
-            # set defaults: use value from design args in design tab unless the value was changed in the inspector tab
-            if (react$insp_args_set_after_tab_switch) {
-                # if we just switched over from the design tab, take over the values from there as long as they were
-                # not recorded as "changed" before switching
-                insp_args_changed <- react$insp_args_changed
-                react$insp_args_set_after_tab_switch <- FALSE   # reset
+            if (!is.null(react$restoring_state)) {
+                defaults <- react$restoring_state[startsWith(names(react$restoring_state), 'inspect_arg_')]
+                names(defaults) <- substring(names(defaults), 13)  # remove prefix 'inspect_arg_'
             } else {
-                # otherwise respect the changes at the point where we switched to this tab *and* the changes done since then
-                insp_args_changed <- union(react$insp_args_changed, get_changed_args())
+                # set defaults: use value from design args in design tab unless the value was changed in the inspector tab
+                if (react$insp_args_set_after_tab_switch) {
+                    # if we just switched over from the design tab, take over the values from there as long as they were
+                    # not recorded as "changed" before switching
+                    insp_args_changed <- react$insp_args_changed
+                    react$insp_args_set_after_tab_switch <- FALSE   # reset
+                } else {
+                    # otherwise respect the changes at the point where we switched to this tab *and* the changes done since then
+                    insp_args_changed <- union(react$insp_args_changed, get_changed_args())
+                }
+                
+                # get defaults for inspect inputs; react$design_params_used_in_plot is NULL when switching
+                # from "design" tab for the first time after a designer was loaded
+                defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed,
+                                                       use_only_d_args = is.null(react$design_params_used_in_plot))
             }
-            
-            # get defaults for inspect inputs; react$design_params_used_in_plot is NULL when switching
-            # from "design" tab for the first time after a designer was loaded
-            defaults <- get_inspect_input_defaults(d_args, defs, input, insp_args_changed,
-                                                   use_only_d_args = is.null(react$design_params_used_in_plot))
         
             nspace <- NS('tab_inspect')
             param_boxes <- create_design_parameter_ui('inspect', design_tab_proxy$react, nspace,
@@ -655,6 +661,12 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             args_fixed <- design_tab_proxy$get_fixed_design_args()
             all_fixed <- design_tab_proxy$all_design_args_fixed()
             
+            if (is.null(react$restoring_state)) {
+                input_defaults <- input
+            } else {
+                input_defaults <- react$restoring_state
+            }
+            
             # get estimates and diagnosis information
             # create the design instance and get its estimates
             d <- design_tab_proxy$design_instance()
@@ -671,23 +683,23 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
             inp_estimand_id <- paste0(inp_prefix, "estimand")
             inp_estimand <- selectInput(nspace(inp_estimand_id), "Estimand Label",
                                         choices = unique(d_estimates$estimand_label),
-                                        selected = input[[inp_estimand_id]])
+                                        selected = input_defaults[[inp_estimand_id]])
             boxes <- list_append(boxes, inp_estimand)
             
             # 2. estimator
             inp_estimator_id <- paste0(inp_prefix, "estimator")
             inp_estimator <- selectInput(nspace(inp_estimator_id), "Estimator Label",
-                                         choices = unique(d_estimates$estimator_label[d_estimates$estimand_label == input[[inp_estimand_id]]]),
-                                         selected = input[[inp_estimator_id]])
+                                         choices = unique(d_estimates$estimator_label[d_estimates$estimand_label == input_defaults[[inp_estimand_id]]]),
+                                         selected = input_defaults[[inp_estimator_id]])
             boxes <- list_append(boxes, inp_estimator)
             
             # 3. coefficient
             if ("term" %in% names(d_estimates)) {
-                coefficients <- d_estimates$term[d_estimates$estimand_label == input[[inp_estimand_id]] & d_estimates$estimator_label == input[[inp_estimator_id]]]
+                coefficients <- d_estimates$term[d_estimates$estimand_label == input_defaults[[inp_estimand_id]] & d_estimates$estimator_label == input_defaults[[inp_estimator_id]]]
                 inp_coeff_id <- paste0(inp_prefix, "coefficient")
                 inp_coeff <- selectInput(nspace(inp_coeff_id), "Coefficient",
                                          choices = coefficients,
-                                         selected = input[[inp_coeff_id]])
+                                         selected = input_defaults[[inp_coeff_id]])
                 boxes <- list_append(boxes, inp_coeff)
             } 
             
@@ -696,15 +708,15 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 inp_diag_param_id <- paste0(inp_prefix, "diag_param")
                 inp_diag_param <- selectInput(nspace(inp_diag_param_id), "Diagnosand (y-axis)",
                                               choices = available_diagnosands,
-                                              selected = input[[inp_diag_param_id]])
+                                              selected = input_defaults[[inp_diag_param_id]])
                 boxes <- list_append(boxes, inp_diag_param)
             }
             
             # 4b. optional: diagnosand parameter
-            if (all_fixed || (length(input[[inp_diag_param_id]]) > 0 && input[[inp_diag_param_id]] == 'power')) {
+            if (all_fixed || (length(input_defaults[[inp_diag_param_id]]) > 0 && input_defaults[[inp_diag_param_id]] == 'power')) {
                 inp_diag_param_param_id <- paste0(inp_prefix, "diag_param_param")
-                if (length(input[[inp_diag_param_param_id]]) > 0) {
-                    inp_diag_param_param_default <- input[[inp_diag_param_param_id]]
+                if (length(input_defaults[[inp_diag_param_param_id]]) > 0) {
+                    inp_diag_param_param_default <- input_defaults[[inp_diag_param_param_id]]
                 } else {
                     inp_diag_param_param_default <- 0.05
                 }
@@ -713,7 +725,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                                                      value = inp_diag_param_param_default)
                 boxes <- list_append(boxes, inp_diag_param_param)
             }
-            
+        
             if (!all_fixed) {
                 # 5. CI check box 
                 inp_con_int_param_id <- paste0(inp_prefix, "confi_int_id")
@@ -726,9 +738,9 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                 insp_args <- get_args_for_inspection(design_tab_proxy$react$design,
                                                      design_tab_proxy$react$design_id,
                                                      design_tab_proxy$react$design_argdefinitions,
-                                                     input,
+                                                     input_defaults,
                                                      design_tab_proxy$get_fixed_design_args(),
-                                                     design_tab_proxy$input)
+                                                     design_tab_proxy$input_defaults)
                 
                 if (length(insp_args)>0){ # inp_value is empty when we first load the inspect tab
                     
@@ -752,33 +764,34 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
                     inp_x_param_id <- paste0(inp_prefix, "x_param")
                     inp_x_param <- selectInput(nspace(inp_x_param_id), "Primary parameter (x-axis)",
                                                choices = variable_args,
-                                               selected = input[[inp_x_param_id]])
+                                               selected = input_defaults[[inp_x_param_id]])
                     
                     boxes <- list_append(boxes, inp_x_param)
                     
                     # 7. secondary inspection parameter (color)
-                    variable_args_optional <- c('(none)',variable_args[variable_args != input[[inp_x_param_id]]])
+                    variable_args_optional <- c('(none)',variable_args[variable_args != input_defaults[[inp_x_param_id]]])
                     inp_color_param_id <- paste0(inp_prefix, "color_param")
                     inp_color_param <- selectInput(nspace(inp_color_param_id), "Secondary parameter (color)",
                                                    choices = variable_args_optional,
-                                                   selected = input[[inp_color_param_id]])
+                                                   selected = input_defaults[[inp_color_param_id]])
                     boxes <- list_append(boxes, inp_color_param)
                     
                     # 8. tertiary inspection parameter (small multiples)
                     if (length(variable_args_optional) <= 2) {
                         variable_args_options <- variable_args_optional
                     }else{
-                        variable_args_options <- variable_args_optional[variable_args_optional != input[[inp_color_param_id]]]
+                        variable_args_options <- variable_args_optional[variable_args_optional != input_defaults[[inp_color_param_id]]]
                     }
-                    # variable_args_options <- c('(none)',variable_args_optional[variable_args_optional != input[[inp_color_param_id]]])
+                    # variable_args_options <- c('(none)',variable_args_optional[variable_args_optional != input_defaults[[inp_color_param_id]]])
                     inp_facets_param_id <- paste0(inp_prefix, "facets_param")
                     inp_facets_param <- selectInput(nspace(inp_facets_param_id), "Tertiary parameter (small multiples)",
                                                     choices = variable_args_options,
-                                                    selected = input[[inp_facets_param_id]])
+                                                    selected = input_defaults[[inp_facets_param_id]])
                     boxes <- list_append(boxes, inp_facets_param)
                 }
             }
         }
+        
         do.call(material_card, c(title="Plot configuration", boxes))
     })
     
@@ -896,7 +909,8 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
     onRestore(function(state) {
         print('RESTORING IN INSPECT TAB:')
         react$custom_state <- state$values$custom_state
-        print(react$custom_state)
+        react$restoring_state <- state$input
+        print(state)
         
         # restore additional state objects
         for (objname in bookmark_store_react_objects) {
@@ -910,6 +924,7 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         # update the plot after a small delay when all inputs are ready
         shinyjs::delay(3000, {
             nspace <- NS('tab_inspect')
+            react$restoring_state <- NULL
             shinyjs::click(nspace('update_plot'))
         })
     })
