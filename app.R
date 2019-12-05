@@ -139,6 +139,12 @@ server <- function(input, output, session) {
         }
     })
     
+    # observe show intro event which is triggered on start from custom.js when no bookmark is restored
+    observe({
+        req(input$show_intro_modal)
+        alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
+    })
+    
     # -------------- bookmarking --------------
     
     # handling of bookmarking via "SHARE" button on top right
@@ -150,7 +156,6 @@ server <- function(input, output, session) {
     })
     
     onBookmarked(function(url) {
-        
         shinyalert(
             sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
                     <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
@@ -171,12 +176,6 @@ server <- function(input, output, session) {
         # open the bookmarked tab
         shinymaterial::select_material_tab(session, state$values$current_tab)
     })
-    
-    # -------------- initial actions --------------
-    
-    # once the app is loaded, intro page will come out
-    alert_with_content_from_html_file('Welcome to DDWizard', 'www/get_started.html', 'Get started')
-
 }
 
 # Run the application 
