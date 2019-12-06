@@ -52,7 +52,8 @@ ui <- function(request) {
         tags$head(
             tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
             HTML(piwik_code),
-            includeScript('www/custom.js')
+            includeScript('www/custom.js'),
+            tags$title(app_title)
         ),
         shinyjs::useShinyjs(),
         

@@ -9,6 +9,8 @@
 
 library(future)
 
+options(future.fork.enable = TRUE)  # see ?future::supportsMulticore
+
 app_title <- "DeclareDesign Wizard"
 nav_bar_color <- " light-blue darken-3"
 
