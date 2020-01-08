@@ -74,3 +74,7 @@ pre.share-url {
     background-color: #5f89fa;
     border-color: #5f89fa;
 }
+
+.card-content .alert p {
+    margin-bottom: 1em;
+}
