@@ -328,6 +328,31 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         }
     })
     
+    # message to be displayed if not all varying parameters are used in plot as visual properties
+    plot_config_warning <- reactive({
+        inp_prefix <- 'plot_conf_'
+        inp_plotconf <- c('x_param', 'color_param', 'facets_param')
+        
+        # single-bracket indexing of reactivevalues object is not allowed
+        input_values <- sapply(paste0(inp_prefix, inp_plotconf), function(inp_id) {
+            val <- input[[inp_id]]
+            ifelse(val == '(none)', NA, val)
+        })
+        input_values <- input_values[!is.na(input_values)]
+        names(input_values) <- NULL
+        
+        unused_args <- setdiff(react$insp_args_varying, input_values)
+        if (length(unused_args) > 0) {
+            arglabels <- rm_usc(unused_args)
+            return(paste('<p><b>The following designer parameters are varying, but are not bound to visual 
+                          properties in the plot:</b> ', paste(arglabels, collapse = ', '), '</p><p>You should
+                          bind them by adjusting the plot configuration on the right panel to make sure
+                          that a valid plot is constructed and to make this message disappear.</p>'))
+        }
+        
+        return('')
+    })
+    
     # reactive plot generation function
     generate_plot <- reactive({
         n_steps = 6
@@ -538,9 +563,17 @@ inspectTab <- function(input, output, session, design_tab_proxy) {
         } else {
             res <- results_cached_message()
             
+            plot_conf_warn <- plot_config_warning()
+            
             if (length(react$insp_args_varying) == 0) {
-                res <- list(res, HTML('<b>No varying arguments were set on the left side, hence not plot can be generated. You can still access the diagnosis for the single generated design in the box below.</b>'))
+                res <- list(res, HTML('<p><b>No varying arguments were set on the left side, hence not plot can be 
+                                       generated. You can still access the diagnosis for the single generated design 
+                                       in the box below.</b></p>'))
+            } else if (plot_conf_warn != '') {
+                res <- list(res, HTML(plot_conf_warn))
             }
+            
+            res <- div(res, class = 'alert alert-warning')
         }
         
         res
