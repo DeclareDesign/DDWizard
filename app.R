@@ -52,10 +52,11 @@ ui <- function(request) {
         tags$head(
             tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
             HTML(piwik_code),
-            includeScript('www/custom.js'),
             tags$title(app_title)
         ),
         shinyjs::useShinyjs(),
+        shinyjs::extendShinyjs(script = 'www/custom.js', functions = c("registerBookmarkModalClickHandler",
+                                                                       "unregisterBookmarkModalClickHandler")),
         
         
         bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
@@ -158,8 +159,10 @@ server <- function(input, output, session) {
     
     onBookmarked(function(url) {
         shinyalert(
-            sprintf('<p>Share and restore the status of your design and diagnoses by copying the link below into your browser:</i></p>
-                    <pre class="share-url"><div class="shiny-text-output">%s</div></pre>', url),
+            title = 'Save and share',
+            text = sprintf('<p>You can save and share the current state of your design and diagnosis with the following link:</p>
+                            <pre class="share-url"><code>%s</code></pre>
+                            <div id="copy-share-url" class="btn btn-primary">Copy to clipboard</button>', url),
             closeOnEsc = TRUE,
             closeOnClickOutside = TRUE,
             html = TRUE,
@@ -169,8 +172,10 @@ server <- function(input, output, session) {
             timer = 0,
             imageUrl = "",
             confirmButtonCol = "light-blue darken-3", 
-            animation = TRUE
-            )
+            animation = TRUE,
+            callbackR = function(x) { shinyjs::js$unregisterBookmarkModalClickHandler(); }
+        )
+        shinyjs::js$registerBookmarkModalClickHandler();
     })
     
     onRestore(function(state) {

@@ -63,8 +63,9 @@ body > button.btn.btn-default.action-button.shiny-bound-input {   /** bookmark b
 
 pre.share-url {
     margin-top: 15px;
-    font-size: 13px;
+    font-size: 0.8em;
 }
+
 
 .btn, .btn-large, .sweet-alert button,
 .btn:hover, .btn-large:hover, .sweet-alert button:hover,
