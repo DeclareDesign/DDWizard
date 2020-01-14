@@ -58,8 +58,15 @@ ui <- function(request) {
         shinyjs::extendShinyjs(script = 'www/custom.js', functions = c("registerBookmarkModalClickHandler",
                                                                        "unregisterBookmarkModalClickHandler")),
         
-        
-        bookmarkButton("SHARE", title = "Share the status of your design and diagnoses"),
+        div(
+            HTML(sprintf('<a id="feedback_form" class="btn btn-sm" title="Feedback form" target="_blank" href="%s">
+                          Give feedback</a>', feedback_form_url)),
+            bookmarkButton("Share",
+                           title = "Share the status of your design and diagnoses",
+                           class = "btn btn-sm",
+                           icon = NULL),
+            id = "top_button_row"
+        ),
         
         # tabs
         material_tabs(

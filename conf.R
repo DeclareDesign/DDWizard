@@ -13,6 +13,7 @@ options(future.fork.enable = TRUE)  # see ?future::supportsMulticore
 
 app_title <- "DeclareDesign Wizard"
 nav_bar_color <- " light-blue darken-3"
+feedback_form_url <- "https://docs.google.com/forms/d/e/1FAIpQLSfH8_zy14p1OgvA4Kpx1OSuqx3Kihb5f3OrxA6W_KwDFPqijA/viewform"
 
 args_control_skip_design_args <- c('design_name', 'args_to_fix')   # for all designers
 args_control_skip_specific_designer_args <- list(                  # for specific designers    
