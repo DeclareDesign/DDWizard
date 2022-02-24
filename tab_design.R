@@ -31,7 +31,7 @@ designTabUI <- function(id, label = 'Design') {
                                   actionButton(inputId='learn_more', label= NULL,
                                                icon = icon("question-circle"),
                                                style = "text-align: center; padding-left: 8px; padding-right: 8px;",
-                                               onclick = "window.open('https://declaredesign.org/library', '_blank')")
+                                               onclick = "window.open('https://declaredesign.org/r/designlibrary/', '_blank')")
                               )
                 ),
                 # show designer parameters if a design was loaded
@@ -431,7 +431,7 @@ designTab <- function(input, output, session) {
     
     # create link to vignette based on design input from the library
     output$design_vignette <- renderUI({
-        url <- paste0("window.open('https://declaredesign.org/library/articles/", gsub("_designer","",react$design_id), ".html', '_blank')")
+        url <- paste0("window.open('https://declaredesign.org/r/designlibrary/articles/", gsub("_designer","",react$design_id), ".html', '_blank')")
         actionButton(inputId='vignette', label=" Read more", 
                      icon = icon("book"), 
                      onclick = url)
